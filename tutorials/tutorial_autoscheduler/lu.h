@@ -1,6 +1,6 @@
 #include "polybench-tiramisu.h"
 
-#define N 40
+#define N 128
 
 
 

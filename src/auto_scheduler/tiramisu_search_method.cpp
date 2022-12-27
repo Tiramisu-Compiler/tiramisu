@@ -464,8 +464,6 @@ void beam_search::explore_fusion(syntax_tree& ast, std::vector<std::string> *sch
         // schedule generation based on generator_state attribute in the AST.
         auto new_children = scheds_gen->generate_schedules(ast);
 
-        for(auto& child:new_children)
-            child->move_to_next_head();
 
         children.insert(children.end(), new_children.begin(), new_children.end()); // concatenate
 
@@ -567,7 +565,7 @@ void beam_search::explore_fusion(syntax_tree& ast, std::vector<std::string> *sch
     // Search recursively on the best children
     for (syntax_tree *child : children)
     {
-
+        child->search_state.current_index = 0;
         search_save_matrix(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);
     }
 
@@ -756,6 +754,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
             child->move_to_next_head();
         
         children.insert(children.end(), new_children.begin(), new_children.end()); // concatenate
+
         if  (ast.search_state.is_current_optimization_fully_explored() && !children.empty()) {
             // move to next optimization
             // explores next optimization/alternative

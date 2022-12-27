@@ -2482,16 +2482,6 @@ void syntax_tree::initialize_search_space_optimizations(std::vector<optimization
     
     auto first_optim_alternatives = this->compute_search_space_states(generator_state::optimization_list[0]);
     this->search_state.set_new_heads(first_optim_alternatives);
-    //this->search_state.optimization_index = 0;
-    //std::cout<<"optim_list";
-
-    /*
-    for(auto const& val:generator_state::optimization_list)
-    {
-        std::cout<<val;
-    }*/
-    //std::cout<<"optim_list_end";
-
 }
 
 bool syntax_tree::is_search_space_empty()

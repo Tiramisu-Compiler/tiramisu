@@ -32,12 +32,12 @@ int main(int argc, char **argv)
 
 
     //Computations
-    computation A_sub("[NN]->{A_sub[i,j,k]: 0<=i<NN and 0<=j<i and 0<=k<j}", expr(), true, p_float64, global::get_implicit_function());
-    A_sub.set_expression(A_sub(i,j,k) - A(i,k)*A(k,j));
-    computation A_div("[NN]->{A_div[i,j]: 0<=i<NN and 0<=j<i}", expr(), true, p_float64, global::get_implicit_function());
-    A_div.set_expression(A_sub(i,j,0)/A_sub(j,j,0));
-    computation A_out("[NN]->{A_out[i,l,m]: 0<=i<NN and i<=l<NN and 0<=m<i}", expr(), true, p_float64, global::get_implicit_function());
-    A_out.set_expression(A_out(i,l,m) - A_div(i,m)*A_div(m,l));
+    computation A_sub("{A_sub[i,j,k]: 0<=i<128 and 0<=j<i and 0<=k<j}", expr(A_sub(i,j,k) - A(i,k)*A(k,j)), true, p_float64, global::get_implicit_function());
+    //A_sub.set_expression(A_sub(i,j,k) - A(i,k)*A(k,j));
+    computation A_div("{A_div[i,j]: 0<=i<128 and 0<=j<i}", expr(A_sub(i,j,0)/A_sub(j,j,0)), true, p_float64, global::get_implicit_function());
+    //A_div.set_expression(A_sub(i,j,0)/A_sub(j,j,0));
+    computation A_out("{A_out[i,l,m]: 0<=i<128 and i<=l<128 and 0<=m<i}", expr(A_out(i,l,m) - A_div(i,m)*A_div(m,l)), true, p_float64, global::get_implicit_function());
+    //A_out.set_expression(A_out(i,l,m) - A_div(i,m)*A_div(m,l));
 
     
     // -------------------------------------------------------
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
     // Layer III
     // -------------------------------------------------------
     //Input Buffers
-    buffer b_A("b_A", {N,N}, p_float64, a_output);    
+    buffer b_A("b_A", {128,128}, p_float64, a_output);    
 
     //Store inputs
     A.store_in(&b_A);    
