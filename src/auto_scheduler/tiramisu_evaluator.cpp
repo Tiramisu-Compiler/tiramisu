@@ -111,6 +111,8 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
     // execute the command
     FILE *pipe = popen(cmd.c_str(), "r");
 
+    
+
     // read the output into a string
     char buf[100];
     std::string output;
@@ -136,7 +138,7 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
         measurements.push_back(cumulative_timeout*1000); // converted to ms
         std::cout<< "Execution timed out"<< std::endl;
     }
-
+    
     
     // Remove all the optimizations
     fct->reset_schedules();
@@ -717,8 +719,8 @@ void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, 
     std::string iter_json;
     
     // Represent basic information about this iterator
-    iter_json += "\"lower_bound\" : " + node->low_bound + ",";
-    iter_json += "\"upper_bound\" : " + node->up_bound + "1" + ",";
+    iter_json += "\"lower_bound\" : \"" + node->low_bound + "\",";
+    iter_json += "\"upper_bound\" : \"" + node->up_bound + "+1" + "\",";
         
     iter_json += "\"parent_iterator\" : ";
     if (node->parent == nullptr)
