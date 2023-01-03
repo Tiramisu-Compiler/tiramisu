@@ -15,7 +15,7 @@ This tool can be considered as a module for compilers’ auto-schedulers, from w
 ### Software
 * Linux distributions are recommended, but other operating system are Ok.
 * Python 3.8.
-* Pip (https://pip.pypa.io/en/stable/installation/).
+* Pip 21.0.1 (https://pip.pypa.io/en/stable/installation/).
 * Libraries: numpy 1.20.1, pandas 1.2.4, torch 1.9.1+cu111, tqdm 4.59.0, matplotlib 3.3.4 (the version numbers for these libraries are for reference in case of compatibility issues only).
 
 For instance, if you have an Nvidia GPU, you can install the previous dependencies using pip as follows:
@@ -31,11 +31,13 @@ Cloning this project can be done using the following instructions:
 
 Dataset: https://drive.google.com/drive/folders/1inZjtVcQtU5eyMF7D80gqO5NS1ToiQ6D.
 
-First create a folder called 'datasets' in 
+While you are in the directory
 
-	tiramisu/utils/specialized_models/loop_interchange/datasets
+	tiramisu/utils/specialized_models/loop_interchange/
+	
+Create the folder 'datasets'.
 
-Then, the content of the `datasets` folder in the drive (5 files) should be downloaded and copied to the `datasets` folder created previously.
+Then, you need to download the contents of the `datasets` folder in the drive (5 files) and copy them to the `datasets` folder created previously.
 
 To change the execution from GPU to CPU and vice-versa, the lines 4 and 5 from the training and test scripts (presented later) should be changed ('cpu' or 'cuda:X' where X is the number of the target node).
 
