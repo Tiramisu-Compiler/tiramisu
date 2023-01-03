@@ -31,14 +31,19 @@ Cloning this project can be done using the following instructions:
 
 Dataset: https://drive.google.com/drive/folders/1inZjtVcQtU5eyMF7D80gqO5NS1ToiQ6D.
 
-The content of the `datasets` folder in the drive (5 files), should be downloaded and copied to the `datasets` folder (now empty) located in the same location as the different scripts.
+First create a folder called 'datasets' in 
 
-To change the execution from GPU to CPU and vice-versa, the lines 4 and 5 from the scripts should be changed ('cpu' or 'cuda:X' where X is the number of the target node)
+	tiramisu/utils/specialized_models/loop_interchange/datasets
+
+Then, the content of the `datasets` folder in the drive (5 files) should be downloaded and copied to the `datasets` folder created previously.
+
+To change the execution from GPU to CPU and vice-versa, the lines 4 and 5 from the training and test scripts (presented later) should be changed ('cpu' or 'cuda:X' where X is the number of the target node).
 
 ## Repository content
 
 ### Scripts
 The model can be accessed and tested through 3 scripts:
+
 1) Model_training.py: It loads the data, builds the model and trains it. No input is required, provided that all dataset files are in the indicated folder (datasets) located in the same location as this script. By default, a 5-best model is going to be created. However, it can be changed in the Utils file. The execution of this script outputs the model in a pickle format (with a default name that can be changed). Moreover, It outputs throughout epochs the loss values that the model is getting in both the training and the validation set. Finally, the accuracy of the resulting model on both sets is computed by the end. To run it, use the command: `python model_training.py`.
 
 2) Model_tests.py: This script aims to reproduce the results shown in the paper: Both the accuracy of the model, and its search performances once integrated in Tiramisu’s auto-scheduler. It uses the default name of the pickle model (produced by the precedent script, can be changed) to run these tests. It outputs: the results of the tests (on both the synthetic test set and the benchmarks): the accuracy and the search performance. Moreover, it outputs a text file presenting the results for the search performance.  To run it, use the command: `python model_testing.py`.
@@ -47,11 +52,14 @@ The model can be accessed and tested through 3 scripts:
 
 
 ### Datasets:
+
 In the datasets folder (after downloading the files from the drive link), 5 different pickle/json files can be found:
+
 * 2 Training and 2 Test sets: For compatibility reasons, and in order to reuse the old Tiramisu programs datasets, our model is capable of inputting both the old and the new Tiramisu datasets, as there is slight change in their structure. Which explains the existence of 4 files instead of 2.
 * The benchmarks file: It contains different programs, of different sizes, used in different domains: linear algebra (matmul, for matrix multiplication; and jacobi (1D and 2D) and seidel2d, for solving linear systems with the Jacobi and the Gauss-Seidel method respectively), image processing (blur for blurring images) and simulation domain (heat2d and heat3d, for heat propagation simulations in 2D and 3D spaces, respectively).
 
 ## Scripts Execution Expectations: 
+
 * Approximated time to install the needed environment: a few minutes
 * Approximated time to run/use the scripts and (if wanted) to reproduce the results.
 1) The training script should take approximately 110 minutes if run on a GPU. The number of epochs (NB_EPOCHS) can be changed to reduce this execution time. A trained model is provided in this repository, making this step skippable.
