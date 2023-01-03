@@ -15,6 +15,7 @@ This tool can be considered as a module for compilers’ auto-schedulers, from w
 ### Software
 * Linux distributions are recommended, but other operating system are Ok.
 * Python 3.8.
+* Pip (https://pip.pypa.io/en/stable/installation/).
 * Libraries: numpy 1.20.1, pandas 1.2.4, torch 1.9.1+cu111, tqdm 4.59.0, matplotlib 3.3.4 (the version numbers for these libraries are for reference in case of compatibility issues only).
 
 For instance, if you have an Nvidia GPU, you can install the previous dependencies using pip as follows:
