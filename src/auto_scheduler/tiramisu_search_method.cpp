@@ -730,7 +730,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
                 if(node->computations.size()>0){
                     optimization_info optim_info;
                     optim_info.type = optimization_type::MATRIX;
-                    node->get_all_computations(optim_info.comps);
+                    node->get_node_computations(optim_info.comps);
                     // for the original schedule, the transformation matrix is the identity
                     
                     optim_info.matrix = get_identity(node->depth+1);

@@ -175,6 +175,60 @@ syntax_tree::syntax_tree(tiramisu::function *fct)
     tree_structure_json = evaluate_by_learning_model::get_tree_structure_json(*this);
 }
 
+int get_number_of_iterators_from_set(isl_set *set){
+    assert(set != NULL);
+    
+    assert(isl_set_is_empty(set) == isl_bool_false);
+    isl_ast_build *ast_build;
+    isl_ctx *ctx = isl_set_get_ctx(set);
+    ast_build = isl_ast_build_alloc(ctx);
+
+    // Create identity map for set.
+    isl_space *sp = isl_set_get_space(set);
+    isl_map *sched = isl_map_identity(isl_space_copy(isl_space_map_from_set(sp)));
+    sched = isl_map_set_tuple_name(sched, isl_dim_out, "");
+    isl_map *map =
+        isl_map_intersect_domain(
+            isl_map_copy(sched),
+            isl_set_copy(set));
+    int length = isl_map_dim(map, isl_dim_out);
+    isl_id_list *iterators = isl_id_list_alloc(ctx, length);
+
+    for (int i = 0; i < length; i++)
+    {
+        std::string name;
+        if (isl_set_has_dim_name(set, isl_dim_set, i) == true)
+            name = isl_set_get_dim_name(set, isl_dim_set, i);
+        else
+            name = generate_new_variable_name();
+        isl_id *id = isl_id_alloc(ctx, name.c_str(), NULL);
+        iterators = isl_id_list_add(iterators, id);
+    }
+    ast_build = isl_ast_build_set_iterators(ast_build, iterators);
+
+    isl_ast_node *node = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_from_map(map));
+
+    // handle the case when the actual number of for loops is less than the target unrolled loop
+    isl_ast_node* node1 = node;
+    int cpt = 0;
+    bool stop = false;
+    // calculate the number of for loops 
+    
+    while(!stop){
+        if(isl_ast_node_get_type(node1) == isl_ast_node_for ){
+            cpt++;
+            node1 = isl_ast_node_for_get_body(node1);
+        }
+        else if(isl_ast_node_get_type(node1) == isl_ast_node_user ){
+            stop = true;
+        }
+        else if(isl_ast_node_get_type(node1) == isl_ast_node_if){
+            node1 = isl_ast_node_if_get_then(node1);
+        }             
+    }
+    return cpt;
+}
+
 ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
 {
     std::vector<ast_node*> nodes;
@@ -188,8 +242,8 @@ ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
     this->name = isl_set_get_dim_name(iter_domain, isl_dim_set, 0);
     
     this->low_bound = utility::get_bound(iter_domain, 0, false).to_str();
-    // std::cout<<"got here"<<std::endl;
-    // std::cout<<"expression done"<<utility::get_bound(iter_domain, 0, true).to_str()<<std::endl;
+
+
     this->up_bound = utility::get_bound(iter_domain, 0, true).to_str();
 
     nodes.push_back(this);
@@ -217,132 +271,136 @@ ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
     nodes.back()->computations.push_back(computation_info(comp, ast));
 }
 
-    void syntax_tree::order_computations()
-    {
-        if (roots.size() < 2)
-            return ;
+void syntax_tree::order_computations()
+{
+    if (roots.size() < 2)
+        return ;
 
-        //Sort the scheduling graph (fct->sched_graph) into a list of tuples that represents the order of computations
-        std::vector <tiramisu::computation*> rs_comps; //computations appearing on the right side of the ordering tuples
-        std::vector <tiramisu::computation*> nrs_comps; //computations that never appear on the right side of the ordering tuples
-        for (auto& sched_graph_node : fct->sched_graph)
-            for (auto& sched_graph_child : sched_graph_node.second)
-                rs_comps.push_back(sched_graph_child.first);
+    //Sort the scheduling graph (fct->sched_graph) into a list of tuples that represents the order of computations
+    std::vector <tiramisu::computation*> rs_comps; //computations appearing on the right side of the ordering tuples
+    std::vector <tiramisu::computation*> nrs_comps; //computations that never appear on the right side of the ordering tuples
+    
+    for (auto& sched_graph_node : fct->sched_graph)
+        for (auto& sched_graph_child : sched_graph_node.second)
+            rs_comps.push_back(sched_graph_child.first);
 
-        for (tiramisu::computation* comp: this->computations_list)
-            if(std::find(rs_comps.begin(), rs_comps.end(), comp) == rs_comps.end()) // if comp never appears on the right side of the ordering tuples
-                nrs_comps.push_back(comp);
+    for (tiramisu::computation* comp: this->computations_list)
+        if(std::find(rs_comps.begin(), rs_comps.end(), comp) == rs_comps.end()) // if comp never appears on the right side of the ordering tuples
+            nrs_comps.push_back(comp);
 
-        std::vector<std::pair<tiramisu::computation*, std::unordered_map<tiramisu::computation*, int>>> sorted_sched_graph;
-        std::vector<tiramisu::computation *> ordered_computations_list; // a list that will contain computations on their computing order
+    std::vector<std::pair<tiramisu::computation*, std::unordered_map<tiramisu::computation*, int>>> sorted_sched_graph;
+    std::vector<tiramisu::computation *> ordered_computations_list; // a list that will contain computations on their computing order
 
-        for (tiramisu::computation* comp: nrs_comps){
-            tiramisu::computation* current_comp= comp;
+    for (tiramisu::computation* comp: nrs_comps){
+        tiramisu::computation* current_comp= comp;
+        ordered_computations_list.push_back(current_comp);
+        while (fct->sched_graph.find(current_comp) != fct->sched_graph.end()) {
+            auto sched_graph_l = fct->sched_graph[current_comp];
+            if (sched_graph_l.empty()) // if empty
+                break; //not sure if it's the right way to do it
+            sorted_sched_graph.push_back(std::make_pair(current_comp, sched_graph_l));
+            current_comp = sched_graph_l.begin()->first;
             ordered_computations_list.push_back(current_comp);
-            while (fct->sched_graph.find(current_comp) != fct->sched_graph.end()) {
-                auto sched_graph_l = fct->sched_graph[current_comp];
-                if (sched_graph_l.empty()) // if empty
-                    break; //not sure if it's the right way to do it
-                sorted_sched_graph.push_back(std::make_pair(current_comp, sched_graph_l));
-                current_comp = sched_graph_l.begin()->first;
-                ordered_computations_list.push_back(current_comp);
-            }
-        }
-        this->computations_list = ordered_computations_list; // replace the computation list with the ordered one
-
-        // We use the sorted scheduling graph to construct the computations AST
-        for (auto& sched_graph_node : sorted_sched_graph)
-        {
-            tiramisu::computation *parent_comp = sched_graph_node.first;
-
-            for (auto& sched_graph_child : sched_graph_node.second)
-            {
-                tiramisu::computation *child_comp = sched_graph_child.first;
-                int level = sched_graph_child.second;
-
-                if (level < 0)
-                    continue;
-
-                ast_node *parent_comp_ast_node = find_node_by_level(parent_comp, level);
-                ast_node *child_comp_ast_node = find_node_by_level(child_comp, level);
-
-                // Insert computations
-                if (!child_comp_ast_node->computations.empty())
-                {
-                    if (parent_comp_ast_node->children.empty())
-                    {
-                        for (computation_info& comp_info : child_comp_ast_node->computations)
-                        {
-                            parent_comp_ast_node->computations.push_back(comp_info);
-                            computations_mapping[comp_info.comp_ptr] = parent_comp_ast_node;
-                        }
-                    }
-
-                    else
-                    {
-                        
-                        ast_node *new_node = new ast_node();
-
-                        new_node->depth = child_comp_ast_node->depth;
-                        new_node->name = "dummy_iter";
-                        new_node->low_bound = "0";
-                        new_node->up_bound = "0";
-                        new_node->computations = child_comp_ast_node->computations;
-                        new_node->parent = parent_comp_ast_node;
-
-                        for (computation_info& comp_info : child_comp_ast_node->computations)
-                            computations_mapping[comp_info.comp_ptr] = new_node;
-
-                        parent_comp_ast_node->children.push_back(new_node);
-                    }
-                }
-
-                // Insert children
-                for (ast_node *child : child_comp_ast_node->children)
-                {
-                    parent_comp_ast_node->children.push_back(child);
-                    child->parent = parent_comp_ast_node;
-                }
-
-                ast_node *root_node = child_comp_ast_node->get_root_node();
-                auto it = std::find(roots.begin(), roots.end(), root_node);
-                roots.erase(it);
-            }
         }
     }
-    ast_node* syntax_tree::get_last_shared_parent(ast_node* node1, ast_node* node2) const
+    this->computations_list = ordered_computations_list; // replace the computation list with the ordered one
+    
+    // We use the sorted scheduling graph to construct the computations AST
+    for (auto& sched_graph_node : sorted_sched_graph)
     {
-        std::vector<ast_node*> parent_list_1;
-        std::vector<ast_node*> parent_list_2;
-
-        // construct the list of ancestors of both nodes
-        ast_node* parent_node = node1;
-        while (parent_node != nullptr)
+        tiramisu::computation *parent_comp = sched_graph_node.first;
+        
+        for (auto& sched_graph_child : sched_graph_node.second)
         {
-            if (parent_node->name != "dummy_iter") // ignore dummy iterators
-                parent_list_1.push_back(parent_node);
-            parent_node = parent_node->parent;
+            tiramisu::computation *child_comp = sched_graph_child.first;
+            
+            int level = sched_graph_child.second;
+            
+            
+            if (level < 0)
+                continue;
+                
+
+            ast_node *parent_comp_ast_node = find_node_by_level(parent_comp, level);
+            ast_node *child_comp_ast_node = find_node_by_level(child_comp, level);
+            
+            // Insert computations
+            if (!child_comp_ast_node->computations.empty())
+            {
+                if (parent_comp_ast_node->children.empty())
+                {
+                    for (computation_info& comp_info : child_comp_ast_node->computations)
+                    {
+                        parent_comp_ast_node->computations.push_back(comp_info);
+                        computations_mapping[comp_info.comp_ptr] = parent_comp_ast_node;
+                    }
+                }
+
+                else
+                {
+                    
+                    ast_node *new_node = new ast_node();
+
+                    new_node->depth = child_comp_ast_node->depth;
+                    new_node->name = "dummy_iter";
+                    new_node->low_bound = "0";
+                    new_node->up_bound = "0";
+                    new_node->computations = child_comp_ast_node->computations;
+                    new_node->parent = parent_comp_ast_node;
+
+                    for (computation_info& comp_info : child_comp_ast_node->computations)
+                        computations_mapping[comp_info.comp_ptr] = new_node;
+
+                    parent_comp_ast_node->children.push_back(new_node);
+                }
+            }
+
+            // Insert children
+            for (ast_node *child : child_comp_ast_node->children)
+            {
+                parent_comp_ast_node->children.push_back(child);
+                child->parent = parent_comp_ast_node;
+            }
+
+            ast_node *root_node = child_comp_ast_node->get_root_node();
+            auto it = std::find(roots.begin(), roots.end(), root_node);
+            roots.erase(it);
         }
-        std::reverse(parent_list_1.begin(), parent_list_1.end());
-
-        parent_node = node2;
-        while (parent_node != nullptr)
-        {
-            if (parent_node->name != "dummy_iter") // ignore dummy iterators
-                parent_list_2.push_back(parent_node);
-            parent_node = parent_node->parent;
-        }
-        std::reverse(parent_list_2.begin(), parent_list_2.end());
-
-        ast_node* latest_shared_parent = nullptr;
-        for (int i = 0; i< std::min(parent_list_1.size(), parent_list_2.size()); i++)
-            if (parent_list_1[i]==parent_list_2[i])
-                latest_shared_parent = parent_list_2[i];
-            else
-                break;
-
-        return latest_shared_parent;
     }
+}
+ast_node* syntax_tree::get_last_shared_parent(ast_node* node1, ast_node* node2) const
+{
+    std::vector<ast_node*> parent_list_1;
+    std::vector<ast_node*> parent_list_2;
+
+    // construct the list of ancestors of both nodes
+    ast_node* parent_node = node1;
+    while (parent_node != nullptr)
+    {
+        if (parent_node->name != "dummy_iter") // ignore dummy iterators
+            parent_list_1.push_back(parent_node);
+        parent_node = parent_node->parent;
+    }
+    std::reverse(parent_list_1.begin(), parent_list_1.end());
+
+    parent_node = node2;
+    while (parent_node != nullptr)
+    {
+        if (parent_node->name != "dummy_iter") // ignore dummy iterators
+            parent_list_2.push_back(parent_node);
+        parent_node = parent_node->parent;
+    }
+    std::reverse(parent_list_2.begin(), parent_list_2.end());
+
+    ast_node* latest_shared_parent = nullptr;
+    for (int i = 0; i< std::min(parent_list_1.size(), parent_list_2.size()); i++)
+        if (parent_list_1[i]==parent_list_2[i])
+            latest_shared_parent = parent_list_2[i];
+        else
+            break;
+
+    return latest_shared_parent;
+}
 
 void syntax_tree::transform_ast()
 {
@@ -354,6 +412,7 @@ void syntax_tree::transform_ast()
 
 void syntax_tree::transform_ast(optimization_info const& opt)
 {
+    //TODOF why is transform ast by fusion desactivated
     switch(opt.type)
     {
         /*case optimization_type::FUSION:
@@ -456,7 +515,14 @@ void syntax_tree::transform_ast(optimization_info const& opt)
  */
 std::vector<std::vector<int>>  multiply_mats(const std::vector<std::vector<int>> & m1, const std::vector<std::vector<int>> & m2)
 {
-std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()));
+    if (m1.size() == 0 || m2.size() == 0){
+        throw std::invalid_argument( "At least one of the matrices to be multiplied is empty" );
+    }
+    if( m1.at(0).size() != m2.size()){
+        throw std::invalid_argument( "Matrices don't have compatible sizes for multiplication" );
+    }
+        
+    std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()));
 
     for(std::size_t row = 0; row < result.size(); ++row) {
         for(std::size_t col = 0; col < result.at(0).size(); ++col) {
@@ -495,89 +561,22 @@ void update_node(std::vector<ast_node *> shared_nodes, std::vector<std::vector<i
 }
 void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
 {
-    stage_isl_states();  
-/**
- * Applying to staging
-*/  
+    /**
+     * Applying to staging
+    */  
+    stage_isl_states(); 
     std::vector<tiramisu::computation *> all_data;
     std::vector<ast_node *> all_nodes;
     opt.node->get_all_nodes(all_nodes);
     std::vector<ast_node*> to_change_nodes;
     std::vector<ast_node*> temp_to_change;
     std::vector<std::vector<int>> temp_matrix;
-    for(ast_node* node1:all_nodes ){
-        for(computation_info info:node1->computations)
+    for(ast_node* node1 : all_nodes ){
+        for(computation_info info : node1->computations)
         {   
-            std::vector<std::string> loop_names = info.comp_ptr->get_loop_level_names();
-            ast_node * current = node1;
-            while (current!= nullptr){
-                to_change_nodes.push_back(current);
-                current= current->parent;
-            }
-
-            std::reverse(to_change_nodes.begin(),to_change_nodes.end());
-            std::vector <  std::vector<int> >  matrix(to_change_nodes.size());
-            for(int l = 0; l<matrix.size(); l++){
-                matrix.at(l)= std::vector<int>(to_change_nodes.size());
-                for(int c = 0; c<matrix.size(); c++){
-                    if (l!=c ){
-                        matrix.at(l).at(c) = 0;
-                    }else{
-                        matrix.at(l).at(c) = 1;
-                    }
-                }
-            }
-
-            for(int i=0 ; i<opt.matrix.size();i++){
-                for(int j=0 ; j<opt.matrix.size();j++){
-                    matrix.at(i).at(j)= opt.matrix.at(i).at(j);
-                }
-            }
-            
-            info.comp_ptr->matrix_transform(matrix);
-            if(temp_to_change.size()==0){
-                for(ast_node* node:to_change_nodes){
-                    temp_to_change.push_back(node);
-                }
-                temp_matrix = matrix;
-            }
-            
-            to_change_nodes.clear();
-            std::string f = "";
-            for(auto& str:loop_names)
-            {
-                f+=str+" ";
-            }    
+            info.comp_ptr->matrix_transform(opt.matrix);    
         }
-    }
-    // Getting the intial bounds of the program loops        
-    std::vector<std::vector<std::string>> starting_bounds_mat;
-    std::vector<std::string> vec;
-    for (int k = 0; k < temp_to_change.size(); k++) {
-        vec.push_back(temp_to_change[k]->low_bound);
-        vec.push_back(temp_to_change[k]->up_bound);
-        starting_bounds_mat.push_back(vec);
-        vec.clear();
-    }
-    // Applying the transformation matrix to get the transformaed program loops
-    // TODOF   
-    // std::vector<std::vector<int>> transformed_bounds_matrix = multiply_mats( temp_matrix, starting_bounds_mat);
-    // int temp;
-    // for (int i = 0; i < transformed_bounds_matrix.size(); i++) {
-    //     for (int j = 0; j < transformed_bounds_matrix[i].size(); j++)
-    //         {
-    //             if(j==0 && transformed_bounds_matrix[i][0] > transformed_bounds_matrix[i][1])
-    //             {
-    //                 temp = transformed_bounds_matrix[i][0];
-    //                 transformed_bounds_matrix[i][0] = transformed_bounds_matrix[i][1];
-    //                 transformed_bounds_matrix[i][1] = temp;
-    //                 break;
-    //             }
-    //         } 
-    // }
-    // // Update the AST with new loop bounds 
-    // update_node( temp_to_change , transformed_bounds_matrix);
- 
+    } 
     recover_isl_states();
     
 }
@@ -1442,7 +1441,12 @@ void ast_node::update_depth(int depth)
     for (ast_node *child : children)
         child->update_depth(this->depth + 1);
 }
-
+void ast_node::get_node_computations(std::vector<tiramisu::computation*>& comps)
+{
+    for (computation_info& comp_info : computations)
+        comps.push_back(comp_info.comp_ptr);
+    
+}
 void ast_node::get_all_computations(std::vector<tiramisu::computation*>& comps)
 {
     for (computation_info& comp_info : computations)
@@ -1749,17 +1753,7 @@ void ast_node::collect_all_computation(std::vector<computation_info*>& vector)
         child->collect_all_computation(vector);
     }
 }
-bool is_number_second_algorithm(const std::string s)
-{
-    char* p;
-    long converted = strtol(s.c_str(), &p, 10);
-    if (*p) {
-        return false;
-    }
-    else {
-        return true;
-    }
-}
+
 bool is_number(const std::string& s)
 {
     return !s.empty() && std::find_if(s.begin(), 
@@ -2061,14 +2055,12 @@ bool syntax_tree::ast_is_legal() const
 {
     
     stage_isl_states();
-    
+
     this->fct->prepare_schedules_for_legality_checks(true);
 
     bool result = this->fct->check_legality_for_function();
-      
 
     recover_isl_states();
-     
     
     return result;
 
@@ -2107,7 +2099,7 @@ std::string syntax_tree::get_schedule_str()
         
         for (auto comp: optim.comps)
         {
-            comps_list_str+= "C"+std::to_string(get_computation_index(comp))+",";
+            comps_list_str+= "C"+std::to_string(get_computation_index(comp))+",";    
         }
         comps_list_str.pop_back(); //remove the last comma
         comps_list_str+="}";
@@ -2150,12 +2142,14 @@ std::string syntax_tree::get_schedule_str()
                                     matrix.at(i).at(j)= optim.matrix.at(i).at(j);
                                 }
                             }
-                            matrices.at(index) = multiply_mats(matrix, matrices.at(index) );
-                            }else{
-                                matrices.at(index) = multiply_mats(optim.matrix, matrices.at(index) );
-                            }       
+                            matrices.at(index) = multiply_mats(matrix, matrices.at(index)); 
+                        }else{
+                            
+                            matrices.at(index) = multiply_mats(optim.matrix, matrices.at(index) );
+                        }
+                              
                     }          
-                }          
+                }   
                 break;
 
             case optimization_type::SHIFTING:
@@ -2209,8 +2203,8 @@ std::string syntax_tree::get_schedule_str()
             schedule_str.insert(start_matrices,",");
             start_matrices+=1;
 
-            for(int i = 0; i < matrices.at(index).size(); i++){
-                for(int j = 0; j< matrices.at(index).size(); j++){         
+            for(int i = 0; i < matrices.at(index).size(); i++){    
+                for(int j = 0; j< matrices.at(index).size(); j++){ 
                     schedule_str.insert(start_matrices,std::to_string(matrices.at(index).at(i).at(j)));
                     start_matrices+=std::to_string(matrices.at(index).at(i).at(j)).size();
                     if(!(i==matrices.at(index).size()-1 && j==matrices.at(index).size()-1)){schedule_str.insert(start_matrices,",");start_matrices+=1;}
@@ -2376,8 +2370,9 @@ std::vector<ast_node*> ast_node::collect_shared_nodes_from_head()
     ast_node * current = this;
 
     result.push_back(this);
-
-    while(current->children.size() == 1)
+    // if a node has one or more computation or more than one child we stop
+    // in the case where we find a computation the branch must stop here since we cannot apply transformations with other branches 
+    while(current->children.size() == 1 && current->computations.size()==0)
     {
         current = current->children[0];
         result.push_back(current);

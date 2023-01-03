@@ -14,7 +14,7 @@ namespace tiramisu::auto_scheduler
 inline bool check_if_number(const std::string s)
 {
     char* p;
-    long converted = strtol(s.c_str(), &p, 10);
+    strtol(s.c_str(), &p, 10);
     if (*p) {
         return false;
     }

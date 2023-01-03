@@ -394,7 +394,11 @@ public:
      * this node, with the given depth being the depth of this node.
      */
     void update_depth(int depth);
-
+    /**
+     * Fill the given array with all the computations computed 
+     * at this level.
+     */
+    void get_node_computations(std::vector<tiramisu::computation*>& comps);
     /**
      * Fill the given array with all the computations computed 
      * at this level and the levels below.

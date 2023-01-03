@@ -3094,16 +3094,13 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
     isl_map *schedule = this->get_schedule();
     DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
     DEBUG(3, tiramisu::str_dump("Matrix_transformation the dimensions " + std::to_string(matrix.size())));
-    //std::cout<<"Original schedule matrix transform: "<< isl_map_to_str(schedule)<<std::endl;
     
     int n_dims = isl_map_dim(schedule, isl_dim_out);
 
     std::vector<isl_id *> dimensions;
 
     std::vector<std::string> dim_vector;
-    //std::cout <<" Loop level name befors ==="<<std::endl;
-    //std::vector<std::string> str = this->get_loop_level_names();
-    //for (std::string name : str)std::cout <<" Loop level name "<< name<< std::endl;
+    
     // ------------------------------------------------------------
     // Create a map for the duplicate schedule.
     // ------------------------------------------------------------
@@ -3135,7 +3132,6 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
     }
     
     map = map + "] ->" + this->get_name() + "[";
-    //std::cout<<"left side of map: "<<map<<std::endl;
     std::vector<std::string> temp_vector;
     std::string vector_content;
     int t = 1;
@@ -3158,11 +3154,7 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
         temp_vector.push_back(vector_content);
         vector_content.clear();     
     }
-    //std::cout<<"temp vector before: "<<std::endl;
-    //for (std::string name:temp_vector) std::cout <<name<<std::endl;
 
-
-    //std::cout<<"last t is: "<<last_t<<std::endl;
     int dim_vector_size = (dim_vector.size()-1) / 2 - temp_vector.size();
     if(last_t<dim_vector.size()-1){
         for (int j =0;j<dim_vector_size;j++){
@@ -3171,16 +3163,12 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
     }
     }
     
-    //std::cout<<"temp vector: "<<std::endl;
-    //for (std::string name:temp_vector) std::cout <<name<<std::endl;
-    //std::cout<<"dim_vector: "<<std::endl;
-    //for (std::string name:dim_vector) std::cout <<name<<std::endl;
+    
     t = 0;
-    //std::cout<<"m_dims: "<<n_dims<<std::endl;
+
     for (int i = 0; i < n_dims; i++)
     {
-        //std::cout<<"i: "<<i<<std::endl;
-        //std::cout<<"left side of map: "<<map<<std::endl;
+        
         if (i == 0)
         {
             int duplicate_ID = isl_map_get_static_dim(schedule, 0);
@@ -3204,8 +3192,7 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
 
     map = map + "]}";
     
-    //std::cout<<"left side of map final: "<<map<<std::endl;
-//map ="{ comp01[0,t28,i0,t29,i1,t30,i3,t31] ->comp01[0,t28,i0=0i0+1i1+0i3,t29,i1=1i0+0i1+0i3,t30,i2=0i0+0i1+1i3,t31]}";
+    
     DEBUG(3, tiramisu::str_dump("A map that transforms the duplicate"));
     DEBUG(3, tiramisu::str_dump(map.c_str()));
 
@@ -3223,21 +3210,7 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
     DEBUG(3, tiramisu::str_dump("Schedule after interchange: ", isl_map_to_str(schedule)));
    
     this->set_schedule(schedule);
-    //std::cout<<"Schedule bfore ###"<< isl_map_to_str(this->get_schedule())<<std::endl;
-
-    //this->name_unnamed_iteration_domain_dimensions();
-    //this->name_unnamed_time_space_dimensions();
-    //this->set_loop_level_names_matrix(str);
-    //std::cout<<"Schedule after: #####"<< isl_map_to_str(this->get_schedule())<<std::endl;
-
-   // std::cout <<" Loop level name after ==="<<std::endl;
-  
-  
-    //std::vector<std::string> str1= this->get_loop_level_names();
-
-    //for (std::string name : str1)std::cout <<" Loop level name "<< name<< std::endl;
-    //std::cout<<"Original schedule before returning: "<< isl_map_to_str(schedule) <<std::endl;
-    //std::cout<<"schedule to be set: "<< isl_map_to_str(schedule) <<std::endl;
+    
     DEBUG_INDENT(-4);
 }
 
@@ -6049,7 +6022,7 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
     assert(dim >= 0);
     assert(dim < isl_space_dim(isl_set_get_space(set), isl_dim_set));
     assert(isl_set_is_empty(set) == isl_bool_false);
-
+    // std::cout<<std::string("Getting the ") + (upper ? "upper" : "lower") + " bound on the dimension " + std::to_string(dim) + " of the set " + isl_set_to_str(set)<<std::endl;
     DEBUG(10, tiramisu::str_dump(std::string("Getting the ") + (upper ? "upper" : "lower") +
                                  " bound on the dimension " +
                                  std::to_string(dim) + " of the set ",
