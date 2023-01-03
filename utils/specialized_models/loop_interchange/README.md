@@ -18,11 +18,13 @@ This tool can be considered as a module for compilers’ auto-schedulers, from w
 * These libraries are expected to be installed (the version numbers are for reference in case of compatibility issues only): numpy 1.20.1, pandas 1.2.4, torch 1.9.1+cu111, tqdm 4.59.0, matplotlib 3.3.4.
 
 For instance, with NVIDIA GPU, the installation with pip should be done this way:
+
 	pip install numpy pandas tqdm matplotlib
 	pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html
 
 ## Getting Started
 Cloning this project can be done using the following instructions:
+
 	git clone https://github.com/Tiramisu-Compiler/tiramisu.git
 	cd tiramisu/utils/specialized_models/loop_interchange/
 
