@@ -13,11 +13,11 @@ This tool can be considered as a module for compilers’ auto-schedulers, from w
 * No specialized hardware is needed to run any of the scripts.
 
 ### Software
-* For the operating system: any operating system. However, Linux distributions are recommended.
-* As the model in written with python, it has to be installed (Python 3.8).
-* These libraries are expected to be installed (the version numbers are for reference in case of compatibility issues only): numpy 1.20.1, pandas 1.2.4, torch 1.9.1+cu111, tqdm 4.59.0, matplotlib 3.3.4.
+* Linux distributions are recommended, but other operating system are Ok.
+* Python 3.8.
+* Libraries: numpy 1.20.1, pandas 1.2.4, torch 1.9.1+cu111, tqdm 4.59.0, matplotlib 3.3.4 (the version numbers for these libraries are for reference in case of compatibility issues only).
 
-For instance, with NVIDIA GPU, the installation with pip should be done this way:
+For instance, if you have an Nvidia GPU, you can install the previous dependencies using pip as follows:
 
 	pip install numpy pandas tqdm matplotlib
 	pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html
