@@ -28,7 +28,8 @@ Cloning this project can be done using the following instructions:
 	git clone https://github.com/Tiramisu-Compiler/tiramisu.git
 	cd tiramisu/utils/specialized_models/loop_interchange/
 
-Due to file size restrictions of Github, the datasets have been uploaded on Google drive. They are accessible from the link: https://drive.google.com/drive/folders/1inZjtVcQtU5eyMF7D80gqO5NS1ToiQ6D.
+Dataset: https://drive.google.com/drive/folders/1inZjtVcQtU5eyMF7D80gqO5NS1ToiQ6D.
+
 The content of the `datasets` folder in the drive (5 files), should be downloaded and copied to the `datasets` folder (now empty) located in the same location as the different scripts.
 
 To change the execution from GPU to CPU and vice-versa, the lines 4 and 5 from the scripts should be changed ('cpu' or 'cuda:X' where X is the number of the target node)
