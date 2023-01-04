@@ -8,12 +8,6 @@
 
 #include <stdexcept>
 #define TIME_LIMIT 1000
-struct UnrollingException : public std::exception {
-    const char * what () const throw ()
-        {
-            return "unrolling error : unrolled loop level is a user node due to dimension error";
-        }
-};
 namespace tiramisu::auto_scheduler
 {
 
@@ -281,7 +275,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
                             measurements = exec_eval->get_measurements(**iterator, false, schedule_timeout,true);
                         }
                     }
-                    catch(UnrollingException e){ 
+                    catch(NonForLoopBoundExtractionException e){ 
                         // Remove all the optimizations
                         exec_eval->fct->reset_schedules();
                         measurements.clear();
@@ -789,8 +783,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
     std::vector<std::vector<std::vector<int>>> repeated;
     
 
-    // number of matrices explored so far at this level. used to go through the matrices global variable
-    int nb_matrices =0;
+
 
     syntax_tree *child = *iterator;
 

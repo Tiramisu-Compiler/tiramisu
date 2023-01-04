@@ -1763,7 +1763,8 @@ bool is_number(const std::string& s)
 // TODOF check if both bounds are ints: same behaviour, otherwise check if strings are equal for now?
 bool ast_node::have_similar_itr_domain(ast_node * other)
 {
-    if(is_number(this->low_bound) && is_number(this->up_bound)){
+    // check whether both bounds are ints to be able to compare. If that's not the case return true, generate fusion and leave the decision to the legality check
+    if(is_number(this->low_bound) && is_number(this->up_bound) && is_number(other->low_bound) && is_number(other->up_bound)){
         int nb_itr1 = stoi(this->up_bound) - stoi(this->low_bound);
         int nb_itr2 = stoi(other->up_bound) - stoi(other->low_bound);
 
@@ -2388,6 +2389,7 @@ bool ast_node::is_optimized_by_tag()
 
 void collect_computation_states_for_fusion(ast_node * node, std::vector<std::pair<ast_node*,int>>& fusion_candidates)
 {
+
     for(int i=0;i<node->computations.size(); i++)
     {
         fusion_candidates.push_back(std::make_pair(node,i));
@@ -2418,20 +2420,10 @@ std::vector<std::pair<ast_node*,int>> syntax_tree::compute_search_space_states(o
         case optimization_type::FUSION:
 
             {
-
                 for(ast_node * node: this->roots)
                 {
                     collect_computation_states_for_fusion(node,heads);
                 }
-                /*
-
-                std::cout<<"FUSION EXPLORATION";
-                for(auto& pairt:heads)
-                {
-                    std::cout<<std::get<0>(pairt)->name;
-                    std::cout<<"MX";
-                }*/
-
             }
 
         break;
