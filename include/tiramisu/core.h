@@ -97,7 +97,17 @@ enum xfer_attr {
     GPU2CPU,
     GPU2GPU
 };
-
+/**
+ * Extraction of the bounds of a node that is either not a for loop, or the case where the set contains elements like the following:
+ * [{NN]->{A_diag[i,l,m]: 0<=i<NN and l=i and 0<=m<i} 
+ * This causes an error when trying to recover the bounds of l
+ */
+struct NonForLoopBoundExtractionException : public std::exception {
+        const char * what () const throw ()
+            {
+                return "Trying to extract bounds from a node that is not a for loop.";
+            }
+    };
 struct xfer {
     tiramisu::send *s;
     tiramisu::recv *r;
@@ -765,7 +775,8 @@ protected:
      * at the loop level \p lev.
      */
     int get_vector_length(const std::string &comp, int lev) const;
-
+    
+    
     /**
      * If the computation \p comp is unrolled at the loop level \p lev,
      * return its unrolling factor.

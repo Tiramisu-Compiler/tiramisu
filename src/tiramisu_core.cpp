@@ -14,12 +14,7 @@
 #ifdef _WIN32
 #include <iso646.h>
 #endif
-struct UnrollingException : public std::exception {
-    const char * what () const throw ()
-        {
-            return "unrolling error";
-        }
-};
+
 namespace tiramisu
 {
 int send::next_msg_tag = 0;
@@ -6096,7 +6091,7 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
         }             
     }
     // if the number of for levels is less or equal to the unrolled loop, skip the optimization (exception handled when getting measurements)
-    if(cpt <= dim){throw UnrollingException();}
+    if(cpt <= dim){throw NonForLoopBoundExtractionException();}
     e = utility::extract_bound_expression(node, dim, upper);
     isl_ast_build_free(ast_build);
 
