@@ -242,7 +242,7 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
         
         for (int i = 0; i < comp_info.iters.size(); ++i)
         {
-            comp_json += "\"" + comp_info.iters[i].name + "\"";
+            comp_json += "\"" + comp_info.iters[i].name + comp_info.comp_ptr->get_name() + std::to_string(i) + "\"";
             if (i != comp_info.iters.size() - 1)
                 comp_json += ",";
         }
@@ -784,9 +784,16 @@ void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, 
 
 std::string evaluate_by_learning_model::get_tree_structure_json(syntax_tree const& ast)
 {
-    // For the moment, this only supports ASTs with one root node.
-    ast_node *node = ast.roots[0];
-    return get_tree_structure_json(node);
+    std::string roots_jsons = "\"roots\" : [";
+
+    for (ast_node *node : ast.roots)
+    {
+        roots_jsons += "{" + get_tree_structure_json(node) + "},";
+    }
+    roots_jsons.pop_back();
+    roots_jsons += "]";
+
+    return roots_jsons;
 }
 
 std::string evaluate_by_learning_model::get_tree_structure_json(ast_node *node)
