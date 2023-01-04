@@ -317,8 +317,11 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
                 comp_json += ",";
         }
         
-        comp_json += "]";
+        comp_json += "],";
     
+        tiramisu::expr comp_info_expr = comp_info.comp_ptr->get_expr();
+        comp_json += "\"expression_representation\" : " +  comp_info_expr.to_json();
+
         computations_json += "\"" + comp_info.comp_ptr->get_name() + "\" : {" + comp_json + "},";
     }
     

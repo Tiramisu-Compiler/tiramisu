@@ -1643,6 +1643,404 @@ public:
           return str;
         }
 
+    std::string to_json() const
+    {
+        std::string str = std::string("");
+
+        if (this->get_expr_type() != e_none)
+        {
+            str +=  "{\"expr_type\" : ";
+                switch (this->etype)
+                {
+                case tiramisu::e_op:
+                {
+                    switch (this->get_op_type())
+                    {
+                    case tiramisu::o_logical_and:
+                        str +=  " \"and\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_logical_or:
+                        str +=  " \"or\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_max:
+                        str +=  " \"max\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_min:
+                        str +=  " \"min\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_minus:
+                        str +=  " \"minus\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_add:
+                        str +=  " \"add\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_sub:
+                        str +=  " \"sub\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_mul:
+                        str +=  " \"mul\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_div:
+                        str +=  " \"div\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_mod:
+                        str +=  " \"mod\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_memcpy:
+                        str +=  " \"memcpy\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_select:
+                        str +=  " \"select\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  ",";
+                        str += this->get_operand(2).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_cond:
+                        str +=  " \"cond\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_lerp:
+                        str +=  " \"lerp\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  ",";
+                        str += this->get_operand(2).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_le:
+                        str +=  " \"le\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_lt:
+                        str +=  " \"lt\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_ge:
+                        str +=  " \"ge\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_gt:
+                        str +=  " \"gt\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_logical_not:
+                        str +=  " \"not\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_eq:
+                        str +=  " \"eq\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_ne:
+                        str +=  " \"ne\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_right_shift:
+                        str +=  " \"right_shift\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_left_shift:
+                        str +=  " \"left_shift\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  ",";
+                        str += this->get_operand(1).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_floor:
+                        str +=  " \"floor\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_sin:
+                        str +=  " \"sin\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_cos:
+                        str +=  " \"cos\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_tan:
+                        str +=  " \"tan\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_atan:
+                        str +=  " \"atan\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_acos:
+                        str +=  " \"acos\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_asin:
+                        str +=  " \"asin\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_sinh:
+                        str +=  " \"sinh\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_cosh:
+                        str +=  " \"cosh\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_tanh:
+                        str +=  " \"tanh\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_asinh:
+                        str +=  " \"asinh\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_acosh:
+                        str +=  " \"acosh\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_atanh:
+                        str +=  " \"atanh\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_abs:
+                        str +=  " \"abs\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_sqrt:
+                        str +=  " \"sqrt\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_expo:
+                        str +=  " \"expo\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_log:
+                        str +=  " \"log\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_ceil:
+                        str +=  " \"ceil\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_round:
+                        str +=  " \"round\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_trunc:
+                        str +=  " \"trunc\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_cast:
+                        str +=  " \"cast\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_access:
+                        str +=  " \"access\", ";
+                        str +=  " \"children\" : [";
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_address_of:
+                        str +=  " \"address\", ";
+                        str +=  " \"children\" : [";
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_lin_index:
+                        str +=  " \"lin_index\", ";
+                        str +=  " \"children\" : [";
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_buffer:
+                        str +=  " \"buffer\", ";
+                        str +=  " \"children\" : [";
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_call:
+                        str +=  " \"call\", ";
+                        str +=  " \"children\" : [";
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_address:
+                        str +=  " \"address\", ";
+                        str +=  " \"children\" : [";
+                        str += this->get_operand(0).to_json();
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_allocate:
+                        str +=  " \"allocate\", ";
+                        str +=  " \"children\" : [";
+                        str +=  "]";
+                        break;
+                    case tiramisu::o_free:
+                        str +=  " \"free\", ";
+                        str +=  " \"children\" : [";
+                        str +=  "]";
+                        break;
+                    default:
+                        ERROR("Dumping an unsupported tiramisu expression.", 1);
+                    }
+                    break;
+                }
+                case (tiramisu::e_val):
+                {
+                    str +=  " \"value\", ";
+                        str +=  " \"children\" : [";
+                        str +=  "]";
+                    break;
+                }
+                case (tiramisu::e_var):
+                {
+                    str +=  " \"var\", ";
+                    str +=  " \"children\" : [";
+                    str +=  "]";
+                    break;
+                }
+                case (tiramisu::e_sync):
+                {
+                    str +=  " \"sync\", ";
+                    str +=  " \"children\" : [";
+                    str +=  "]";
+                    break;
+                }
+                default:
+                    ERROR("Expression type not supported.", true);
+                }
+            str +=  "}";   
+        }
+          return str;
+        }
+
     /**
       * Returns a new expression where for every (var, sub) pair in \p substitutions,
       * var in the original expression is replaced by sub.
