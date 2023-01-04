@@ -155,6 +155,35 @@ namespace tiramisu::auto_scheduler
             generate_tilings(child, states, ast);
     }
 
+    void exhaustive_generator::generate_interchanges(ast_node *node, std::vector<syntax_tree *> &states, syntax_tree const &ast)
+    {
+        // if (!node->unrolled && node->get_extent() > 1)
+        // {
+        //     int branch_depth = node->get_loop_levels_chain_depth();
+
+        //     for (int i = node->depth + 1; i < branch_depth; ++i)
+        //     {
+        //         // Copy the AST, and add interchange to the list of optimizations
+        //         syntax_tree *new_ast = new syntax_tree();
+        //         ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
+
+        //         optimization_info optim_info;
+        //         optim_info.type = optimization_type::INTERCHANGE;
+        //         optim_info.node = new_node;
+
+        //         optim_info.nb_l = 2;
+        //         optim_info.l0 = node->depth;
+        //         optim_info.l1 = i;
+        //         new_node->get_all_computations(optim_info.comps);
+
+        //         new_ast->new_optims.push_back(optim_info);
+        //         states.push_back(new_ast);
+        //     }
+        // }
+
+        // for (ast_node *child : node->children)
+        //     generate_interchanges(child, states, ast);
+    }
     
 
     void exhaustive_generator::generate_unrollings(ast_node *node, std::vector<syntax_tree *> &states, syntax_tree const &ast)
