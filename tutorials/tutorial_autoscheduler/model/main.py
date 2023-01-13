@@ -49,8 +49,7 @@ with torch.no_grad():
     torch.device("cpu")
 
     environ["layers"] = "600 350 200 180"
-    environ["dropouts"] = "0.05 " * 4
-    logging.info("got here")
+    environ["dropouts"] = "0.05" * 4
     input_size = 1056
     output_size = 1
 

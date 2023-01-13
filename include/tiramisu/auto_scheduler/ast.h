@@ -5,7 +5,12 @@
 #include "utils.h"
 #include "optimization_info.h"
 #include "dnn_accesses.h"
-
+enum search_phase
+{
+    FUSION,
+    UNIMODULAR,
+    NON_UNIMODULAR
+};
 namespace tiramisu::auto_scheduler
 {
 
@@ -585,6 +590,11 @@ public:
      * Used to keep track of the depth reached by a search method.
      */
     int search_depth = 0;
+    /**
+     * The current exploration phase for this AST
+     * 
+     */
+    search_phase ast_search_phase = search_phase::FUSION;
     /**
      * The depth of this AST in a search method.
      * Used to keep track of the depth reached by a search method.

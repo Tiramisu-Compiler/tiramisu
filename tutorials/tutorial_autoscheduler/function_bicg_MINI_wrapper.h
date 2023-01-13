@@ -1,5 +1,5 @@
-#ifndef HALIDE__generated_function_blur_no_schedule_h
-#define HALIDE__generated_function_blur_no_schedule_h
+#ifndef HALIDE__generated_function_bicg_no_schedule_h
+#define HALIDE__generated_function_bicg_no_schedule_h
 #include <tiramisu/utils.h>
 #include <sys/time.h>
 #include <cstdlib>
@@ -40,7 +40,7 @@ void parallel_init_buffer(double* buf, unsigned long long int size, double value
 #ifdef __cplusplus
 extern "C" {
 #endif
-int covariance(halide_buffer_t *b_data, halide_buffer_t *b_cov);
+int function_bicg_MINI(halide_buffer_t *buf01, halide_buffer_t *buf02, halide_buffer_t *buf03, halide_buffer_t *buf04, halide_buffer_t *buf05);
 #ifdef __cplusplus
 }  // extern "C"
 #endif
@@ -67,6 +67,13 @@ void declare_memory_usage(){
     setenv("MEM_SIZE", std::to_string((double)18*18*18*2*8/1024/1024).c_str(), true); // This value was set by the Code Generator
 }
 
+int get_nb_exec(){
+    if (std::getenv("NB_EXEC")!=NULL)
+        return std::stoi(std::getenv("NB_EXEC"));
+    else{
+        return 30;
+    }
+}
 
 
 #endif

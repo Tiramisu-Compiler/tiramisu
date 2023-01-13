@@ -1099,6 +1099,7 @@ ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node
 
     // Copy AST data
     new_ast.nb_explored_matrices = nb_explored_matrices;
+    new_ast.ast_search_phase = ast_search_phase;
     new_ast.fct = fct;
     new_ast.computations_list = computations_list;
     new_ast.buffers_list = buffers_list;

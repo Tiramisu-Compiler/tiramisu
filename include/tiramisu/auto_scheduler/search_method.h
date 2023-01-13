@@ -87,13 +87,15 @@ public:
       * The method to call to start a search.
       * The explored schedules annotation and their execution time are stored in schedules_annotations
       */
-    virtual void search_save(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0) =0;
+    virtual std::vector<syntax_tree*> search_save(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0) =0;
     /**
       * The method to call to start a search.
       * The explored schedules annotation and their execution time are stored in schedules_annotations
       */
-    virtual void search_save_matrix(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0) =0;
-    virtual void explore_fusion(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0)=0;
+    virtual std::vector<syntax_tree*> search_save_matrix(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0) =0;
+    virtual std::vector<syntax_tree*> explore_fusion(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0)=0;
+    virtual void explore_schedules(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0)=0;
+
 };
 
 /**
@@ -126,148 +128,13 @@ public:
      * Searches for the best schedule and saves the explored schedules and their execution time
      *
      */
-    virtual void search_save(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
-    virtual void search_save_matrix(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
-    virtual void explore_fusion(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
+    virtual std::vector<syntax_tree*> search_save(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
+    virtual void explore_schedules(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
+    virtual std::vector<syntax_tree*> search_save_matrix(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
+    virtual std::vector<syntax_tree*> explore_fusion(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
     virtual void explore_parallelization(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
 
 };
-
-/**
- * Implements the MCTS search method.
- */
-//class mcts : public search_method
-//{
-//private:
-//
-//protected:
-//    /**
-//     * The number of times to sample schedules from the search tree.
-//     */
-//    int nb_samples;
-//
-//    /**
-//     * The number of schedules to execute at the end of the search
-//     * to return the best schedule.
-//     */
-//    int topk;
-//
-//    /**
-//     * The maximum depth of the search tree.
-//     */
-//    int max_depth;
-//
-//public:
-//    mcts(int nb_samples, int topk, int max_depth = DEFAULT_MAX_DEPTH, evaluation_function *eval_func = nullptr, evaluate_by_execution *exec_eval = nullptr, schedules_generator *scheds_gen = nullptr)
-//        : search_method(eval_func, scheds_gen), nb_samples(nb_samples),
-//          topk(topk), max_depth(max_depth)
-//    { set_exec_eval(exec_eval); }
-//
-//    virtual ~mcts() {}
-//
-//    virtual void search(syntax_tree& ast);
-//
-//    /**
-//     * Searches for the best schedule and saves the explored schedules and their execution time
-//     *
-//     */
-//    virtual void search_save(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
-//};
-
-// ----------------------------------------------------------------------- //
-
-/**
- * Same as beam search, but executes the topk schedules found, and return
- * the best of them.
- */
-//class beam_search_topk : public search_method
-//{
-//private:
-//
-//protected:
-//    /**
-//     * The beam size used by beam search.
-//     */
-//    int beam_size;
-//
-//    /**
-//     * The number of schedules to execute at the end of the search
-//     * to return the best schedule.
-//     */
-//    int topk;
-//
-//    /**
-//     * The maximum depth of the search tree.
-//     */
-//    int max_depth;
-//
-//    /**
-//     * The list of schedules found.
-//     * Used to return the TOPK schedules.
-//     */
-//    std::vector<syntax_tree*> schedules;
-//
-//public:
-//    beam_search_topk(int beam_size, int topk, int max_depth = DEFAULT_MAX_DEPTH, evaluation_function *eval_func = nullptr, evaluate_by_execution *exec_eval = nullptr, schedules_generator *scheds_gen = nullptr)
-//        : search_method(eval_func, scheds_gen), beam_size(beam_size),
-//          topk(topk), max_depth(max_depth)
-//    { set_exec_eval(exec_eval); }
-//
-//    virtual ~beam_search_topk() {}
-//
-//    virtual void search(syntax_tree& ast);
-//
-//    /**
-//     * Searches for the best schedule and saves the explored schedules and their execution time
-//     *
-//     */
-//    virtual void search_save(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
-//
-//    /**
-//     * A subroutine used by search(syntax_tree& ast);
-//     */
-//    void beam_search_subroutine(syntax_tree& ast);
-//};
-
-/**
- * Use this class if you want to assess the accuracy of the model by using beam search.
- * This class performs beam search with the model, and also measures the execution time
- * of each schedule found. This can be used to compare the predicted and the measured speedups.
- */
-//class beam_search_accuracy_evaluator : public beam_search
-//{
-//private:
-//
-//protected:
-//    /**
-//     * Stores the evaluation of each schedule with the model.
-//     */
-//    std::vector<float> model_evals_list;
-//
-//    /**
-//     * Stores the evaluation of each schedule with execution.
-//     */
-//    std::vector<float> exec_evals_list;
-//
-//public:
-//    beam_search_accuracy_evaluator(int beam_size, int max_depth = DEFAULT_MAX_DEPTH, evaluation_function *model_eval = nullptr, evaluate_by_execution *exec_eval = nullptr, schedules_generator *scheds_gen = nullptr)
-//        : beam_search(beam_size, max_depth, model_eval, scheds_gen)
-//    { set_exec_eval(exec_eval); }
-//
-//    virtual ~beam_search_accuracy_evaluator() {}
-//
-//    virtual void search(syntax_tree& ast);
-//
-//    /**
-//     * Print the evaluations given by the model and the evaluations
-//     * given by execution.
-//     */
-//    void print_evals_list() const
-//    {
-//        for (int i = 0; i < model_evals_list.size(); ++i)
-//            std::cout << model_evals_list[i] << " " << exec_evals_list[i] << std::endl;
-//    }
-//};
 
 }
 

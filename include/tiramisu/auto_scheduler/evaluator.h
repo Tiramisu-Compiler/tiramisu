@@ -26,6 +26,7 @@ public:
      * its evaluation.
      */
     virtual float evaluate(syntax_tree& ast) =0;
+    virtual float evaluate(syntax_tree& ast, std::string no_sched_json)=0;
 };
 
 /**
@@ -79,6 +80,7 @@ public:
 	 * Apply the specified optimizations, compile the program and execute it.
 	 */
     virtual float evaluate(syntax_tree& ast);
+    virtual float evaluate(syntax_tree& ast, std::string no_sched_json);
 
     /**
      * Apply the specified optimizations, compile the program and execute it.
@@ -119,7 +121,7 @@ public:
 	/**
 	 * Call the model and return its evaluation.
 	 */
-    virtual float evaluate(syntax_tree& ast);
+    virtual float evaluate(syntax_tree& ast, std::string no_sched_json);
     
     /**
      * Return a JSON representation of the program represented by the AST.

@@ -34,7 +34,11 @@ evaluate_by_execution::evaluate_by_execution(std::vector<tiramisu::buffer*> cons
        halide_arguments.push_back(buffer_arg);
     }
 }
-
+//TODO remove this function and change the whole structure of the evaluator classes
+float evaluate_by_execution::evaluate(syntax_tree& ast, std::string no_sched_json)
+{
+    return -1;
+}
 float evaluate_by_execution::evaluate(syntax_tree& ast)
 {
     fct->reset_schedules();
@@ -188,14 +192,15 @@ evaluate_by_learning_model::evaluate_by_learning_model(std::string const& cmd_pa
     model_read = fdopen(inpipe_fd[0], "r");
 }
 
-float evaluate_by_learning_model::evaluate(syntax_tree& ast)
+float evaluate_by_learning_model::evaluate(syntax_tree& ast, std::string no_sched_json)
 {
     // Get JSON representations for the program, and for the schedule
     std::string prog_json = get_program_json(ast);
     std::string sched_json = get_schedule_json(ast);
-    
+
     // Write the program JSON and the schedule JSON to model_write
     fputs(prog_json.c_str(), model_write);
+    fputs(no_sched_json.c_str(), model_write);
     fputs(sched_json.c_str(), model_write);
     fflush(model_write);
     

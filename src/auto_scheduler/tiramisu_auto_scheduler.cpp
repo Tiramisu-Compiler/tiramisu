@@ -58,10 +58,9 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
 //        if (std::atoi(read_env_var("AS_VERBOSE")) == 1)
         std::cout << "Schedule measurements timeout set to " << schedule_timeout << "*" << read_env_var("MAX_RUNS") << "(MAX_RUNS) s" << std::endl;
     }
-
     searcher->set_exec_eval(exec_evaluator);
     // start exploration with fusion and explore other transformations recursivly
-    searcher->explore_fusion(ast, &schedules_annotations, &exploration_trace_root, schedule_timeout);
+    searcher->explore_schedules(ast, &schedules_annotations, &exploration_trace_root, schedule_timeout);
 
     std::string output_json;
 
@@ -97,10 +96,31 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     file.close();
 
     std::chrono::steady_clock::time_point sampling_end = std::chrono::steady_clock::now();
-//    if (std::atoi(read_env_var("AS_VERBOSE"))==1){
+
     std::cout << "Search time : " << std::chrono::duration_cast<std::chrono::milliseconds>(sampling_end - sampling_start).count() << " ms" << std::endl;
     std::cout << "Best execution time : " << searcher->get_best_evaluation() << std::endl;
-//    }
+    
+    if(std::atoi(read_env_var("SAVE_BEST_SCHED_IN_FILE"))==1){
+        syntax_tree* best_ast = searcher->get_best_ast();
+        std::ofstream myfile;
+        ///
+        myfile.open ("/data/commit/tiramisu/data_factory_kb4083/in_progress_bench/new_benchmarks_by_execution_2.txt",std::ios_base::app);
+        myfile<<"\""<<filename.substr(2,filename.size()-26)<<"\",";
+        myfile << "\""<< initial_exec_time<<"\",";
+
+        if(std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1){
+            myfile << "\""<< searcher->get_best_evaluation()<<"\",";
+
+        }else if (std::atoi(read_env_var("EXECUTE_BEST_SCHED"))==1)
+        {
+            myfile << "\""<<min_eval(exec_evaluator->get_measurements(*best_ast, false, schedule_timeout))<<"\",";
+        }
+        
+        myfile << "\"" << best_ast->get_schedule_str() <<"\""<< std::endl;
+        myfile.close();
+    }
+    
+
 }
 
 void auto_scheduler::find_schedule()
