@@ -122,7 +122,10 @@ public:
 	 * Call the model and return its evaluation.
 	 */
     virtual float evaluate(syntax_tree& ast, std::string no_sched_json);
-    
+    /**
+	 * Call the model and return its evaluation.
+	 */
+    virtual float evaluate(syntax_tree& ast);
     /**
      * Return a JSON representation of the program represented by the AST.
      * Uses the function : represent_computations_from_nodes. 

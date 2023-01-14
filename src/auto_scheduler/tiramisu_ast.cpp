@@ -2503,17 +2503,6 @@ optimization_type syntax_tree::get_current_optimization_type() const
 {
     return generator_state::optimization_list[this->search_state.optimization_index]; 
 }
-
-void syntax_tree::move_to_next_optimization_target_matrix()
-{
-
-    this->search_state.increment_index();
-    if(this->search_state.current_index >= this->search_state.target_ast_heads.size())
-    {
-        this->search_state.optimization_index++;
-    }
-
-}
 void syntax_tree::move_to_next_optimization_target()
 {
 
@@ -2551,6 +2540,12 @@ void syntax_tree::move_to_next_head()
                 = this->compute_search_space_states(
                     generator_state::optimization_list[this->search_state.optimization_index]
                     );
+            this->search_state.set_new_heads(optim_alternatives);
+            this->search_state.current_index = 0;
+        }else if(generator_state::optimization_list.size()==1 && generator_state::optimization_list.at(0) == optimization_type::MATRIX){
+            
+            auto optim_alternatives   = this->compute_search_space_states( optimization_type::MATRIX);
+            
             this->search_state.set_new_heads(optim_alternatives);
             this->search_state.current_index = 0;
         }

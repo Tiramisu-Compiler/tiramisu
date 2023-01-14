@@ -21,7 +21,7 @@ environ["MKL_THREADING_LAYER"] = "GNU"
 # model_path = '/data/scratch/mmerouani/tiramisu2/tiramisu/tutorials/tutorial_autoscheduler/model/MAPE_base_13+4+2.6_22.7.pkl'
 # model_path = '/data/scratch/hbenyamina/best_model_bidirectional_new_data_static_input_paper_4cb2.pt'
 model_path = (
-    "/home/islem/pfe/tiramisu_work/tiramisu/tutorials/tutorial_autoscheduler/model/best_model_bidirectional_static_input_nn_bd67.pt"
+    "/home/afif/multi/tiramisu/tutorials/tutorial_autoscheduler/model/model.pt"
 )
 
 MAX_DEPTH = 5
@@ -49,7 +49,7 @@ with torch.no_grad():
     torch.device("cpu")
 
     environ["layers"] = "600 350 200 180"
-    environ["dropouts"] = "0.05" * 4
+    environ["dropouts"] = "0.05 " * 4
     input_size = 1056
     output_size = 1
 

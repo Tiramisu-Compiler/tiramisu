@@ -93,7 +93,6 @@ public:
       * The explored schedules annotation and their execution time are stored in schedules_annotations
       */
     virtual std::vector<syntax_tree*> search_save_matrix(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0) =0;
-    virtual std::vector<syntax_tree*> explore_fusion(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0)=0;
     virtual void explore_schedules(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0)=0;
 
 };
@@ -131,8 +130,6 @@ public:
     virtual std::vector<syntax_tree*> search_save(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
     virtual void explore_schedules(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
     virtual std::vector<syntax_tree*> search_save_matrix(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
-    virtual std::vector<syntax_tree*> explore_fusion(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
-    virtual void explore_parallelization(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
 
 };
 

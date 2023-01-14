@@ -70,6 +70,7 @@
         "thread": "cpp",
         "typeindex": "cpp",
         "valarray": "cpp",
-        "*.gen": "cpp"
+        "*.gen": "cpp",
+        "*.def": "cpp"
     }
 }

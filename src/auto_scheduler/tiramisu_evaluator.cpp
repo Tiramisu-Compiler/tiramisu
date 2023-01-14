@@ -192,6 +192,11 @@ evaluate_by_learning_model::evaluate_by_learning_model(std::string const& cmd_pa
     model_read = fdopen(inpipe_fd[0], "r");
 }
 
+//TODO remove this function and change the whole structure of the evaluator classes
+float evaluate_by_learning_model::evaluate(syntax_tree& ast)
+{
+    return -1;
+}
 float evaluate_by_learning_model::evaluate(syntax_tree& ast, std::string no_sched_json)
 {
     // Get JSON representations for the program, and for the schedule
