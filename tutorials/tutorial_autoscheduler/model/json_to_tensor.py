@@ -98,9 +98,17 @@ def get_representation_template(program_json, no_sched_json, max_depth, train_de
         iterators_repr = []
         for iter_i, iterator_name in enumerate(comp_dict["iterators"]):
             iterator_dict = program_json["iterators"][iterator_name]
-            iterators_repr.extend(
-                [iterator_dict["lower_bound"], iterator_dict["upper_bound"]]
-            )
+            # iterators_repr.extend(
+            #     [iterator_dict["lower_bound"], iterator_dict["upper_bound"]]
+            # )
+            try:
+                iterators_repr.append(int(iterator_dict["lower_bound"]))
+            except:
+                iterators_repr.append(0)
+            try:
+                iterators_repr.append(int(iterator_dict["upper_bound"]))
+            except:
+                iterators_repr.append(0)
 
             c_code = "C" + str(comp_index)
             l_code = c_code + "-L" + str(iter_i)
@@ -193,12 +201,20 @@ def get_representation_template(program_json, no_sched_json, max_depth, train_de
         loop_repr_template = []
         l_code = "L" + loop_name
 
-        loop_repr_template.extend(
-            [
-                program_json["iterators"][loop_name]["lower_bound"],
-                program_json["iterators"][loop_name]["upper_bound"],
-            ]
-        )
+        # loop_repr_template.extend(
+        #     [
+        #         program_json["iterators"][loop_name]["lower_bound"],
+        #         program_json["iterators"][loop_name]["upper_bound"],
+        #     ]
+        # )
+        try:
+            loop_repr_template.append(int(program_json["iterators"][loop_name]["lower_bound"]))
+        except:
+            loop_repr_template.append(0)
+        try:
+            loop_repr_template.append(int(program_json["iterators"][loop_name]["upper_bound"]))
+        except:
+            loop_repr_template.append(0)
         loop_repr_template.extend(
             [
                 l_code + "Parallelized",

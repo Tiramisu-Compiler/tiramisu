@@ -21,21 +21,21 @@ environ["MKL_THREADING_LAYER"] = "GNU"
 # model_path = '/data/scratch/mmerouani/tiramisu2/tiramisu/tutorials/tutorial_autoscheduler/model/MAPE_base_13+4+2.6_22.7.pkl'
 # model_path = '/data/scratch/hbenyamina/best_model_bidirectional_new_data_static_input_paper_4cb2.pt'
 model_path = (
-    "/home/afif/multi/tiramisu/tutorials/tutorial_autoscheduler/model/model.pt"
+    "/home/islem/pfe/tiramisu_work/tiramisu/tutorials/tutorial_autoscheduler/model/best_model_multiple_roots_fc3e.pt"
 )
 
 MAX_DEPTH = 5
 
 def seperate_vector(
-    X: torch.Tensor, num_matrices: int = 4, pad: bool = True, pad_amount: int = 5
+    X: torch.Tensor, num_matrices: int = 5, pad: bool = True, pad_amount: int = 5
 ) -> torch.Tensor:
     batch_size, _ = X.shape
-    first_part = X[:, :33]
-    second_part = X[:, 33 : 33 + 169 * num_matrices]
-    third_part = X[:, 33 + 169 * num_matrices :]
+    first_part = X[:, :28]
+    second_part = X[:, 28 : 28 + 36 * num_matrices]
+    third_part = X[:, 28 + 36 * num_matrices :]
     vectors = []
     for i in range(num_matrices):
-        vector = second_part[:, 169 * i : 169 * (i + 1)].reshape(batch_size, 1, -1)
+        vector = second_part[:, 36 * i : 36 * (i + 1)].reshape(batch_size, 1, -1)
         vectors.append(vector)
 
     if pad:
@@ -50,7 +50,8 @@ with torch.no_grad():
 
     environ["layers"] = "600 350 200 180"
     environ["dropouts"] = "0.05 " * 4
-    input_size = 1056
+    logging.info("got here")
+    input_size = 1552 #1056
     output_size = 1
 
     layers_sizes = list(map(int, environ.get("layers", "600 350 200 180").split()))
@@ -60,7 +61,7 @@ with torch.no_grad():
         input_size=input_size,
         comp_embed_layer_sizes=layers_sizes,
         drops=drops,
-        transformation_matrix_dimension=13,
+        transformation_matrix_dimension=6,
         loops_tensor_size=33,
         expr_embed_size=100,
         train_device=device,
@@ -107,7 +108,7 @@ with torch.no_grad():
                 batch_size, num_comps, __dict__ = x.shape
                 x = x.view(batch_size * num_comps, -1)
                 (first_part, final_matrix, vectors, third_part) = seperate_vector(
-                        x, num_matrices=5, pad=False
+                        x, num_matrices=6, pad=False
                     )
                 x = torch.cat(
                     (

@@ -239,7 +239,7 @@ ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
 
     // The fist node is the one created by this constructor
     this->depth = 0;
-    this->name = isl_set_get_dim_name(iter_domain, isl_dim_set, 0) + comp->get_name() + "0";
+    this->name = isl_set_get_dim_name(iter_domain, isl_dim_set, 0) + comp->get_name();
     
     this->low_bound = utility::get_bound(iter_domain, 0, false).to_str();
 
@@ -254,7 +254,7 @@ ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
         ast_node *node = new ast_node();
         
         node->depth = i;
-        node->name = isl_set_get_dim_name(iter_domain, isl_dim_set, i) + comp->get_name() + std::to_string(i);
+        node->name = isl_set_get_dim_name(iter_domain, isl_dim_set, i) + comp->get_name();
         node->low_bound = utility::get_bound(iter_domain, i, false).to_str();
         node->up_bound = utility::get_bound(iter_domain, i, true).to_str();
         

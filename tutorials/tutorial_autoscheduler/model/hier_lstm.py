@@ -4,39 +4,6 @@ import torch.nn.functional as F
 from operator import *
 
 
-def seperate_vector(
-    X: torch.Tensor, num_matrices: int = 4, pad: bool = True, pad_amount: int = 5
-) -> torch.Tensor:
-    batch_size, _ = X.shape
-    first_part = X[:, :33]
-    second_part = X[:, 33 : 33 + 169 * num_matrices]
-    third_part = X[:, 33 + 169 * num_matrices :]
-    vectors = []
-    for i in range(num_matrices):
-        vector = second_part[:, 169 * i : 169 * (i + 1)].reshape(batch_size, 1, -1)
-        vectors.append(vector)
-
-    if pad:
-        for i in range(pad_amount):
-            vector = torch.zeros_like(vector)
-            vectors.append(vector)
-    return (first_part, vectors[0], torch.cat(vectors[1:], dim=1), third_part)
-
-def seperate_exprs(
-    X: torch.Tensor, expr_vector_length: int = 5
-) -> torch.Tensor:
-    batch_size, total_length = X.shape
-    vectors = []
-    lengths = [0]*batch_size
-    for j in range(batch_size):
-            lengths[j] = int(torch.sum(X[j]))
-    for i in range(int(total_length/expr_vector_length)):
-        vector = X[:, i*expr_vector_length: (i+1) *
-                   expr_vector_length].reshape(batch_size, 1, -1)
-        vectors.append(vector)
-
-    return torch.cat(vectors[:], dim=1), lengths
-
 class Model_Recursive_LSTM_v2(nn.Module):
     def __init__(
         self,
@@ -112,6 +79,9 @@ class Model_Recursive_LSTM_v2(nn.Module):
         self.no_nodes_tensor = nn.Parameter(
             nn.init.xavier_uniform_(torch.zeros(1, embedding_size))
         )
+        self.root_iterator = nn.Parameter(
+                nn.init.xavier_uniform_(torch.zeros(1, loops_tensor_size))
+            )
         self.comps_lstm = nn.LSTM(
             comp_embed_layer_sizes[-1], embedding_size, batch_first=True
         )
@@ -131,23 +101,20 @@ class Model_Recursive_LSTM_v2(nn.Module):
             batch_first=True,
             bidirectional=expr_bidirectional,
         )
-        self.comp_expr_embedding_layers = nn.ModuleList()
-        self.comp_expr_embedding_dropouts = nn.ModuleList()
-        for i in range(len([255,600, 350, 250, expr_embed_size]) - 1):
-            self.comp_expr_embedding_layers.append(
-                nn.Linear(
-                    [255,600, 350, 250, expr_embed_size][i], [255, 600, 350, 250, expr_embed_size][i + 1], bias=True
-                )
-            )
-            nn.init.xavier_uniform_(self.comp_expr_embedding_layers[i].weight)
-            self.comp_expr_embedding_dropouts.append(nn.Dropout(drops[i]))
+        # self.comp_expr_embedding_layers = nn.ModuleList()
+        # self.comp_expr_embedding_dropouts = nn.ModuleList()
+        # for i in range(len([255,600, 350, 250, expr_embed_size]) - 1):
+        #     self.comp_expr_embedding_layers.append(
+        #         nn.Linear(
+        #             [255,600, 350, 250, expr_embed_size][i], [255, 600, 350, 250, expr_embed_size][i + 1], bias=True
+        #         )
+        #     )
+        #     nn.init.xavier_uniform_(self.comp_expr_embedding_layers[i].weight)
+        #     self.comp_expr_embedding_dropouts.append(nn.Dropout(drops[i]))
 
     def get_hidden_state(self, node, comps_embeddings, loops_tensor):
         nodes_list = []
         if "roots" in node:
-            root_iterator = nn.Parameter(
-                nn.init.xavier_uniform_(torch.zeros(1, 33))
-            )
             for root in node["roots"]:
                 nodes_list.append(self.get_hidden_state(
                     root, comps_embeddings, loops_tensor))
@@ -158,7 +125,7 @@ class Model_Recursive_LSTM_v2(nn.Module):
             comps_h_n = torch.unsqueeze(self.no_comps_tensor, 0).expand(
                     comps_embeddings.shape[0], -1, -1
                 )
-            selected_loop_tensor = torch.unsqueeze(root_iterator, 0).expand(
+            selected_loop_tensor = torch.unsqueeze(self.root_iterator, 0).expand(
                     1, -1, -1
                 )
         else:
@@ -194,44 +161,28 @@ class Model_Recursive_LSTM_v2(nn.Module):
             x = self.concat_dropouts[i](self.ELU(x))
         return x
 
-    # def get_expr_embedding(self, expr):
-    #     expr_repr = torch.tensor(
-    #         [[list(expr["expr_type"])]]).to(self.train_device)
-    #     children_exprs_list = []
-    #     for n in expr["children"]:
-    #         children_exprs_list.append(self.get_expr_embedding(
-    #             n))
-    #     if children_exprs_list != []:
-    #         exprs_tensor = torch.cat(children_exprs_list, 0)
-    #         lstm_out, (exprs_h_n, exprs_c_n) = self.exprs_embed(exprs_tensor)
-    #         exprs_h_n = exprs_h_n.permute(1, 0, 2)
-    #     else:
-    #         exprs_h_n = torch.unsqueeze(self.no_exprs_tensor, 0)
-    #     x = torch.cat((exprs_h_n, expr_repr), 2)
-    #     for i in range(len(self.expr_concat_layers)):
-    #         x = self.expr_concat_layers[i](x)
-    #         x = self.expr_concat_dropouts[i](self.ELU(x))
-    #     return x
 
     def forward(self, tree_tensors):
         tree, comps_tensor, vectors, loops_tensor, functions_comps_expr_tree, functions_comps_expr_lengths = tree_tensors
         # expressions embedding layer
         x = functions_comps_expr_tree.to(self.train_device)
         batch_size, num_comps, num_expr, expr_len = x.shape
-        # x = x.view(batch_size * num_comps, num_expr, expr_len)
-        x = x.view(batch_size * num_comps, num_expr * expr_len)
+        x = x.view(batch_size * num_comps, num_expr, expr_len)
         x = x.float()
-        x = torch.cat((x,torch.zeros(batch_size * num_comps, 255 - num_expr * expr_len).to(self.train_device)), dim=1)
-        # x = nn.utils.rnn.pack_padded_sequence(
-        #     x, lengths=list(functions_comps_expr_lengths), batch_first=True, enforce_sorted=False)
-        # _, (expr_embedding, _) = self.exprs_embed(x)
-        # expr_embedding = expr_embedding.permute(1, 0, 2).reshape(
-        #     batch_size * num_comps, -1
-        # ).view(batch_size, num_comps, -1)
-        for i in range(len(self.comp_expr_embedding_layers)):
-            x = self.comp_expr_embedding_layers[i](x)
-            x = self.comp_expr_embedding_dropouts[i](self.ELU(x))
-        expr_embedding = x.view(batch_size, num_comps, -1)
+        x = nn.utils.rnn.pack_padded_sequence(
+            x, lengths=list(functions_comps_expr_lengths), batch_first=True, enforce_sorted=False)
+        _, (expr_embedding, _) = self.exprs_embed(x)
+        expr_embedding = expr_embedding.permute(1, 0, 2).reshape(
+            batch_size * num_comps, -1
+        ).view(batch_size, num_comps, -1)
+        
+        ###### for using the feed forward network for expressions (currently not used) #####
+        # x = x.view(batch_size * num_comps, num_expr * expr_len)
+        #x = torch.cat((x,torch.zeros(batch_size * num_comps, 255 - num_expr * expr_len).to(self.train_device)), dim=1)
+        # for i in range(len(self.comp_expr_embedding_layers)):
+        #     x = self.comp_expr_embedding_layers[i](x)
+        #     x = self.comp_expr_embedding_dropouts[i](self.ELU(x))
+        # expr_embedding = x.view(batch_size, num_comps, -1)
         
         # computation embbedding layer
         x = comps_tensor.to(self.train_device)

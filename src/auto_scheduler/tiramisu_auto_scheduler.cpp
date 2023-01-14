@@ -39,7 +39,7 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     std::string empty_schedule_json = evaluate_by_learning_model::get_schedule_json(ast);
     empty_schedule_json.pop_back(); // remove the last two characters }\n
     empty_schedule_json.pop_back();
-    empty_schedule_json += ", \n\"execution_times\" : " + measurements_to_str(initial_measurements) + "\n}\n";
+    empty_schedule_json += ", \"execution_times\" : " + measurements_to_str(initial_measurements) + "}\n";
     schedules_annotations.push_back(empty_schedule_json);
 
     // export the the initial execution time as an env var so that it can be used for adjusting the number of runs by the wrappers
