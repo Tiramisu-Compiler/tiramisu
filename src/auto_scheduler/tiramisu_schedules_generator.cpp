@@ -332,7 +332,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                         {
                             if(std::get<1>(shifting) > 0)
                             {
-                                int depth = new_node->computations[node_computation.second].
+                                int depth = current_node->computations[node_computation.second].
                                     comp_ptr->get_loop_level_number_from_dimension_name(std::get<0>(shifting).get_name());
                                 optimization_info optim_info;
                                 optim_info.type = optimization_type::SHIFTING;

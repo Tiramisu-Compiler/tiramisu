@@ -96,9 +96,9 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     file.close();
 
     std::chrono::steady_clock::time_point sampling_end = std::chrono::steady_clock::now();
-
+    float best_execution_time = searcher->get_best_evaluation() != FLT_MAX ? searcher->get_best_evaluation() : initial_exec_time;
     std::cout << "Search time : " << std::chrono::duration_cast<std::chrono::milliseconds>(sampling_end - sampling_start).count() << " ms" << std::endl;
-    std::cout << "Best execution time : " << searcher->get_best_evaluation() << std::endl;
+    std::cout << "Best execution time : " << best_execution_time << std::endl;
     
     if(std::atoi(read_env_var("SAVE_BEST_SCHED_IN_FILE"))==1){
         syntax_tree* best_ast = searcher->get_best_ast();
@@ -109,7 +109,7 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
         myfile << "\""<< initial_exec_time<<"\",";
 
         if(std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1){
-            myfile << "\""<< searcher->get_best_evaluation()<<"\",";
+            myfile << "\""<< best_execution_time<<"\",";
 
         }else if (std::atoi(read_env_var("EXECUTE_BEST_SCHED"))==1)
         {

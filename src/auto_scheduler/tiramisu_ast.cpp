@@ -377,7 +377,7 @@ ast_node* syntax_tree::get_last_shared_parent(ast_node* node1, ast_node* node2) 
     ast_node* parent_node = node1;
     while (parent_node != nullptr)
     {
-        if (parent_node->name != "dummy_iter") // ignore dummy iterators
+        if (parent_node->name.compare("dummy_iter")!=0) // ignore dummy iterators
             parent_list_1.push_back(parent_node);
         parent_node = parent_node->parent;
     }
@@ -386,7 +386,7 @@ ast_node* syntax_tree::get_last_shared_parent(ast_node* node1, ast_node* node2) 
     parent_node = node2;
     while (parent_node != nullptr)
     {
-        if (parent_node->name != "dummy_iter") // ignore dummy iterators
+        if (parent_node->name.compare("dummy_iter")!=0) // ignore dummy iterators
             parent_list_2.push_back(parent_node);
         parent_node = parent_node->parent;
     }
@@ -1204,7 +1204,7 @@ ast_node* syntax_tree::find_node_by_level(tiramisu::computation *comp, int level
     ast_node *node = computations_mapping[comp];
     int current_level = node->depth;
 
-    if (node->name == "dummy_iter")
+    if (node->name.compare("dummy_iter") == 0)
         node = node->parent; // because dummy iterators are not counted as a loop level
     
     while (current_level > level && node->parent != nullptr)
@@ -1761,9 +1761,10 @@ bool is_number(const std::string& s)
         s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
 }
 
-// TODOF check if both bounds are ints: same behaviour, otherwise check if strings are equal for now?
 bool ast_node::have_similar_itr_domain(ast_node * other)
 {
+    assert(other != nullptr && "calling have_similar_itr_domain with a null pointer");
+    
     // check whether both bounds are ints to be able to compare. If that's not the case return true, generate fusion and leave the decision to the legality check
     if(is_number(this->low_bound) && is_number(this->up_bound) && is_number(other->low_bound) && is_number(other->up_bound)){
         int nb_itr1 = stoi(this->up_bound) - stoi(this->low_bound);
@@ -2390,14 +2391,14 @@ bool ast_node::is_optimized_by_tag()
 
 void collect_computation_states_for_fusion(ast_node * node, std::vector<std::pair<ast_node*,int>>& fusion_candidates)
 {
-
     for(int i=0;i<node->computations.size(); i++)
     {
         fusion_candidates.push_back(std::make_pair(node,i));
     }
     for(ast_node * child:node->children)
     {
-        collect_computation_states_for_fusion(child,fusion_candidates);
+        if(child->name.compare( "dummy_iter") != 0)
+            collect_computation_states_for_fusion(child,fusion_candidates);
     }
 }
 
@@ -2423,7 +2424,8 @@ std::vector<std::pair<ast_node*,int>> syntax_tree::compute_search_space_states(o
             {
                 for(ast_node * node: this->roots)
                 {
-                    collect_computation_states_for_fusion(node,heads);
+                    if(node->name.compare("dummy_iter") != 0)
+                        collect_computation_states_for_fusion(node,heads);
                 }
             }
 
