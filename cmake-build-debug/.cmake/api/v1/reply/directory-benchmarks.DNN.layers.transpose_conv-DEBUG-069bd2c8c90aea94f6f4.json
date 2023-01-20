@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "benchmarks/DNN/layers/transpose_conv",
+		"source" : "benchmarks/DNN/layers/transpose_conv"
+	}
+}

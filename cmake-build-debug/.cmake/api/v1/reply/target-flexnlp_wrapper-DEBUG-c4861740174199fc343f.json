@@ -1,0 +1,107 @@
+{
+	"archive" : {},
+	"artifacts" : 
+	[
+		{
+			"path" : "libflexnlp_wrapper.a"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"include_directories"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 67,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 172,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-std=c++11 -Wall -Wno-sign-compare -fno-rtti -DHALIDE_NO_JPEG -g -O0 -fdiagnostics-color=always"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 2,
+					"path" : "/home/afif/multi/tiramisu/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/home/afif/multi/tiramisu/3rdParty/isl/build/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/home/afif/multi/tiramisu/3rdParty/Halide/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/home/afif/multi/tiramisu/3rdParty/Halide/tools"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/home/afif/multi/tiramisu/build"
+				}
+			],
+			"language" : "CXX",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"id" : "flexnlp_wrapper::@6890427a1f51a3e7e1df",
+	"name" : "flexnlp_wrapper",
+	"nameOnDisk" : "libflexnlp_wrapper.a",
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/tiramisu_flexnlp_wrappers.cpp",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

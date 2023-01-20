@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "benchmarks/DNN/layers/convolution/direct/sparse_32channels",
+		"source" : "benchmarks/DNN/layers/convolution/direct/sparse_32channels"
+	}
+}

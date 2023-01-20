@@ -13,6 +13,7 @@ namespace tiramisu::auto_scheduler
     // list of hashes of matrices we explored before to avoid repeating schedules. Used in search_save_matrix
 std::vector<std::size_t> hashes;
 void beam_search::explore_schedules(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout ){
+    ast.print_ast();
     
     std::queue<syntax_tree*> exploration_queue;
     exploration_queue.push(&ast);
@@ -31,15 +32,21 @@ void beam_search::explore_schedules(syntax_tree &ast, std::vector<std::string> *
             switch(ast_to_explore->ast_search_phase) {
 
                 case search_phase::FUSION:
+                    
                     intermediate_schedules = search_save(*ast_to_explore, schedules_annotations, trace_map[ast_to_explore], schedule_timeout);
                     break;
 
                 case search_phase::UNIMODULAR:
+                    
                     intermediate_schedules = search_save_matrix(*ast_to_explore, schedules_annotations, trace_map[ast_to_explore], schedule_timeout);
+                    
                     break;  
 
                 case search_phase::NON_UNIMODULAR:
+                    
                     intermediate_schedules = search_save(*ast_to_explore, schedules_annotations, trace_map[ast_to_explore], schedule_timeout);
+                    
+
                     break;
                 
                 default:
@@ -47,6 +54,7 @@ void beam_search::explore_schedules(syntax_tree &ast, std::vector<std::string> *
             }
             for(auto sched: intermediate_schedules){
                     trace_map[sched] = trace_map[ast_to_explore]->child_mappings[sched];
+                    
             }
             level_schedules.insert(level_schedules.end(), intermediate_schedules.begin(), intermediate_schedules.end());
         }
@@ -91,7 +99,6 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
     std::vector<syntax_tree*> children;
     // list of ASTs to be explored for next level 
     std::vector<syntax_tree*> to_be_explored;
-
     std::hash<std::string> hasher;
 
     // at this stage we only explore matrices
@@ -160,7 +167,15 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
     while (iterator != children.end())
     {
         child = *iterator;
+        std::cout<<"before printing computation"<<std::endl;
+        for (auto com:(*iterator)->get_computations()){
+            std::cout<<"computation name: "<<com->get_name()<<std::endl;
+        }
         child->transform_ast();
+        std::cout<<"after printing computation"<<std::endl;
+        for (auto com:(*iterator)->get_computations()){
+            std::cout<<"computation name: "<<com->get_name()<<std::endl;
+        }
         if(child->ast_is_prunable()){
             if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                     // print deleted Ast
@@ -361,10 +376,11 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
             iterator = children.erase(iterator);
 
         }else{
-            
+            (*iterator)->print_new_optims();
             (*iterator)->transform_ast();
             if ((*iterator)->ast_is_legal() == false) {
                 // print deleted Ast
+
                 if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                     (*iterator)->print_previous_optims();
                     std::cout << "\n-----------" << std::endl;
@@ -378,6 +394,7 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
                 
             }
             else {
+
                 // evaluate and print Ast
                 if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                     (*iterator)->print_previous_optims();
@@ -386,7 +403,7 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
                     (*iterator)->print_ast();
                     std::cout << "\n<legal>\n";
                 }
-
+                
                 std::vector<float> measurements;
                 try{
                         if ((*iterator)->can_set_default_evaluation()){ // if yes the child's evaluation is set to a default value
@@ -400,6 +417,7 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
                             }
                         }
                 }
+                
                 catch(NonForLoopBoundExtractionException e){ 
                     // Remove all the optimizations
                     exec_eval->fct->reset_schedules();
@@ -408,7 +426,7 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
                     unrolling_exception_thrown = true;
                     
                 }             
-
+                
                 (*iterator)->evaluation = min_eval(measurements);
                 parent_trace->add_child_path((*iterator), schedules_annotations->size());
 
@@ -440,6 +458,7 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
                         best_ast = (*iterator);
                     }
                 }
+                
                 ++iterator;
 
             }

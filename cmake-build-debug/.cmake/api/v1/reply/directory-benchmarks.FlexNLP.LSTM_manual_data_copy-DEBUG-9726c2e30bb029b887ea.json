@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "benchmarks/FlexNLP/LSTM_manual_data_copy",
+		"source" : "benchmarks/FlexNLP/LSTM_manual_data_copy"
+	}
+}

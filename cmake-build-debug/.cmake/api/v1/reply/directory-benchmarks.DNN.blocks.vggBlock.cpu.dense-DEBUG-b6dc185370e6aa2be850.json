@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "benchmarks/DNN/blocks/vggBlock/cpu/dense",
+		"source" : "benchmarks/DNN/blocks/vggBlock/cpu/dense"
+	}
+}

@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "benchmarks/DNN/blocks/fusedresNet_inference/cpu/sparse_32_32",
+		"source" : "benchmarks/DNN/blocks/fusedresNet_inference/cpu/sparse_32_32"
+	}
+}

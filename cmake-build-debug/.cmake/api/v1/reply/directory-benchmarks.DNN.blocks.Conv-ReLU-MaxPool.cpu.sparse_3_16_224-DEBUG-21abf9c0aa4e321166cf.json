@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "benchmarks/DNN/blocks/Conv-ReLU-MaxPool/cpu/sparse_3_16_224",
+		"source" : "benchmarks/DNN/blocks/Conv-ReLU-MaxPool/cpu/sparse_3_16_224"
+	}
+}

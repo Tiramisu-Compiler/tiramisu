@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "benchmarks/DNN/blocks/Add-ReLU/cpu_32_64_16",
+		"source" : "benchmarks/DNN/blocks/Add-ReLU/cpu_32_64_16"
+	}
+}

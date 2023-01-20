@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "benchmarks/DNN/layers/convolution/direct/unrolled_conv3",
+		"source" : "benchmarks/DNN/layers/convolution/direct/unrolled_conv3"
+	}
+}

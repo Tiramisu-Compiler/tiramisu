@@ -1,0 +1,85 @@
+{
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target"
+		],
+		"files" : 
+		[
+			"benchmarks/DNN/blocks/LSTM/cpu_lib/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 17,
+				"parent" : 0
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 1,
+			"id" : "lstm_generator_tiramisu::@c9ca69712b4d92a28a71"
+		}
+	],
+	"id" : "run_lstm::@c9ca69712b4d92a28a71",
+	"name" : "run_lstm",
+	"paths" : 
+	{
+		"build" : "benchmarks/DNN/blocks/LSTM/cpu_lib",
+		"source" : "benchmarks/DNN/blocks/LSTM/cpu_lib"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				1
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				2
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"path" : "benchmarks/DNN/blocks/LSTM/cpu_lib/generator.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/benchmarks/DNN/blocks/LSTM/cpu_lib/CMakeFiles/run_lstm",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/benchmarks/DNN/blocks/LSTM/cpu_lib/CMakeFiles/run_lstm.rule",
+			"sourceGroupIndex" : 2
+		}
+	],
+	"type" : "UTILITY"
+}

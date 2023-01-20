@@ -70,6 +70,7 @@ std::vector<computation *> function::get_computation_by_name(std::string name) c
     if (res_comp.empty())
     {
         DEBUG(10, tiramisu::str_dump("Computation not found."));
+        std::cout<<"Computation not found."<<std::endl;
     }
     else
     {

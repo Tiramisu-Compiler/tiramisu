@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "tutorials/tutorial_autoscheduler",
+		"source" : "tutorials/tutorial_autoscheduler"
+	}
+}

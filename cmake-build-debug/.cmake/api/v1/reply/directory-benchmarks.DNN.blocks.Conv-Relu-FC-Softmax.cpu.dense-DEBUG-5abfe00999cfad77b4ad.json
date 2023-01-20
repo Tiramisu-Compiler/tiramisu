@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "benchmarks/DNN/blocks/Conv-Relu-FC-Softmax/cpu/dense",
+		"source" : "benchmarks/DNN/blocks/Conv-Relu-FC-Softmax/cpu/dense"
+	}
+}

@@ -1,0 +1,163 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "/home/afif/multi/tiramisu/build/benchmark_lstm_cpu_generator"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_executable",
+			"target_link_libraries",
+			"include_directories"
+		],
+		"files" : 
+		[
+			"benchmarks/DNN/blocks/LSTM/cpu/CMakeLists.txt",
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 6,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 7,
+				"parent" : 0
+			},
+			{
+				"file" : 1
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 172,
+				"parent" : 3
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-std=c++11 -Wall -Wno-sign-compare -fno-rtti -DHALIDE_NO_JPEG -g -O0 -fdiagnostics-color=always"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 4,
+					"path" : "/home/afif/multi/tiramisu/include"
+				},
+				{
+					"backtrace" : 4,
+					"path" : "/home/afif/multi/tiramisu/3rdParty/isl/build/include"
+				},
+				{
+					"backtrace" : 4,
+					"path" : "/home/afif/multi/tiramisu/3rdParty/Halide/include"
+				},
+				{
+					"backtrace" : 4,
+					"path" : "/home/afif/multi/tiramisu/3rdParty/Halide/tools"
+				},
+				{
+					"backtrace" : 4,
+					"path" : "/home/afif/multi/tiramisu/build"
+				}
+			],
+			"language" : "CXX",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 2,
+			"id" : "tiramisu::@6890427a1f51a3e7e1df"
+		}
+	],
+	"id" : "benchmark_lstm_cpu_generator::@b0e6f0b889b16c882a83",
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "-std=c++11 -Wall -Wno-sign-compare -fno-rtti -DHALIDE_NO_JPEG -g -O0",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "-Wl,-rpath,/home/afif/multi/tiramisu/build:/home/afif/multi/tiramisu/3rdParty/isl/build/lib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/home/afif/multi/tiramisu/build/libtiramisu.so",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/home/afif/multi/tiramisu/3rdParty/Halide/lib/libHalide.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/home/afif/multi/tiramisu/3rdParty/isl/build/lib/libisl.so",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "-ldl -lpthread -lrt -ldl -lpthread -lz -lm",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX"
+	},
+	"name" : "benchmark_lstm_cpu_generator",
+	"nameOnDisk" : "benchmark_lstm_cpu_generator",
+	"paths" : 
+	{
+		"build" : "benchmarks/DNN/blocks/LSTM/cpu",
+		"source" : "benchmarks/DNN/blocks/LSTM/cpu"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "benchmarks/DNN/blocks/LSTM/cpu/generator.cpp",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "EXECUTABLE"
+}

@@ -1,0 +1,85 @@
+{
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target"
+		],
+		"files" : 
+		[
+			"benchmarks/DNN/layers/maxpool/cpu/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 17,
+				"parent" : 0
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 1,
+			"id" : "maxpool_layer_generator_tiramisu::@87524e43d6061feedadb"
+		}
+	],
+	"id" : "run_maxpool_layer::@87524e43d6061feedadb",
+	"name" : "run_maxpool_layer",
+	"paths" : 
+	{
+		"build" : "benchmarks/DNN/layers/maxpool/cpu",
+		"source" : "benchmarks/DNN/layers/maxpool/cpu"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				1
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				2
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"path" : "benchmarks/DNN/layers/maxpool/cpu/maxpool_layer_generator_tiramisu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/benchmarks/DNN/layers/maxpool/cpu/CMakeFiles/run_maxpool_layer",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/benchmarks/DNN/layers/maxpool/cpu/CMakeFiles/run_maxpool_layer.rule",
+			"sourceGroupIndex" : 2
+		}
+	],
+	"type" : "UTILITY"
+}

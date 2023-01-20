@@ -1,0 +1,85 @@
+{
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target"
+		],
+		"files" : 
+		[
+			"benchmarks/FlexNLP/LSTM_manual_data_copy/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 16,
+				"parent" : 0
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 1,
+			"id" : "flexnlp_tiramisu_generator_lstm_manual::@ce8d2e2be859fab6812d"
+		}
+	],
+	"id" : "run_flexnlp_tiramisu_lstm_manual::@ce8d2e2be859fab6812d",
+	"name" : "run_flexnlp_tiramisu_lstm_manual",
+	"paths" : 
+	{
+		"build" : "benchmarks/FlexNLP/LSTM_manual_data_copy",
+		"source" : "benchmarks/FlexNLP/LSTM_manual_data_copy"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				1
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				2
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"path" : "benchmarks/FlexNLP/LSTM_manual_data_copy/flexnlp_tiramisu_generator.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/benchmarks/FlexNLP/LSTM_manual_data_copy/CMakeFiles/run_flexnlp_tiramisu_lstm_manual",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/benchmarks/FlexNLP/LSTM_manual_data_copy/CMakeFiles/run_flexnlp_tiramisu_lstm_manual.rule",
+			"sourceGroupIndex" : 2
+		}
+	],
+	"type" : "UTILITY"
+}

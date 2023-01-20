@@ -69,6 +69,7 @@ void apply_optimizations(optimization_info const& optim_info)
                 
         case optimization_type::UNROLLING:
             // Apply unrolling on the level indicated by l0
+            std::cout<<"unrolling loop: "<<optim_info.l0<<std::endl;
             if (optim_info.l0 != -1)
                 block.unroll(optim_info.l0, optim_info.l0_fact);
                 
@@ -125,13 +126,16 @@ void apply_optimizations(optimization_info const& optim_info)
             }
 
             ast_node *current_comp_node = ast.computations_mapping.at(current_comp);
+            std::cout<<"current_comp_node name: "<<current_comp_node->name<<std::endl;
             ast_node *previous_comp_node = ast.computations_mapping.at(previous_comp);
             ast_node *last_shared_parent = ast.get_last_shared_parent(current_comp_node, previous_comp_node);
 
+
             int fusion_level;
-            if (last_shared_parent != nullptr)
+            if (last_shared_parent != nullptr){
+                std::cout<<"last_shared_parent name: "<<last_shared_parent->name<<std::endl;
                 fusion_level = last_shared_parent->depth;
-            else
+            }else
                 fusion_level = tiramisu::computation::root_dimension;
 
             current_comp->after(*previous_comp, fusion_level);

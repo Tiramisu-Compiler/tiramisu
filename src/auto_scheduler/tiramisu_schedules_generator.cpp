@@ -217,8 +217,6 @@ namespace tiramisu::auto_scheduler
             generate_unrollings(child, states, ast);
     }
 
-
-
 std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(syntax_tree &ast)
 {
     //this method uses the AST custom schedule generator

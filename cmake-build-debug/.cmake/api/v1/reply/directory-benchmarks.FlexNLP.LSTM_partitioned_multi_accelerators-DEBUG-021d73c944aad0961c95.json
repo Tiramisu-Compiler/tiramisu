@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "benchmarks/FlexNLP/LSTM_partitioned_multi_accelerators",
+		"source" : "benchmarks/FlexNLP/LSTM_partitioned_multi_accelerators"
+	}
+}

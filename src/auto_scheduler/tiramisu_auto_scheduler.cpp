@@ -24,6 +24,8 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     float initial_timeout = std::atof(read_env_var("INITIAL_TIMEOUT"));
 
     std::vector<float> initial_measurements = exec_evaluator->get_measurements(ast, true, initial_timeout);
+    // std::vector<float> initial_measurements = {1};
+
     initial_exec_time = min_eval(initial_measurements);
     if (std::isinf(initial_exec_time)){
         std::cerr << "error: Evaluation of the non scheduled version of the program failed "<< std::endl;
@@ -101,7 +103,7 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     std::cout << "Best execution time : " << best_execution_time << std::endl;
     
     if(std::atoi(read_env_var("SAVE_BEST_SCHED_IN_FILE"))==1){
-        syntax_tree* best_ast = searcher->get_best_ast();
+        syntax_tree* best_ast = searcher->get_best_evaluation() != FLT_MAX ? searcher->get_best_ast() : &ast;
         std::ofstream myfile;
         ///
         myfile.open ("/data/commit/tiramisu/data_factory_kb4083/in_progress_bench/new_benchmarks_by_execution_2.txt",std::ios_base::app);

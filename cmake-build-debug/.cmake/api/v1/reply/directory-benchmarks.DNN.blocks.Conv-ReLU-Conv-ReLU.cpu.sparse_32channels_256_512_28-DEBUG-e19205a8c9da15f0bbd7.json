@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "benchmarks/DNN/blocks/Conv-ReLU-Conv-ReLU/cpu/sparse_32channels_256_512_28",
+		"source" : "benchmarks/DNN/blocks/Conv-ReLU-Conv-ReLU/cpu/sparse_32channels_256_512_28"
+	}
+}

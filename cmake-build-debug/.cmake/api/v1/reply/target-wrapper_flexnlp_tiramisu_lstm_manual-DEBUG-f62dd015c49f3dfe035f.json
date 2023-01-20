@@ -1,0 +1,198 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "/home/afif/multi/tiramisu/benchmarks/FlexNLP/LSTM_manual_data_copy/wrapper_flexnlp_tiramisu_lstm_manual"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_executable",
+			"target_link_libraries",
+			"add_dependencies",
+			"include_directories"
+		],
+		"files" : 
+		[
+			"benchmarks/FlexNLP/LSTM_manual_data_copy/CMakeLists.txt",
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 11,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 14,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 22,
+				"parent" : 0
+			},
+			{
+				"file" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 172,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 5,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-std=c++11 -Wall -Wno-sign-compare -fno-rtti -DHALIDE_NO_JPEG -Wl,--no-as-needed -ldl -g -lz -lpthread -std=c++11 -O3 -fno-rtti -g -O0 -fdiagnostics-color=always"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 5,
+					"path" : "/home/afif/multi/tiramisu/include"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "/home/afif/multi/tiramisu/3rdParty/isl/build/include"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "/home/afif/multi/tiramisu/3rdParty/Halide/include"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "/home/afif/multi/tiramisu/3rdParty/Halide/tools"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "/home/afif/multi/tiramisu/build"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "/home/afif/multi/tiramisu/3rdParty/isl/include"
+				}
+			],
+			"language" : "CXX",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 2,
+			"id" : "flexnlp_wrapper::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "tiramisu::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "run_flexnlp_tiramisu_lstm_manual::@ce8d2e2be859fab6812d"
+		}
+	],
+	"id" : "wrapper_flexnlp_tiramisu_lstm_manual::@ce8d2e2be859fab6812d",
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "-std=c++11 -Wall -Wno-sign-compare -fno-rtti -DHALIDE_NO_JPEG -Wl,--no-as-needed -ldl -g -lz -lpthread -std=c++11 -O3 -fno-rtti -g -O0",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "-Wl,-rpath,/home/afif/multi/tiramisu/build:/home/afif/multi/tiramisu/3rdParty/isl/build/lib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/home/afif/multi/tiramisu/benchmarks/FlexNLP/LSTM_manual_data_copy/generated_flexnlp_test.o",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/home/afif/multi/tiramisu/build/libtiramisu.so",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/home/afif/multi/tiramisu/3rdParty/Halide/lib/libHalide.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/home/afif/multi/tiramisu/3rdParty/isl/build/lib/libisl.so",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "-ldl -lpthread -lrt -ldl -lpthread -lz -lm",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "libflexnlp_wrapper.a",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX"
+	},
+	"name" : "wrapper_flexnlp_tiramisu_lstm_manual",
+	"nameOnDisk" : "wrapper_flexnlp_tiramisu_lstm_manual",
+	"paths" : 
+	{
+		"build" : "benchmarks/FlexNLP/LSTM_manual_data_copy",
+		"source" : "benchmarks/FlexNLP/LSTM_manual_data_copy"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "benchmarks/FlexNLP/LSTM_manual_data_copy/flexnlp_tiramisu_wrapper.cpp",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "EXECUTABLE"
+}

@@ -1,0 +1,85 @@
+{
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target"
+		],
+		"files" : 
+		[
+			"benchmarks/DNN/blocks/Conv-Relu-FC-Softmax/cpu/dense/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 16,
+				"parent" : 0
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 1,
+			"id" : "conv_relu_fc_softmax_generator_tiramisu::@fd457e33662c80a2969c"
+		}
+	],
+	"id" : "run_conv_relu_fc_softmax::@fd457e33662c80a2969c",
+	"name" : "run_conv_relu_fc_softmax",
+	"paths" : 
+	{
+		"build" : "benchmarks/DNN/blocks/Conv-Relu-FC-Softmax/cpu/dense",
+		"source" : "benchmarks/DNN/blocks/Conv-Relu-FC-Softmax/cpu/dense"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				1
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				2
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"path" : "benchmarks/DNN/blocks/Conv-Relu-FC-Softmax/cpu/dense/conv_relu_fc_softmax_generator_tiramisu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/benchmarks/DNN/blocks/Conv-Relu-FC-Softmax/cpu/dense/CMakeFiles/run_conv_relu_fc_softmax",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/benchmarks/DNN/blocks/Conv-Relu-FC-Softmax/cpu/dense/CMakeFiles/run_conv_relu_fc_softmax.rule",
+			"sourceGroupIndex" : 2
+		}
+	],
+	"type" : "UTILITY"
+}

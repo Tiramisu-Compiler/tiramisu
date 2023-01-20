@@ -80,11 +80,12 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
 {
     // Apply all the optimizations
     apply_optimizations(ast);
-
+    
     // Compile the program to an object file
     fct->lift_dist_comps();
     fct->gen_time_space_domain();
     fct->gen_isl_ast();
+    
     fct->gen_halide_stmt();
 
     Halide::Module m = lower_halide_pipeline(fct->get_name(), halide_target, halide_arguments,
@@ -92,7 +93,7 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
                                              fct->get_halide_stmt());
 
     m.compile(Halide::Outputs().object(obj_filename));
-
+    
     // Turn the object file to a shared library
     std::string gcc_cmd = "g++ -shared -o " + obj_filename + ".so " + obj_filename;
     int status = system(gcc_cmd.c_str());
@@ -140,7 +141,6 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
         measurements.push_back(cumulative_timeout*1000); // converted to ms
         std::cout<< "Execution timed out"<< std::endl;
     }
-    
     
     // Remove all the optimizations
     fct->reset_schedules();

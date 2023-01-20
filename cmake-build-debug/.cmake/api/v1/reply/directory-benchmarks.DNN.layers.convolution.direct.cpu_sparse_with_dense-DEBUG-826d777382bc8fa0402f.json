@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "benchmarks/DNN/layers/convolution/direct/cpu_sparse_with_dense",
+		"source" : "benchmarks/DNN/layers/convolution/direct/cpu_sparse_with_dense"
+	}
+}
