@@ -1497,8 +1497,7 @@ void syntax_tree::print_previous_optims() const
 
 void ast_node::print_node() const
 {
-    // if name != "dummy_iter")//get_extent() > 1
-     if (true)
+    if (name != "dummy_iter")//get_extent() > 1
     {
         for (int i = 0; i < depth; ++i)
             std::cout << "\t";

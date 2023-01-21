@@ -80,7 +80,6 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
 {
     // Apply all the optimizations
     apply_optimizations(ast);
-    
     // Compile the program to an object file
     fct->lift_dist_comps();
     fct->gen_time_space_domain();

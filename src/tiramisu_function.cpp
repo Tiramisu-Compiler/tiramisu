@@ -1281,6 +1281,13 @@ void function::set_iterator_names(const std::vector<std::string> &iteratorNames)
 {
     iterator_names = iteratorNames;
 }
+/**
+  * Set the iterator names of the function.
+  */
+void function::set_original_number_of_computations()
+{
+    original_number_of_computations = this->body.size();
+}
 
 /**
   * Add an iterator to the function.
@@ -1347,11 +1354,6 @@ void tiramisu::function::rename_computations()
     // but have different expressions should be renamed first so
     // that we can use the original code generator without any
     // modification.
-    std::cout<<"number of computations in rename comps: "<<this->get_computations().size()<<std::endl;
-    for (auto const comp : this->get_computations())
-    {
-        std::cout<<comp->name<<std::endl;
-    }
     for (auto const comp : this->get_computations())
     {
         std::vector<tiramisu::computation *> same_name_computations =
@@ -1394,10 +1396,7 @@ void function::gen_isl_ast()
     // the code generator expects each unique name to have
     // an expression, different computations that have the same
     // name cannot have different expressions.
-    std::cout<<"before rename printing computation"<<std::endl;
-                for (auto com:this->get_computations()){
-                    std::cout<<"computation name: "<<com->get_name()<<std::endl;
-                }
+
     this->rename_computations();
 
     if (this->get_program_context() == NULL)
@@ -1801,7 +1800,31 @@ void tiramisu::function::align_schedules()
     DEBUG_INDENT(-4);
     DEBUG(3, tiramisu::str_dump("End of function"));
 }
+void tiramisu::function::reset_computations()
+{
+    // remove the added computations
+    if(get_computations().size()>this->original_number_of_computations){
+        this->body = std::vector<tiramisu::computation *>(this->body.begin(),this->body.end()-(get_computations().size()-this->original_number_of_computations));
+    }
 
+    // we also need to reset the names for the computations that were duplicated since
+    // they were renamed using the function rename_computations
+
+    for (computation *comp : get_computations()){
+        // for each computation we also remove all the added updates added using the add_definitions function
+        comp->definitions_number -= comp->updates.size()-1;
+        comp->updates = std::vector<tiramisu::computation *>(comp->updates.begin(),comp->updates.begin()+1);
+        // we extract the correct name for the computation
+        int pos = comp->name.find("_update");
+        std::string correct_name; 
+        if( pos != std::string::npos){
+            correct_name = comp->name.substr(1,pos-1);
+            // call the rename function to correctly make all the changes to the name
+            comp->rename_computation(correct_name);
+        }
+
+    }
+}
 void tiramisu::function::reset_schedules()
 {
     for (computation *comp : get_computations())
@@ -1809,6 +1832,7 @@ void tiramisu::function::reset_schedules()
         
     remove_dimension_tags();
     clear_sched_graph();
+    reset_computations();
 }
 
 void tiramisu::function::add_invariant(tiramisu::constant invar)
@@ -2639,12 +2663,10 @@ bool tiramisu::function::check_legality_for_function()
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
-    std::cout<<"1"<<std::endl;
     assert(this->dep_read_after_write!=NULL);
 
     isl_union_map * all_deps = isl_union_map_range_factor_domain(
         isl_union_map_copy(this->dep_read_after_write));
-    std::cout<<"1"<<std::endl;
 
     all_deps = isl_union_map_union(all_deps,
         isl_union_map_range_factor_domain(isl_union_map_copy(this->dep_write_after_read)));
@@ -2693,13 +2715,11 @@ bool tiramisu::function::check_legality_for_function()
             isl_set_get_space(right_hs),isl_dim_set);
 
         DEBUG(3, tiramisu::str_dump(" checking legality of dependences "+left_computation_name+" -> "+right_computation_name));
-        tiramisu::str_dump(" checking legality of dependences "+left_computation_name+" -> "+right_computation_name);
-        std::cout<<"get name size: "<<this->get_computation_by_name(left_computation_name).size()<<std::endl;
         
         left_comp = this->get_computation_by_name(left_computation_name)[0];
         right_comp = this->get_computation_by_name(right_computation_name)[0];
-        std::cout<<"after get_computation_"<<std::endl;
-        if( left_comp->involved_subset_of_dependencies_is_legal(right_comp) == false )
+        
+        if( left_comp->involved_subset_of_dependencies_is_legal(right_comp) == false)
         {
             over_all_legality = false;
             break;

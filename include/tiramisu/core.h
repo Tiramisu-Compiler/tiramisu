@@ -365,7 +365,13 @@ private:
       * factor of 8.
       */
     std::vector<std::tuple<std::string, int, int>> unroll_dimensions;
-
+    /**
+      * Original number of computations.
+      * Added to be able to reset the computations in the case where some transformations
+      * add additional computations to the function.
+      * This is the case in some explored unrollings
+      */
+    int original_number_of_computations;
     /**
       * Body of the function (a vector of computations).
       * The order of the computations in the vector does not have any
@@ -979,9 +985,14 @@ public:
       * or gen_time_processor_domain() are called.
       */
     void align_schedules();
-    
+
     /**
-     * \brief Remove, for every computation, every schedule.
+     * \brief Remove computations added by unrolling and reset the computation names.
+     */
+    void reset_computations();
+
+    /**
+     * \brief Remove, for every Fputation, every schedule.
      */
     void reset_schedules();
 
@@ -1216,6 +1227,11 @@ public:
       */
     void set_arguments(const std::vector<tiramisu::buffer *> &buffer_vec);
 
+    
+    /**
+     * Set the number of computations for the original ast.
+     */
+    void set_original_number_of_computations();
     /**
      * Wrapper for all the functions required to run code generation of a
      * tiramisu program.

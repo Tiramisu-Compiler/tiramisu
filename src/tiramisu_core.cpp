@@ -288,7 +288,10 @@ void tiramisu::computation::rename_computation(std::string new_name)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
-
+    std::cout<<"looking for name: "<<new_name<<std::endl;
+    for(auto com: this->get_function()->get_computations()){
+        std::cout<<"in rename computations we have: "<<com->name<<std::endl;
+    }
     assert(this->get_function()->get_computation_by_name(new_name).empty());
 
     std::string old_name = this->get_name();
@@ -830,12 +833,16 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v, tiramisu:
         // we need to have this->get_expr().copy()
 
         std::string domain_str = std::string(isl_set_to_str(this->get_iteration_domain()));
+        std::cout<<"inside seperate the number of updates is: "<<this->get_updates().size()<<std::endl;
+        for (auto cm: this->get_updates()){
+            std::cout<<"printing update: "<<cm->name<<std::endl;
+        }
         this->add_definitions(domain_str,
             this->get_expr(),
             this->should_schedule_this_computation(),
             this->get_data_type(),
             this->get_function());
-
+        
         // Set the schedule of the newly created computation (separated
         // computation) to be equal to the schedule of the original computation.
         isl_map *new_schedule = isl_map_copy(this->get_schedule());
@@ -858,8 +865,6 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v, tiramisu:
         this->get_last_update().after(*this, dim);
 
         DEBUG(3, tiramisu::str_dump("The separate computation:"); this->get_last_update().dump());
-        std::cout<<"dumping trs stuff"<<std::endl;
-        tiramisu::str_dump("The separate computation:"); this->get_last_update().dump();
     }
     else
     {
@@ -867,7 +872,10 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v, tiramisu:
     }
 
     this->add_schedule_constraint("", constraint1.c_str());
-
+    std::cout<<"after inside seperate the number of updates is: "<<this->get_updates().size()<<std::endl;
+        for (auto cm: this->get_updates()){
+            std::cout<<"after printing update: "<<cm->name<<std::endl;
+        }
     DEBUG(3, tiramisu::str_dump("The original computation:"); this->dump());
 
     DEBUG_INDENT(-4);
@@ -2350,8 +2358,7 @@ void tiramisu::computation::after(computation &comp, int level)
 
     DEBUG(3, tiramisu::str_dump("Scheduling " + this->get_name() + " to be executed after " +
                                 comp.get_name() + " at level " + std::to_string(level)));
-    tiramisu::str_dump("Scheduling " + this->get_name() + " to be executed after " +
-                                comp.get_name() + " at level " + std::to_string(level));
+
     auto &graph = this->get_function()->sched_graph;
 
     auto &edges = graph[&comp];
@@ -2371,7 +2378,7 @@ void tiramisu::computation::after(computation &comp, int level)
     this->get_function()->starting_computations.erase(this);
 
     this->get_function()->sched_graph_reversed[this][&comp] = level;
-    std::cout<<" \n number of predecessors: "<<this->get_function()->sched_graph_reversed[this].size()<<std::endl;
+
     assert(this->get_function()->sched_graph_reversed[this].size() < 2 &&
             "Node has more than one predecessor.");
 
@@ -4667,7 +4674,6 @@ bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::c
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
-    std::cout<<"61"<<std::endl;
     
     assert(!this->get_name().empty());
     assert(this->get_function() != NULL);
@@ -4685,9 +4691,7 @@ bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::c
 
     isl_union_map * write_after_write_dep = isl_union_map_range_factor_domain(
         isl_union_map_copy(this->get_function()->dep_write_after_write));
-    std::cout<<"3"<<std::endl;
 
-    std::cout<<"62"<<std::endl;
 
     //construct the maps of the space needed
     std::string space_map = "{" + this->get_name() + "[";
@@ -4712,7 +4716,6 @@ bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::c
             space_map += "," ;
         }
     }
-    std::cout<<"63"<<std::endl;
     
     space_map += "]}" ;
 
@@ -4735,7 +4738,6 @@ bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::c
     DEBUG(10, tiramisu::str_dump(" the extracted deps are : "+std::string(isl_map_to_str(my_map3))));
 
     std::vector<isl_basic_map *> all_basic_maps ;
-    std::cout<<"64"<<std::endl;
     
 
     auto f = [](isl_basic_map * bmap,void * user) { 
@@ -4754,7 +4756,6 @@ bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::c
 
     isl_map_foreach_basic_map(my_map3,fun_ptr,(void * ) &all_basic_maps);
 
-    std::cout<<"65"<<std::endl;
 
     /* ==========================================
         extract schedules of 2 computation
@@ -4772,8 +4773,7 @@ bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::c
     /* ==========================================
        making schedules comparable by mapping to the same time space
     */
-    std::cout<<"66"<<std::endl;
-
+                  
     std::string empty = "" ;
 
     isl_map * this_schedule_unify = isl_map_set_tuple_name(
@@ -4788,7 +4788,6 @@ bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::c
         isl_dim_out,
         empty.c_str()
         );
-    std::cout<<"67"<<std::endl;
     
     DEBUG(3, tiramisu::str_dump(" first schedule adjusted into timestamp "+std::string(isl_map_to_str(this_schedule_unify))));
     DEBUG(3, tiramisu::str_dump(" second schedule adjusted into timestamp "+std::string(isl_map_to_str(second_schedule_unify))));
@@ -4817,7 +4816,6 @@ bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::c
     }
     s0_set += "]}" ;
 
-    std::cout<<"68"<<std::endl;
 
     DEBUG(3, tiramisu::str_dump(" initial set of first computation is : "+s0_set));
 
@@ -4831,7 +4829,6 @@ bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::c
     bool overall_corectness = true ;
 
     DEBUG(10, tiramisu::str_dump(" check the respect of previous deps nature start : "));
-    std::cout<<"69"<<std::endl;
     
     for (auto& dependency:all_basic_maps)
     {
@@ -4868,7 +4865,6 @@ bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::c
     }
 
     DEBUG_INDENT(-4);
-    std::cout<<"70"<<std::endl;
 
     isl_map_free(this_schedule_unify);
     isl_map_free(second_schedule_unify);
@@ -4880,7 +4876,6 @@ bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::c
     isl_union_map_free(write_after_read_dep);
     isl_union_map_free(read_after_write_dep);
     isl_union_map_free(write_after_write_dep);
-    std::cout<<"71"<<std::endl;
 
     return overall_corectness;
 }
