@@ -318,8 +318,8 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
         // the optimizations are specified along with the parameters in the generator_state attribute inside the AST.
         assert(generator_state::initialized == true);
     }
-    
-    
+
+
     while ((!ast.is_search_space_empty()))
     {
         // schedule generation based on generator_state attribute in the AST.

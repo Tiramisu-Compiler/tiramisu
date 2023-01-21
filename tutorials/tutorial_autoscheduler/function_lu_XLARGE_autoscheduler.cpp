@@ -19,7 +19,7 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer I
     // ------------------------------------------------------- 
-    constant NN("NN", 4000);
+    constant NN("NN", 40);
 
     //Iteration variables    
     var i("i"), j("j"), k("k"), l("l"), m("m");
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
     // Layer III
     // -------------------------------------------------------
     //Input Buffers
-    buffer b_A("b_A", {4000,4000}, p_float64, a_output);    
+    buffer b_A("b_A", {40,40}, p_float64, a_output);    
 
     //Store inputs
     A.store_in(&b_A);    

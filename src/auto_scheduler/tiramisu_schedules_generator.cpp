@@ -287,12 +287,12 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                     // create AST copy to falsely fuze and check legality
                     syntax_tree *new_ast = new syntax_tree();
                     ast_node *new_node = ast.copy_and_return_node(*new_ast, previous_node);
-
+                    
                     // creating new sched graph
                     ast.stage_local_sched_graph();
                     new_ast->create_new_sched_graph();
                     ast.recover_local_sched_graph();
-
+                    
                     new_ast->stage_isl_states();
                     // modify the schedule graph now using after
 
@@ -300,9 +300,9 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                         *previous_node->computations[previous_node_computation.second].comp_ptr,
                         previous_node_adjusted->depth
                     );
-
+                    
                     new_ast->fct->prepare_schedules_for_legality_checks(true);
-
+                    
                     int depth = previous_node_adjusted->depth;
                     optimization_info optim_info;
                     optim_info.type = optimization_type::FUSION;
@@ -315,11 +315,13 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                     optim_info.l1_fact = -1;
                     optim_info.comps = {previous_node->computations[previous_node_computation.second].comp_ptr,current_node->computations[node_computation.second].comp_ptr};
                     new_ast->new_optims.push_back(optim_info);
+                    
 
                     auto shifting_res = ast.get_function()->correcting_loop_fusion_with_shifting(
                         seen_computations,
                         *current_node->computations[node_computation.second].comp_ptr,
                         loop_levels);
+                    
 
                     if (shifting_res.size() > 0)
                     {
@@ -363,6 +365,8 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                     {
                         new_ast->recover_isl_states();
                         delete new_ast;
+                        // This is added for the scheduling graph to be cleared. Since there is an after call that will cause an issue otherwise.
+                        ast.get_function()->reset_schedules();
                     }
 
                 }
