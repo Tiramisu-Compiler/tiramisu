@@ -33,19 +33,16 @@ void beam_search::explore_schedules(syntax_tree &ast, std::vector<std::string> *
                 case search_phase::FUSION:
                     
                     intermediate_schedules = search_save(*ast_to_explore, schedules_annotations, trace_map[ast_to_explore], schedule_timeout);
-                    
                     break;
 
                 case search_phase::UNIMODULAR:
                     
                     intermediate_schedules = search_save_matrix(*ast_to_explore, schedules_annotations, trace_map[ast_to_explore], schedule_timeout);
-                    
                     break;  
 
                 case search_phase::NON_UNIMODULAR:
                     
                     intermediate_schedules = search_save(*ast_to_explore, schedules_annotations, trace_map[ast_to_explore], schedule_timeout);
-                    
                     break;
                 
                 default:
