@@ -288,10 +288,7 @@ void tiramisu::computation::rename_computation(std::string new_name)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
-    std::cout<<"looking for name: "<<new_name<<std::endl;
-    for(auto com: this->get_function()->get_computations()){
-        std::cout<<"in rename computations we have: "<<com->name<<std::endl;
-    }
+
     assert(this->get_function()->get_computation_by_name(new_name).empty());
 
     std::string old_name = this->get_name();
@@ -833,10 +830,6 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v, tiramisu:
         // we need to have this->get_expr().copy()
 
         std::string domain_str = std::string(isl_set_to_str(this->get_iteration_domain()));
-        std::cout<<"inside seperate the number of updates is: "<<this->get_updates().size()<<std::endl;
-        for (auto cm: this->get_updates()){
-            std::cout<<"printing update: "<<cm->name<<std::endl;
-        }
         this->add_definitions(domain_str,
             this->get_expr(),
             this->should_schedule_this_computation(),
@@ -872,10 +865,7 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v, tiramisu:
     }
 
     this->add_schedule_constraint("", constraint1.c_str());
-    std::cout<<"after inside seperate the number of updates is: "<<this->get_updates().size()<<std::endl;
-        for (auto cm: this->get_updates()){
-            std::cout<<"after printing update: "<<cm->name<<std::endl;
-        }
+
     DEBUG(3, tiramisu::str_dump("The original computation:"); this->dump());
 
     DEBUG_INDENT(-4);
@@ -6102,24 +6092,32 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
     }
     // Treating the case where the set we're extracting bounds from
     // either has one iteration or if conditions
+    // if the number of for levels is less or equal to the unrolled loop, skip the optimization (exception handled when getting measurements)
+    // if(cpt <= dim){std::cout<<"the case"<<std::endl;throw NonForLoopBoundExtractionException();}
     std::string dim_name = "";
     if (isl_set_get_dim_name(set, isl_dim_set, dim) == NULL)
     {
+        //isl_set_get_dim_name only return null if dim is greater than the size of the set?
+        //throw exception in this case?
         e = utility::extract_bound_expression(node, dim, upper);
     }
     else
     {
+
         dim_name = isl_set_get_dim_name(set, isl_dim_set, dim);
         if (constraints_map.find(dim_name) != constraints_map.end() && constraints_map[dim_name] == true)
         {
             int offset = 0;
             for (int o = 0; o < dim; o++)
             {
-            std::string current_dim_name = isl_set_get_dim_name(set, isl_dim_set, o);
-            if (constraints_map.find(current_dim_name) != constraints_map.end() && constraints_map[current_dim_name] == false)
-            {
-                offset = offset + 1;
-            }
+                if(!isl_set_has_dim_name(set, isl_dim_set, o))
+                    continue;
+                
+                std::string current_dim_name = isl_set_get_dim_name(set, isl_dim_set, o);
+                if (constraints_map.find(current_dim_name) != constraints_map.end() && constraints_map[current_dim_name] == false)
+                {
+                    offset = offset + 1;
+                }
             }
             e = utility::extract_bound_expression(node, dim - offset, upper);
         }
@@ -6133,7 +6131,6 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
     assert(e.is_defined() && "The computed bound expression is undefined.");
     DEBUG(10, tiramisu::str_dump(std::string("The ") + (upper ? "upper" : "lower") + " bound is : "); e.dump(false));
     DEBUG_INDENT(-4);
-
     return e;
 }
 int utility::get_single_iterator_bound(isl_set *set, int dim)
@@ -6152,7 +6149,7 @@ int utility::get_single_iterator_bound(isl_set *set, int dim)
             isl_constraint *cst = isl_constraint_list_get_constraint(cst_list, j);
             if (strcmp(isl_val_to_str(isl_constraint_get_coefficient_val(cst, isl_dim_out, dim)), "0") != 0)
             {
-            return (-1 * std::stoi(isl_val_to_str(isl_constraint_get_constant_val(cst))));
+                return (-1 * std::stoi(isl_val_to_str(isl_constraint_get_constant_val(cst))));
             }
         }
     }

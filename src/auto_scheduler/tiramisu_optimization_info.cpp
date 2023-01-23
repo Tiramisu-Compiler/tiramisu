@@ -33,14 +33,16 @@ void apply_optimizations(syntax_tree const& ast)
         
         
     for (optimization_info const& optim_info : ast.new_optims){
-            //std::cout<<"new optims: "<<optim_info.type<<std::endl;
             apply_optimizations(optim_info);
     }
         
 
     // Fusion is a particular case, and we use apply_fusions() to apply it.
     // apply_fusions() uses the structure of the AST to correctly order the computations.
+    // The structure of the program is only represented abstractly even when fusion is not applied.
+    // We need to call apply_fusion on all ASTs to go from the abstract representation of the structure to changing the actual order of computations using the .after command
     apply_fusions(ast);
+
     // Parallelization needs to be applied after the other transformations in order to have the accurate loop depth of
     // the tagged ast_nodes
     apply_parallelization(ast);
@@ -50,7 +52,7 @@ void apply_optimizations(optimization_info const& optim_info)
 {
     // tiramisu::block can be used to apply the same optimization to a set of computations
     tiramisu::block block(optim_info.comps);
-       
+                                
     switch (optim_info.type)
     {
         case optimization_type::TILING:

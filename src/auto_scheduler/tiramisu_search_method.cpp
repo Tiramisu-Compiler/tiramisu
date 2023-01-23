@@ -316,7 +316,6 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
         assert(generator_state::initialized == true);
     }
 
-
     while ((!ast.is_search_space_empty()))
     {
         // schedule generation based on generator_state attribute in the AST.
@@ -412,8 +411,8 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
                     measurements.push_back(std::numeric_limits<float>::infinity());
                     unrolling_exception_thrown = true;
                     
-                }             
-                
+                }
+             
                 (*iterator)->evaluation = min_eval(measurements);
                 parent_trace->add_child_path((*iterator), schedules_annotations->size());
 
