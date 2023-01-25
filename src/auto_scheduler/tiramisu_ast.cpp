@@ -239,7 +239,7 @@ ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
 
     // The fist node is the one created by this constructor
     this->depth = 0;
-    this->name = isl_set_get_dim_name(iter_domain, isl_dim_set, 0) + comp->get_name();
+    this->name = isl_set_get_dim_name(iter_domain, isl_dim_set, 0);
     
     this->low_bound = utility::get_bound(iter_domain, 0, false).to_str();
 
@@ -254,7 +254,7 @@ ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
         ast_node *node = new ast_node();
         
         node->depth = i;
-        node->name = isl_set_get_dim_name(iter_domain, isl_dim_set, i) + comp->get_name();
+        node->name = isl_set_get_dim_name(iter_domain, isl_dim_set, i);
         node->low_bound = utility::get_bound(iter_domain, i, false).to_str();
         node->up_bound = utility::get_bound(iter_domain, i, true).to_str();
         
@@ -1352,7 +1352,17 @@ void syntax_tree::move_in_computation(ast_node * new_node, tiramisu::computation
     }
 
     old_node->computations.erase(old_node->computations.begin());
-    old_node->isl_states.erase(old_node->isl_states.begin());
+    // old_node->isl_states.erase(old_node->isl_states.begin());
+
+    std::vector<state_computation> isl_states_tmp;
+    for (int i = 0; i < old_node->isl_states.size()-1; i++){
+        isl_states_tmp.push_back(old_node->isl_states[i+1]);
+    }
+    old_node->isl_states.clear();
+    for (int i = 0; i < isl_states_tmp.size(); i++){
+        old_node->isl_states.push_back(isl_states_tmp[i]);
+    }
+    isl_states_tmp.clear();
 
     if((old_node->computations.size() == 0) && (old_node->children.size() == 0))
     {

@@ -250,7 +250,7 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
         
         for (int i = 0; i < comp_info.iters.size(); ++i)
         {
-            comp_json += "\"" + comp_info.iters[i].name + comp_info.comp_ptr->get_name() + "\"";
+            comp_json += "\"" + comp_info.iters[i].name + "\"";
             if (i != comp_info.iters.size() - 1)
                 comp_json += ",";
         }
@@ -505,7 +505,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
         if (shifted){
             comp_sched_json+= "[";
             for (auto shifting:shiftings)
-                comp_sched_json+= "[\"" + iterators_list[std::get<0>(shifting)].name + comp->get_name()+"\","+std::to_string(std::get<1>(shifting))+"],";
+                comp_sched_json+= "[\"" + iterators_list[std::get<0>(shifting)].name + "\","+std::to_string(std::get<1>(shifting))+"],";
             comp_sched_json.pop_back(); //remove last comma
             comp_sched_json += "], ";
         }
@@ -516,7 +516,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
         
         if (interchanged)
         {
-            comp_sched_json += "\"" + iterators_list[int_l0].name + comp->get_name() + "\", \"" + iterators_list[int_l1].name + comp->get_name() + "\"";
+            comp_sched_json += "\"" + iterators_list[int_l0].name + "\", \"" + iterators_list[int_l1].name + "\"";
             
             dnn_iterator dnn_it = iterators_list[int_l0];
             iterators_list[int_l0] = iterators_list[int_l1];
@@ -566,7 +566,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
                 comp_sched_json += "\"tiling_depth\" : 2,";
                 comp_sched_json += "\"tiling_dims\" : [";
                 
-                comp_sched_json += "\"" + iterators_list[tile_l0].name + comp->get_name() + "\", " + "\"" + iterators_list[tile_l0 + 1].name + comp->get_name() + "\"";
+                comp_sched_json += "\"" + iterators_list[tile_l0].name + "\", " + "\"" + iterators_list[tile_l0 + 1].name + "\"";
                 
                 comp_sched_json += "],";
                 
@@ -582,7 +582,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
                 comp_sched_json += "\"tiling_depth\" : 3,";
                 comp_sched_json += "\"tiling_dims\" : [";
                 
-                comp_sched_json += "\"" + iterators_list[tile_l0].name + comp->get_name() + "\", " + "\"" + iterators_list[tile_l0 + 1].name + comp->get_name() + "\", " + "\"" + iterators_list[tile_l0 + 2].name + comp->get_name() + "\"";
+                comp_sched_json += "\"" + iterators_list[tile_l0].name + "\", " + "\"" + iterators_list[tile_l0 + 1].name + "\", " + "\"" + iterators_list[tile_l0 + 2].name + "\"";
                 
                 comp_sched_json += "],";
                 
@@ -612,7 +612,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
         comp_sched_json += "\"parallelized_dim\" : ";
         if (parallelized)
         {
-            comp_sched_json += "\"" + iterators_list[parallelized_level].name + comp->get_name() + "\",";
+            comp_sched_json += "\"" + iterators_list[parallelized_level].name + "\",";
         }
         else
         {
@@ -624,7 +624,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
         comp_sched_json += "\"skewing\" : ";
         if (skewed)
         {
-            comp_sched_json += "{\"skewed_dims\" : [\""+ iterators_list[skewing_l0].name + comp->get_name() + "\", " + "\"" + iterators_list[skewing_l1].name + comp->get_name() + "\"],";
+            comp_sched_json += "{\"skewed_dims\" : [\""+ iterators_list[skewing_l0].name + "\", " + "\"" + iterators_list[skewing_l1].name + "\"],";
             comp_sched_json += "\"skewing_factors\" : ["+std::to_string(skewing_fact_l0)+","+std::to_string(skewing_fact_l1)+"],";
             comp_sched_json += "\"average_skewed_extents\" : ["+skew_extent_l0+","+ skew_extent_l1 +"]} ";
 
