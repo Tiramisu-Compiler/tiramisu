@@ -271,10 +271,7 @@ if (WITH_PYTHON_BINDINGS)
 
 endif()
 
-install(TARGETS tiramisu
-EXPORT tiramisu_Targets
-LIBRARY DESTINATION lib
-INCLUDES DESTINATION include)
+
 
 if (${USE_AUTO_SCHEDULER})
     set(AUTO_SCHEDULER_CODE "")
@@ -481,3 +478,7 @@ endforeach()
 add_subdirectory(benchmarks)
 
 
+install(TARGETS tiramisu
+EXPORT tiramisu_Targets
+LIBRARY DESTINATION lib
+INCLUDES DESTINATION include)
