@@ -17,10 +17,8 @@
 
 #include <string>
 #include "../include/tiramisu/expr.h"
-#include "Halide/src/Expr.h"
-#include "Halide/src/Parameter.h"
+#include "Halide.h"
 #include "../include/tiramisu/debug.h"
-#include "Halide/src/IR.h"
 #include "../include/tiramisu/core.h"
 
 namespace tiramisu
