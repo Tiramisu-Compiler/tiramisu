@@ -263,6 +263,7 @@ if (WITH_PYTHON_BINDINGS)
   target_include_directories(Tiramisu_Python PRIVATE "include")
 endif()
 
+
 if (${USE_AUTO_SCHEDULER})
     set(AUTO_SCHEDULER_CODE "")
     foreach(obj ${OBJS_AUTO_SCHEDULER})
@@ -466,3 +467,5 @@ endforeach()
 
 # Individual benchmarks are moved to benchmarks/CMakeLists.txt to reduce clutter
 add_subdirectory(benchmarks)
+
+
