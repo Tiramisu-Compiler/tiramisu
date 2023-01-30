@@ -261,8 +261,21 @@ if (WITH_PYTHON_BINDINGS)
   message(STATUS "Building Python bindings enabled")
   add_subdirectory(python_bindings)
   target_include_directories(Tiramisu_Python PRIVATE "include")
+
 endif()
 
+install(TARGETS tiramisu
+EXPORT tiramisu_Targets
+LIBRARY DESTINATION lib
+ARCHIVE DESTINATION lib
+RUNTIME DESTINATION bin
+INCLUDES DESTINATION include)
+
+if (WITH_PYTHON_BINDINGS)
+  install(TARGETS Tiramsiu_Python Export tiramisu_Targets
+  DESTINATION lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/tiramisu
+  )
+endif()
 
 if (${USE_AUTO_SCHEDULER})
     set(AUTO_SCHEDULER_CODE "")
