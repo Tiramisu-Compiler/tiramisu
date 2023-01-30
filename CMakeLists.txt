@@ -261,8 +261,9 @@ if (WITH_PYTHON_BINDINGS)
   message(STATUS "Building Python bindings enabled")
   add_subdirectory(python_bindings)
   target_include_directories(Tiramisu_Python PRIVATE "include")
-    install(TARGETS Tiramisu_Python Export tiramisu_Targets
-  DESTINATION lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/tiramisu
+    install(TARGETS Tiramisu_Python
+    Export tiramisu_Targets
+      DESTINATION lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/tiramisu
   )
   install(FILES ${CMAKE_SOURCE_DIR}/python_bindings/tiramisu.pyi
   DESTINATION lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/tiramisu
