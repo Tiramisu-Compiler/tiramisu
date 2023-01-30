@@ -14,6 +14,8 @@ option(USE_CUDNN "Build with cuDNN for benchmark comparisons" FALSE)
 
 option(WITH_PYTHON_BINDINGS "Build Python bindings" ON)
 
+set(Tiramisu_INSTALL_PYTHONDIR "${CMAKE_INSTALL_LIBDIR}/python3/site-packages")
+
 # If you set this to true, you should correctly set MKL_PREFIX (see below)
 option(USE_MKL_WRAPPERS "Build with MKL wrappers provided by Tiramisu" TRUE)
 

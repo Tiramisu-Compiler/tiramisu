@@ -477,12 +477,11 @@ LIBRARY DESTINATION lib
 INCLUDES DESTINATION include)
 
 if (WITH_PYTHON_BINDINGS)
-   find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
   install(FILES ${CMAKE_SOURCE_DIR}/python_bindings/tiramisu.pyi
-  DESTINATION "lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages/tiramisu")
+  DESTINATION "${Tiramisu_INSTALL_PYTHONDIR}/tiramisu")
   install(TARGETS Tiramisu_Python
   EXPORT tiramisu_Targets
-  LIBRARY DESTINATION "lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages/tiramisu")
+  LIBRARY DESTINATION "${Tiramisu_INSTALL_PYTHONDIR}/tiramisu")
 
 
 endif()
