@@ -477,7 +477,7 @@ LIBRARY DESTINATION lib
 INCLUDES DESTINATION include)
 
 if (WITH_PYTHON_BINDINGS)
-  install(FILES ${CMAKE_SOURCE_DIR}/python_bindings/tiramisu.pyi
+  install(FILES ${CMAKE_SOURCE_DIR}/python_bindings/tiramisu.pyi ${CMAKE_SOURCE_DIR}/python_bindings/__init__.py
   DESTINATION "${Tiramisu_INSTALL_PYTHONDIR}/tiramisu")
   install(TARGETS Tiramisu_Python
   EXPORT tiramisu_Targets
