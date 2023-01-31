@@ -954,12 +954,15 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     
                 int first_loop = shared_nodes[i]->depth;
                 int second_loop = shared_nodes[j]->depth;
+                optim_info.l0 = first_loop;
+                optim_info.l1 = second_loop;
                 matrix.at(first_loop).at(second_loop) = 1;
                 matrix.at(second_loop).at(first_loop) = 1;
                 matrix.at(second_loop).at(second_loop) = 0;
                 matrix.at(first_loop).at(first_loop) = 0;
                 optim_info.comps = involved_computations;
                 optim_info.matrix = matrix;
+                optim_info.unimodular_transformation_type = 1;
                 new_ast->new_optims.push_back(optim_info);
                 states.push_back(new_ast);
             }
@@ -984,6 +987,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     for(int i=0;i<shared_nodes.size();i++){
         // Copy the AST and add interchange to the list of optimizations
         syntax_tree *new_ast = new syntax_tree();
+        // TODOF important why shared_nodes[0]
         ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[0]);
 
         optimization_info optim_info;
@@ -1001,9 +1005,11 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                 }
             }
         }
+        optim_info.l0 = shared_nodes[i]->depth;
         matrix.at(shared_nodes[i]->depth).at(shared_nodes[i]->depth) = -1; 
         optim_info.comps = involved_computations_reversal;
         optim_info.matrix = matrix;
+        optim_info.unimodular_transformation_type = 2;
         new_ast->new_optims.push_back(optim_info);
         states.push_back(new_ast);
     }
@@ -1075,15 +1081,17 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     matrix.at(optim_info.l0).at(optim_info.l1) = optim_info.l1_fact;
                     matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;   
                     
-                    if(optim_info.l0_fact!=1){
-                        std::vector<int> solutions=get_skew_params(optim_info.l0_fact, optim_info.l1_fact);
+                    if(optim_info.l0_fact!=1)
+                        continue;
+                        // std::vector<int> solutions=get_skew_params(optim_info.l0_fact, optim_info.l1_fact);
                         
-                        matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(1);
-                        matrix.at(optim_info.l1).at(optim_info.l1-1) =  solutions.at(0);
-                    }
+                        // matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(1);
+                        // matrix.at(optim_info.l1).at(optim_info.l1-1) =  solutions.at(0);
+                    
 
                     optim_info.matrix = matrix;
                     optim_info.comps = involved_computations_skew;
+                    optim_info.unimodular_transformation_type = 3;
                     new_ast->new_optims.push_back(optim_info);
                     states.push_back(new_ast);
                 }
@@ -1131,6 +1139,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     }
                     optim_info.matrix = matrix;
                     optim_info.comps = involved_computations_skew;
+                    optim_info.unimodular_transformation_type = 3;
                     new_ast->new_optims.push_back(optim_info);
                     states.push_back(new_ast);
                 }
@@ -1183,6 +1192,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     optim_info.matrix = matrix;
 
                     optim_info.comps = involved_computations_skew;
+                    optim_info.unimodular_transformation_type = 3;
                     new_ast->new_optims.push_back(optim_info);
                     states.push_back(new_ast);
                 }

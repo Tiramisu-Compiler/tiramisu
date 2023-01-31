@@ -5,8 +5,8 @@
 
 
 
-const std::string py_cmd_path = "/data/scratch/mmerouani/anaconda/envs/base-tig/bin/python";
-const std::string py_interface_path = "/data/scratch/mmerouani/tiramisu3/tiramisu/tutorials/tutorial_autoscheduler/model/main.py";
+const std::string py_cmd_path = "/usr/bin/python";
+const std::string py_interface_path = "/home/afif/multi/tiramisu/tutorials/tutorial_autoscheduler/model/main.py";
 
 
 
@@ -19,7 +19,7 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer I
     // ------------------------------------------------------- 
-    constant NN("NN", 40);
+    constant NN("NN", 4000);
 
     //Iteration variables    
     var i("i"), j("j"), k("k"), l("l"), m("m");
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
     // Layer III
     // -------------------------------------------------------
     //Input Buffers
-    buffer b_A("b_A", {40,40}, p_float64, a_output);    
+    buffer b_A("b_A", {4000,4000}, p_float64, a_output);    
 
     //Store inputs
     A.store_in(&b_A);    
@@ -71,12 +71,14 @@ int main(int argc, char **argv)
 
 	auto_scheduler::schedules_generator *scheds_gen = new auto_scheduler::ml_model_schedules_generator();
 	auto_scheduler::evaluate_by_execution *exec_eval = new auto_scheduler::evaluate_by_execution({&b_A}, "function_lu_XLARGE.o", "./function_lu_XLARGE_wrapper");
-	auto_scheduler::search_method *bs = new auto_scheduler::beam_search(beam_size, max_depth, exec_eval, scheds_gen);
-	auto_scheduler::auto_scheduler as(bs, exec_eval);
+	auto_scheduler::evaluation_function *model_eval = new auto_scheduler::evaluate_by_learning_model(py_cmd_path, {py_interface_path});
+	auto_scheduler::search_method *bs = new auto_scheduler::beam_search(beam_size, max_depth, model_eval, scheds_gen);
+	auto_scheduler::auto_scheduler as(bs, model_eval);
 	as.set_exec_evaluator(exec_eval);
 	as.sample_search_space("./function_lu_XLARGE_explored_schedules.json", true);
 	delete scheds_gen;
 	delete exec_eval;
+	delete model_eval;
 	delete bs;
 	return 0;
 }

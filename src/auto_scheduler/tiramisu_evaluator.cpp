@@ -256,27 +256,12 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
         
         comp_json += "],";
         
-//        comp_json += "\"real_dimensions\" : [";
-//
-//        for (int i = 0; i < comp_info.buffer_nb_dims; ++i)
-//        {
-//            comp_json += "\"" + comp_info.iters[i].name + "\"";
-//            if (i != comp_info.buffer_nb_dims - 1)
-//                comp_json += ",";
-//        }
-//
-//        comp_json += "],";
         
         comp_json += "\"comp_is_reduction\" : ";
         if (comp_info.is_reduction)
             comp_json += "true,";
         else
             comp_json += "false,";
-            
-        comp_json += "\"number_of_additions\" : " + std::to_string(comp_info.nb_additions) + ",";
-        comp_json += "\"number_of_subtraction\" : " + std::to_string(comp_info.nb_substractions) + ",";
-        comp_json += "\"number_of_multiplication\" : " + std::to_string(comp_info.nb_multiplications) + ",";
-        comp_json += "\"number_of_division\" : " + std::to_string(comp_info.nb_divisions) + ",";
 
         comp_json += "\"write_access_relation\" : \"" +  comp_info.write_access_relation + "\",";
         comp_json += "\"write_buffer_id\" : " +  std::to_string(comp_info.storage_buffer_id) + ",";
@@ -352,151 +337,120 @@ std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()
     }
     return result;
 }
+std::vector<int> get_transformation_vector_from_optimization(optimization_info opt){
+        //TODOF generalize to MAX_TAGS
+        std::vector<int> result(8);
+        assert(opt.unimodular_transformation_type != 0);
+
+        result.at(0) = opt.unimodular_transformation_type;
+        switch(opt.unimodular_transformation_type){
+            // Interchange
+            case 1:
+                result.at(1) = opt.l0;
+                result.at(2) = opt.l1;
+                break;
+
+            // Rversal
+            case 2:
+                result.at(3) = opt.l0;
+                break;
+
+            // Skewing
+            case 3:
+                result.at(4) = opt.l0;
+                result.at(5) = opt.l1;
+                result.at(6) = opt.l0_fact;
+                result.at(6) = opt.l1_fact;
+                break;
+
+        }
+    return result;
+}
 std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
 {
     std::string sched_json = "{";
 
     for (tiramisu::computation *comp : ast.computations_list)
     {
-    bool interchanged = false;
-    bool tiled = false;
-    bool unrolled = false;
-    bool skewed = false;
-    bool parallelized = false;
-    bool shifted = false;
-    bool transformed_by_matrix = false;
+        bool interchanged = false;
+        bool tiled = false;
+        bool unrolled = false;
+        bool skewed = false;
+        bool parallelized = false;
+        bool shifted = false;
+        bool transformed_by_matrix = false;
 
-    int int_l0, int_l1;
-    int tile_nb_l, tile_l0, tile_l0_fact, tile_l1_fact, tile_l2_fact;
-    int unrolling_fact;
-    int skewing_fact_l0, skewing_fact_l1;
-    int skewing_l0, skewing_l1;
-    std::string skew_extent_l0, skew_extent_l1;
-    int parallelized_level;
-    int depth = 0;
-    bool first_time = true;
-    if(ast.new_optims.size()>0) depth = ast.new_optims.at(0).matrix.size();
-    std::vector < std::vector<int> > matrix;
-    std::vector <std::vector < std::vector<int> >> matrices;
-    std::vector<std::pair<int,int>> shiftings; //pairs of loop_level,shift_factor
+        int int_l0, int_l1;
+        int tile_nb_l, tile_l0, tile_l0_fact, tile_l1_fact, tile_l2_fact;
+        int unrolling_fact;
+        int parallelized_level;
+        int depth = 0;
+        bool first_time = true;
+        if(ast.new_optims.size()>0) depth = ast.new_optims.at(0).matrix.size();
+        std::vector < std::vector<int> > matrix;
+        std::vector <optimization_info > transformations;
+        std::vector<std::pair<int,int>> shiftings; //pairs of loop_level,shift_factor
 
-    
-    // Get information about the schedule
-    for (optimization_info const& optim_info : ast.new_optims)
-    {
-        if(std::find(optim_info.comps.begin(), optim_info.comps.end(), comp) == optim_info.comps.end()) {
-           // if the current computation isn't affected by the current optim_info
-           continue;
-        }
-        switch (optim_info.type)
+        
+        // Get information about the schedule
+        for (optimization_info const& optim_info : ast.new_optims)
         {
-            case optimization_type::SHIFTING:
-                shifted = true;
-                shiftings.emplace_back(optim_info.l0,optim_info.l0_fact);
-                break;
-            case optimization_type::TILING:
-                tiled = true;
-                if (optim_info.nb_l == 2)
-                {
-                    tile_nb_l = 2;
-                    tile_l0 = optim_info.l0;
-                    tile_l0_fact = optim_info.l0_fact;
-                    tile_l1_fact = optim_info.l1_fact;
-                }
-                
-                else if (optim_info.nb_l == 3)
-                {
-                    tile_nb_l = 3;
-                    tile_l0 = optim_info.l0;
-                    tile_l0_fact = optim_info.l0_fact;
-                    tile_l1_fact = optim_info.l1_fact;
-                    tile_l2_fact = optim_info.l2_fact;
-                }
-                break;
-                
-            case optimization_type::INTERCHANGE:
-                
-                interchanged = true;
-                int_l0 = optim_info.l0;
-                int_l1 = optim_info.l1;
-                break;
-
-            case optimization_type::MATRIX:
-                if(first_time){
-                    depth = optim_info.matrix.size();
-                    for(int l = 0; l<depth; l++){
-                        matrix.push_back(std::vector<int>(depth));
-                        for(int c = 0; c<depth; c++){
-                            if (l!=c ){
-                                matrix.at(l).at(c) = 0;
-                            }else{
-                                matrix.at(l).at(c) = 1;
-                            }
-                        }
+            if(std::find(optim_info.comps.begin(), optim_info.comps.end(), comp) == optim_info.comps.end()) {
+                // if the current computation isn't affected by the current optim_info
+                continue;
+            }
+            switch (optim_info.type)
+            {
+                case optimization_type::SHIFTING:
+                    shifted = true;
+                    shiftings.emplace_back(optim_info.l0,optim_info.l0_fact);
+                    break;
+                case optimization_type::TILING:
+                    tiled = true;
+                    if (optim_info.nb_l == 2)
+                    {
+                        tile_nb_l = 2;
+                        tile_l0 = optim_info.l0;
+                        tile_l0_fact = optim_info.l0_fact;
+                        tile_l1_fact = optim_info.l1_fact;
                     }
-                    first_time =false;
-                } 
-                transformed_by_matrix = true;
-                
-                if(optim_info.matrix.size()<matrix.size()){
-                    std::vector <  std::vector<int> >  matrix_padded(matrix.size());
-                    for(int l = 0; l<matrix_padded.size(); l++){
-                        matrix_padded.at(l)= std::vector<int>(matrix.size());
-                        for(int c = 0; c<matrix_padded.size(); c++){
-                            if (l!=c ){
-                                matrix_padded.at(l).at(c) = 0;
-                            }else{
-                                matrix_padded.at(l).at(c) = 1;
-                            }
-                        }
+                    
+                    else if (optim_info.nb_l == 3)
+                    {
+                        tile_nb_l = 3;
+                        tile_l0 = optim_info.l0;
+                        tile_l0_fact = optim_info.l0_fact;
+                        tile_l1_fact = optim_info.l1_fact;
+                        tile_l2_fact = optim_info.l2_fact;
                     }
+                    break;
 
-                for(int i=0 ; i<optim_info.matrix.size();i++){
-                    for(int j=0 ; j<optim_info.matrix.size();j++){
-                        matrix_padded.at(i).at(j)= optim_info.matrix.at(i).at(j);
+                case optimization_type::MATRIX:
+                    if (optim_info.unimodular_transformation_type != 0){
+                        transformations.push_back(optim_info);
                     }
-                }
-                matrix = mat_mul( matrix_padded, matrix);
-                matrices.push_back(matrix_padded);
-                }else{
-                    matrices.push_back(optim_info.matrix); 
-                    matrix = mat_mul( optim_info.matrix, matrix);
-                }
-                break;
-                
-            case optimization_type::UNROLLING:
-                unrolled = true;
-                unrolling_fact = optim_info.l0_fact;
-                break;
+                    
+                    break;
+                    
+                case optimization_type::UNROLLING:
+                    unrolled = true;
+                    unrolling_fact = optim_info.l0_fact;
+                    break;
 
-            case optimization_type::PARALLELIZE:
-                parallelized = true;
-                parallelized_level = optim_info.l0;
-                break;
-
-            case optimization_type::SKEWING:
-                skewed = true;
-                skewing_fact_l0 = optim_info.l0_fact;
-                skewing_fact_l1 = optim_info.l1_fact;
-                skewing_l0 = optim_info.l0;
-                skewing_l1 = optim_info.l1;
-                skew_extent_l0 = optim_info.node->up_bound + "-" + optim_info.node->low_bound;
-                assert(optim_info.node->children.size()==1); // only shared nodes are currently skewable
-                skew_extent_l1 = optim_info.node->children[0]->up_bound + "-" + optim_info.node->children[0]->low_bound;
-                break;
-                
-            default:
-                break;
+                case optimization_type::PARALLELIZE:
+                    parallelized = true;
+                    parallelized_level = optim_info.l0;
+                    break;
+                    
+                default:
+                    break;
+            }
         }
-    }
-    
-    // Transform the schedule to JSON
-    std::vector<dnn_iterator> iterators_list;
-    
-    // Set the schedule for every computation
-    // For the moment, all computations share the same schedule
-//    for (tiramisu::computation *comp : ast.computations_list)
-//    {
+        
+        // Transform the schedule to JSON
+        std::vector<dnn_iterator> iterators_list;
+        
+        // Set the schedule for every computation
         std::string comp_sched_json;
         iterators_list = dnn_iterator::get_iterators_from_computation(*comp);
 
@@ -510,51 +464,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
         }
         else
             comp_sched_json += "null,";
-        // JSON for interchange
-        comp_sched_json += "\"interchange_dims\" : [";
-        
-        if (interchanged)
-        {
-            comp_sched_json += "\"" + iterators_list[int_l0].name + "\", \"" + iterators_list[int_l1].name + "\"";
-            
-            dnn_iterator dnn_it = iterators_list[int_l0];
-            iterators_list[int_l0] = iterators_list[int_l1];
-            iterators_list[int_l1] = dnn_it;
-        }
-        
-        comp_sched_json += "],";
-        comp_sched_json += "\"transformation_matrices\" : [";
-        
-        if (transformed_by_matrix)
-        {
-            for(int i = 0; i < matrices.size(); i++){
-                comp_sched_json += "[";
-                for(int j = 0; j < depth; j++){
-                            for(int k = 0; k< depth; k++){
-                                
-                                comp_sched_json += "\"" + std::to_string(matrices.at(i).at(j).at(k))+"\"";
-                                if(!(j==depth-1 && k==depth-1)) comp_sched_json += ", ";
-                            }
-                }
-                comp_sched_json += "] ";
-                if(i!=matrices.size()-1) comp_sched_json += ", ";
-            }
-        }
-        
-        comp_sched_json += "],";
-        // JSON for matrix
-        comp_sched_json += "\"transformation_matrix\" : [";
-        
-        if (transformed_by_matrix)
-        {
-            for(int i = 0; i < matrix.size(); i++){
-                for(int j = 0; j< matrix.size(); j++){
-                    comp_sched_json += "\"" + std::to_string(matrix.at(i).at(j))+"\"";
-                    if(!(i==matrix.size()-1 && j==matrix.size()-1)) comp_sched_json += ", ";
-                }
-            }
-        }
-        comp_sched_json += "]," ;
+    
         // JSON for tiling
         comp_sched_json += "\"tiling\" : {";
         
@@ -617,82 +527,28 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
         {
             comp_sched_json += "null, ";
 
-        }
+        }    
 
-        // Skewing info
-        comp_sched_json += "\"skewing\" : ";
-        if (skewed)
+        comp_sched_json += "\"transformations_list\" : [";
+        std::vector<int> transformation_vector;
+        if (transformed_by_matrix)
         {
-            comp_sched_json += "{\"skewed_dims\" : [\""+ iterators_list[skewing_l0].name + "\", " + "\"" + iterators_list[skewing_l1].name + "\"],";
-            comp_sched_json += "\"skewing_factors\" : ["+std::to_string(skewing_fact_l0)+","+std::to_string(skewing_fact_l1)+"],";
-            comp_sched_json += "\"average_skewed_extents\" : ["+skew_extent_l0+","+ skew_extent_l1 +"]} ";
-
-            // Adding the access matrices transformed by skewing
-
-            // get the comp_info corresponding to the current computation
-//            ast_node* comp_node = ast.computations_mapping.at(comp);
-//            std::vector<dnn_access_matrix> comp_accesses_list;
-//            for (auto comp_i: comp_node->computations)
-//            {
-//                if (comp_i.comp_ptr == comp)
-//                {
-//                    comp_accesses_list = comp_i.accesses.accesses_list;
-//                    break;
-//                }
-//            }
-
-//            // Build JSON of the transformed accesses
-//            comp_sched_json += "\"transformed_accesses\" : [";
-//
-//            for (int i = 0; i < comp_accesses_list.size(); ++i)
-//            {
-//                dnn_access_matrix const& matrix  = comp_accesses_list[i];
-//                comp_sched_json += "{";
-//
-//                comp_sched_json += "\"buffer_id\" : " + std::to_string(matrix.buffer_id) + ",";
-//                comp_sched_json += "\"access_matrix\" : [";
-//
-//                for (int x = 0; x < matrix.matrix.size(); ++x)
-//                {
-//                    comp_sched_json += "[";
-//                    for (int y = 0; y < matrix.matrix[x].size(); ++y)
-//                    {
-//                        comp_sched_json += std::to_string(matrix.matrix[x][y]);
-//                        if (y != matrix.matrix[x].size() - 1)
-//                            comp_sched_json += ", ";
-//                    }
-//
-//                    comp_sched_json += "]";
-//                    if (x != matrix.matrix.size() - 1)
-//                        comp_sched_json += ",";
-//                }
-//
-//                comp_sched_json += "]";
-//
-//                comp_sched_json += "}";
-//
-//                if (i != comp_accesses_list.size() - 1)
-//                    comp_sched_json += ",";
-//            }
-//
-//            comp_sched_json += "]}";
-
+            for(int i = 0; i < transformations.size(); i++){
+                comp_sched_json += "[";
+                transformation_vector = get_transformation_vector_from_optimization(transformations.at(i));
+                for(int j = 0; j < transformation_vector.size(); j++){
+                                
+                                comp_sched_json += "\"" + std::to_string(transformation_vector.at(j))+"\"";
+                                if(!(j==transformation_vector.size()-1)) comp_sched_json += ", ";
+                }
+                comp_sched_json += "] ";
+                if(i!=transformations.size()-1) comp_sched_json += ", ";
+            }
         }
-        else
-        {
-            comp_sched_json += "null";
-        }
-        
+        comp_sched_json += "]";
+
         sched_json += "\"" + comp->get_name() + "\" : {" + comp_sched_json + "}, ";
     }
-    
-//    // Write JSON information about unfused iterators (not specific to a computation)
-//    sched_json += "\"unfuse_iterators\" : [";
-//    if (unfuse_l0 != -1)
-//        sched_json += "\"" + iterators_list[unfuse_l0].name + "\"";
-        
-//    sched_json += "],";
-
     bool has_fusions = false;
     sched_json += "\"fusions\" : [";
     for (optimization_info const& optim_info : ast.new_optims)
@@ -712,8 +568,10 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
     // Write the structure of the tree
     sched_json += "\"tree_structure\": {";
     sched_json += ast.tree_structure_json;
-    sched_json += "}";
+    sched_json += "}, ";
     
+    sched_json += "\"legality_check\": true, ";
+    sched_json += "\"exploration_method\": 1";
     // End of JSON
     sched_json += "}\n";
     return sched_json;

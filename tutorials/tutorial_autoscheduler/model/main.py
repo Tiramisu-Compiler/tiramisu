@@ -21,28 +21,28 @@ environ["MKL_THREADING_LAYER"] = "GNU"
 # model_path = '/data/scratch/mmerouani/tiramisu2/tiramisu/tutorials/tutorial_autoscheduler/model/MAPE_base_13+4+2.6_22.7.pkl'
 # model_path = '/data/scratch/hbenyamina/best_model_bidirectional_new_data_static_input_paper_4cb2.pt'
 model_path = (
-    "/home/islem/pfe/tiramisu_work/tiramisu/tutorials/tutorial_autoscheduler/model/best_model_multiple_roots_fc3e.pt"
+    "/home/afif/multi/tiramisu/tutorials/tutorial_autoscheduler/model/model_release_version.pt"
 )
 
 MAX_DEPTH = 5
 
 def seperate_vector(
-    X: torch.Tensor, num_matrices: int = 5, pad: bool = True, pad_amount: int = 5
+    X: torch.Tensor, num_transformations: int = 4, pad: bool = True, pad_amount: int = 5
 ) -> torch.Tensor:
     batch_size, _ = X.shape
-    first_part = X[:, :28]
-    second_part = X[:, 28 : 28 + 36 * num_matrices]
-    third_part = X[:, 28 + 36 * num_matrices :]
+    first_part = X[:, :33]
+    second_part = X[:, 33 : 33 + MAX_TAGS * num_transformations]
+    third_part = X[:, 33 + MAX_TAGS * num_transformations :]
     vectors = []
-    for i in range(num_matrices):
-        vector = second_part[:, 36 * i : 36 * (i + 1)].reshape(batch_size, 1, -1)
+    for i in range(num_transformations):
+        vector = second_part[:, MAX_TAGS * i : MAX_TAGS * (i + 1)].reshape(batch_size, 1, -1)
         vectors.append(vector)
 
     if pad:
         for i in range(pad_amount):
             vector = torch.zeros_like(vector)
             vectors.append(vector)
-    return (first_part, vectors[0], torch.cat(vectors[1:], dim=1), third_part)
+    return (first_part, torch.cat(vectors[0:], dim=1), third_part)
 
 with torch.no_grad():
     device = "cpu"
@@ -50,8 +50,8 @@ with torch.no_grad():
 
     environ["layers"] = "600 350 200 180"
     environ["dropouts"] = "0.05 " * 4
-    logging.info("got here")
-    input_size = 1552 #1056
+
+    input_size = 890 #1056
     output_size = 1
 
     layers_sizes = list(map(int, environ.get("layers", "600 350 200 180").split()))
@@ -61,11 +61,8 @@ with torch.no_grad():
         input_size=input_size,
         comp_embed_layer_sizes=layers_sizes,
         drops=drops,
-        transformation_matrix_dimension=6,
-        loops_tensor_size=33,
-        expr_embed_size=100,
-        train_device=device,
-        bidirectional=True,
+        loops_tensor_size=8,
+        train_device="cpu",
     )
     model.load_state_dict(torch.load(model_path, map_location="cpu"))
     
@@ -106,24 +103,21 @@ with torch.no_grad():
                 
                 x = comps_tensor
                 batch_size, num_comps, __dict__ = x.shape
-                x = x.view(batch_size * num_comps, -1)
-                (first_part, final_matrix, vectors, third_part) = seperate_vector(
-                        x, num_matrices=6, pad=False
-                    )
-                x = torch.cat(
-                    (
-                        first_part,
-                        third_part,
-                        final_matrix.reshape(batch_size * num_comps, -1),
-                    ),
-                    dim=1,
-                ).view(batch_size, num_comps, -1)
                 
-                tree_tensor = (prog_tree, x, vectors, loops_tensor, comps_expr_tensor, comps_expr_lengths)
+                x = x.view(batch_size * num_comps, -1)
+                
+                (first_part, vectors, third_part) = seperate_vector(
+                        x, num_transformations=4, pad=False
+                    )
+                
+                first_part = first_part.view(batch_size, num_comps, -1)
+                
+                third_part = third_part.view(batch_size, num_comps, -1)
+                
+                tree_tensor = (prog_tree, first_part, vectors, third_part, loops_tensor, comps_expr_tensor, comps_expr_lengths)
 
                 speedup = model.forward(tree_tensor)
                 print(float(speedup.item()))
-                # print(random.uniform(0.5, 2))
-                # print(random.randint(0,3))
+                
         except EOFError:
             exit()

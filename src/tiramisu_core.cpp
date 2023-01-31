@@ -124,9 +124,7 @@ bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::comput
 
 bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations)
 {
-    //std::cout<<"tiramisu core loop_unrolling_is_legal "<<std::endl;
     function *fct = global::get_implicit_function();
-    //std::cout<<" tiramisu core loop_unrolling_is_legal "<<std::endl;
     return fct->loop_unrolling_is_legal(i,fuzed_computations);
 }
 

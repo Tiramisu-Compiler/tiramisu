@@ -2849,7 +2849,6 @@ void tiramisu::function::prepare_schedules_for_legality_checks(bool reset_static
 
 bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<tiramisu::computation *> fuzed_computations)
 {
-    //std::cout<<"function:: loop_unrolling_is_legal "<<std::endl;
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
@@ -2870,9 +2869,9 @@ bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<t
         first_computation->get_loop_level_numbers_from_dimension_names({i.get_name()});
 
     first_computation->check_dimensions_validity(dimensions);
-    //std::cout<<"function:: check dimension validity "<<std::endl;
+ 
     bool result = true;
-    //std::cout<<"will loop: "<<fuzed_computations.size()<<std::endl;
+
     for(auto& computation:fuzed_computations)
     {
         if( computation->unrolling_is_legal(i)== false)

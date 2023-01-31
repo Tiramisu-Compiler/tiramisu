@@ -51,6 +51,14 @@ struct optimization_info
      */
     ast_node *head;
     /**
+     * If exploring unimodular transformations, save which type of unimodular transformation it is (Interchange, Reversal and Skewing).
+     * The encoding is:
+     *    1: Interchange
+     *    2: Reversal
+     *    3: Skewing
+     */
+    int unimodular_transformation_type = 0;
+    /**
      * The number of loop levels that this optimization affects.
      * For example, a 2 level tiling affects 2 loop levels, an interchange
      * affects 2 loop levels, an unrolling affects 1 loop level.
