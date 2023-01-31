@@ -261,7 +261,10 @@ if (WITH_PYTHON_BINDINGS)
   message(STATUS "Building Python bindings enabled")
   add_subdirectory(python_bindings)
   target_include_directories(Tiramisu_Python PRIVATE "include")
+
 endif()
+
+
 
 if (${USE_AUTO_SCHEDULER})
     set(AUTO_SCHEDULER_CODE "")
@@ -466,3 +469,19 @@ endforeach()
 
 # Individual benchmarks are moved to benchmarks/CMakeLists.txt to reduce clutter
 add_subdirectory(benchmarks)
+
+
+install(TARGETS tiramisu
+EXPORT tiramisu_Targets
+LIBRARY DESTINATION lib
+INCLUDES DESTINATION include)
+
+if (WITH_PYTHON_BINDINGS)
+  install(FILES ${CMAKE_SOURCE_DIR}/python_bindings/tiramisu.pyi ${CMAKE_SOURCE_DIR}/python_bindings/__init__.py
+  DESTINATION "${Tiramisu_INSTALL_PYTHONDIR}/tiramisu")
+  install(TARGETS Tiramisu_Python
+  EXPORT tiramisu_Targets
+  LIBRARY DESTINATION "${Tiramisu_INSTALL_PYTHONDIR}/tiramisu")
+
+
+endif()
