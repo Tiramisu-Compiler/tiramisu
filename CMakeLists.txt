@@ -6,7 +6,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR})
 set(CMAKE_VERBOSE_MAKEFILE "ON")
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
-
+add_compile_definitions(HALIDE_BUILD ${HALIDE_LIB_DIRECTORY})
 include(configure.cmake)
 
 # Add CMake header files
@@ -21,6 +21,8 @@ set(HEADER_FILES
         include/tiramisu/mpi_comm.h
         include/tiramisu/externs.h
         )
+	
+
 
 # Add autoscheduler headers if USE_AUTO_SCHEDULER is TRUE in configure.cmake
 if (${USE_AUTO_SCHEDULER})
