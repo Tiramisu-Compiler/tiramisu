@@ -2,9 +2,7 @@
 
 namespace tiramisu::auto_scheduler
 {
-
-std::vector<dnn_iterator> 
-dnn_iterator::get_iterators_from_computation(tiramisu::computation const& comp)
+std::vector<dnn_iterator>  dnn_iterator::get_iterators_from_computation(tiramisu::computation const& comp)
 {
     std::vector<dnn_iterator> iters_list;
     

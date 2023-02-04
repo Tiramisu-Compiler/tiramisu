@@ -13,8 +13,8 @@ namespace tiramisu::auto_scheduler
 
     bool generator_state::initialized;
     
-computation_info::computation_info(tiramisu::computation *comp, syntax_tree *ast)
-    : comp_ptr(comp), iters(dnn_iterator::get_iterators_from_computation(*comp)),
+computation_info::computation_info(tiramisu::computation *comp, syntax_tree *ast, std::vector<dnn_iterator> iterators)
+    : comp_ptr(comp), iters(iterators),
       accesses(comp, iters.size(), comp->get_function()), buffer_nb_dims(iters.size()),
       nb_additions(0), nb_substractions(0), nb_multiplications(0), nb_divisions(0)
 {
@@ -131,7 +131,6 @@ syntax_tree::syntax_tree(tiramisu::function *fct)
 {
     local_sched_graph =  std::make_shared<std::unordered_map<tiramisu::computation *,
     std::unordered_map<tiramisu::computation *, int>>>(fct->sched_graph);
-    
     const std::vector<computation*> computations = fct->get_computations();
     
     for (tiramisu::computation *comp : computations) 
@@ -228,36 +227,57 @@ int get_number_of_iterators_from_set(isl_set *set){
     }
     return cpt;
 }
+// Make sure the iterator names are unique between computations.
+std::string assign_iterator_name(std::string suggested_name, syntax_tree *ast){
+    if(ast->iterator_names_set.find(suggested_name) == ast->iterator_names_set.end()){
+        // The name is unique in the ast
+        ast->iterator_names_set.insert(suggested_name);
+        return suggested_name;
+    }else{
+        // The name already exists, we add an offset until we find a new unreserved name.
+        int offset = 0;
+        std::string new_name = suggested_name; 
+        while(ast->iterator_names_set.find(new_name) != ast->iterator_names_set.end()){
+            new_name = suggested_name + "_" +std::to_string(offset); 
+            offset++;
+        }
+        // Add the name in the iterator_names_set to note that we already used it.
+        ast->iterator_names_set.insert(new_name);
+        return new_name;
+    }
 
+}
 ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
 {
     std::vector<ast_node*> nodes;
-
+    // list of iterators for this computation
+    std::vector<dnn_iterator> iters_list;
     // Get computation iterators
     isl_set *iter_domain = comp->get_iteration_domain();
     int nb_iterators = isl_set_dim(iter_domain, isl_dim_set);
 
     // The fist node is the one created by this constructor
     this->depth = 0;
-    this->name = isl_set_get_dim_name(iter_domain, isl_dim_set, 0);
-    
+    std::string iter_name = isl_set_get_dim_name(iter_domain, isl_dim_set, 0);
+    this->name = assign_iterator_name(iter_name, ast);
     this->low_bound = utility::get_bound(iter_domain, 0, false).to_str();
 
 
     this->up_bound = utility::get_bound(iter_domain, 0, true).to_str();
 
     nodes.push_back(this);
-        
+    iters_list.push_back(dnn_iterator(this->name, this->low_bound, this->up_bound));
     // Create the other nodes, one for each iterator
     for (int i = 1; i < nb_iterators; ++i)
     {
         ast_node *node = new ast_node();
         
         node->depth = i;
-        node->name = isl_set_get_dim_name(iter_domain, isl_dim_set, i);
+        iter_name = isl_set_get_dim_name(iter_domain, isl_dim_set, i);
+        node->name = assign_iterator_name(iter_name, ast);
         node->low_bound = utility::get_bound(iter_domain, i, false).to_str();
         node->up_bound = utility::get_bound(iter_domain, i, true).to_str();
-        
+        iters_list.push_back(dnn_iterator(node->name, node->low_bound, node->up_bound));
         nodes.push_back(node);
     }
 
@@ -268,7 +288,7 @@ ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
         nodes[i + 1]->parent = nodes[i];
     }
     
-    nodes.back()->computations.push_back(computation_info(comp, ast));
+    nodes.back()->computations.push_back(computation_info(comp, ast, iters_list));
 }
 
 void syntax_tree::order_computations()

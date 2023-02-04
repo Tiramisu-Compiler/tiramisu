@@ -219,7 +219,7 @@ public:
     /**
      * Get info about the given computation. The AST is needed to get some info.
      */
-    computation_info(tiramisu::computation *comp, syntax_tree *ast);
+    computation_info(tiramisu::computation *comp, syntax_tree *ast, std::vector<dnn_iterator> iterators);
 
 
     /**
@@ -584,6 +584,11 @@ public:
      * An evaluation given by a class of type evaluation_function.
      */
     float evaluation;
+    
+    /**
+     * A set containing the names of all the iterators in the ast. Used to avoid duplicate iterator names.
+     */
+    std::set<std::string> iterator_names_set;
     
     /**
      * The depth of this AST in a search method.

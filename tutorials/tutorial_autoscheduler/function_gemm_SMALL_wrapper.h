@@ -1,5 +1,5 @@
-#ifndef HALIDE__generated_function_lu_no_schedule_h
-#define HALIDE__generated_function_lu_no_schedule_h
+#ifndef HALIDE__generated_function_gemm_no_schedule_h
+#define HALIDE__generated_function_gemm_no_schedule_h
 #include <tiramisu/utils.h>
 #include <sys/time.h>
 #include <cstdlib>
@@ -40,7 +40,7 @@ void parallel_init_buffer(double* buf, unsigned long long int size, double value
 #ifdef __cplusplus
 extern "C" {
 #endif
-int function_lu_XLARGE(halide_buffer_t *buf01);
+int function_gemm_SMALL(halide_buffer_t *buf01, halide_buffer_t *buf02, halide_buffer_t *buf03);
 #ifdef __cplusplus
 }  // extern "C"
 #endif

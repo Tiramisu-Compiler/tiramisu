@@ -62,7 +62,7 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
     std::string gcc_cmd = "g++ -shared -o " + obj_filename + ".so " + obj_filename;
     // run the command and retrieve the execution status
     int status = system(gcc_cmd.c_str());
-    
+    assert(status != 139 && "Segmentation Fault when trying to execute schedule");
     // Execute the wrapper and get execution time
     double exec_time = std::numeric_limits<double>::infinity();
     FILE *pipe = popen(wrapper_cmd.c_str(), "r");
@@ -96,7 +96,7 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
     // Turn the object file to a shared library
     std::string gcc_cmd = "g++ -shared -o " + obj_filename + ".so " + obj_filename;
     int status = system(gcc_cmd.c_str());
-
+    assert(status != 139 && "Segmentation Fault when trying to execute schedule");
     // define the execution command of the wrapper
     std::string cmd = wrapper_cmd;
 
@@ -369,24 +369,23 @@ std::vector<int> get_transformation_vector_from_optimization(optimization_info o
 std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
 {
     std::string sched_json = "{";
+    std::vector<computation_info*> all_comps_info;
 
+    // retrieve all computation infos to get the iterators for each computation later
+    for (auto root : ast.roots){
+        root->collect_all_computation(all_comps_info);
+    }
     for (tiramisu::computation *comp : ast.computations_list)
     {
-        bool interchanged = false;
         bool tiled = false;
         bool unrolled = false;
-        bool skewed = false;
         bool parallelized = false;
         bool shifted = false;
         bool transformed_by_matrix = false;
 
-        int int_l0, int_l1;
         int tile_nb_l, tile_l0, tile_l0_fact, tile_l1_fact, tile_l2_fact;
         int unrolling_fact;
         int parallelized_level;
-        int depth = 0;
-        bool first_time = true;
-        if(ast.new_optims.size()>0) depth = ast.new_optims.at(0).matrix.size();
         std::vector < std::vector<int> > matrix;
         std::vector <optimization_info > transformations;
         std::vector<std::pair<int,int>> shiftings; //pairs of loop_level,shift_factor
@@ -426,6 +425,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
                     break;
 
                 case optimization_type::MATRIX:
+                    transformed_by_matrix = true;
                     if (optim_info.unimodular_transformation_type != 0){
                         transformations.push_back(optim_info);
                     }
@@ -452,7 +452,14 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
         
         // Set the schedule for every computation
         std::string comp_sched_json;
-        iterators_list = dnn_iterator::get_iterators_from_computation(*comp);
+
+        // look for the computation and assign the correct iterators list
+        for (auto comp_info : all_comps_info){
+                if(comp_info->comp_ptr == comp){
+                    iterators_list = comp_info->iters;
+                }
+        }
+        assert(!iterators_list.empty() && "couldn't find the list of iterators for this computation");
 
         comp_sched_json += "\"shiftings\" : ";
         if (shifted){
@@ -536,11 +543,12 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
             for(int i = 0; i < transformations.size(); i++){
                 comp_sched_json += "[";
                 transformation_vector = get_transformation_vector_from_optimization(transformations.at(i));
+
                 for(int j = 0; j < transformation_vector.size(); j++){
-                                
-                                comp_sched_json += "\"" + std::to_string(transformation_vector.at(j))+"\"";
-                                if(!(j==transformation_vector.size()-1)) comp_sched_json += ", ";
+                    comp_sched_json += std::to_string(transformation_vector.at(j));
+                    if(!(j==transformation_vector.size()-1)) comp_sched_json += ", ";
                 }
+
                 comp_sched_json += "] ";
                 if(i!=transformations.size()-1) comp_sched_json += ", ";
             }
@@ -594,7 +602,7 @@ void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, 
     if (node->parent == nullptr)
         iter_json += "null,";
     else
-        iter_json += "\"" + node->parent->name + "\",";
+        iter_json += "\"" + node->parent->name + "\",";            
             
     iter_json += "\"child_iterators\" : [";
     bool printed_child = false;
