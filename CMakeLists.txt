@@ -247,16 +247,16 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_DIR}/build)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_DIR}/build)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_DIR}/build)
 
-set(T_CODE "")
+# set(T_CODE "")
 
-foreach (obj ${OBJS})
-    set(T_CODE ${T_CODE} src/tiramisu_${obj}.cpp)
-endforeach ()
+# foreach (obj ${OBJS})
+#     set(T_CODE ${T_CODE} src/tiramisu_${obj}.cpp)
+# endforeach ()
 
-add_library(tiramisu SHARED ${T_CODE})
+# add_library(tiramisu SHARED ${T_CODE})
 
-target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
-target_link_libraries(tiramisu ${LINK_FLAGS})
+# target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
+# target_link_libraries(tiramisu ${LINK_FLAGS})
 
 if (WITH_PYTHON_BINDINGS)
   message(STATUS "Building Python bindings enabled")
