@@ -49,13 +49,16 @@ This section provides a short description of how to build Tiramisu.  A more deta
 #### Prerequisites
 ###### Required
 1) [CMake](https://cmake.org/): version 3.5 or greater.
+2) [ISL](https://libisl.sourceforge.io/): (Included in the source tree, but you can use an external ISL).
 
-2) [Autoconf](https://www.gnu.org/software/autoconf/) and [libtool](https://www.gnu.org/software/libtool/).
   
 ###### Optional
 1) [OpenMPI](https://www.open-mpi.org/) and [OpenSSh](https://www.openssh.com/): if you want to generate and run distributed code (MPI).
 2) [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit): if you want to generate and run CUDA code.
-
+3) If you don't already have ISL installed, you will need: [Autoconf](https://www.gnu.org/software/autoconf/) and [libtool](https://www.gnu.org/software/libtool/).
+4) Python3.8 or higher if you will build the Python bindings.
+5) Numpy if you will build the Python bindings.
+6) Cython if you will build the Python bindings and want to build Python Extension out of Tiramisu programs. 
 
 #### Building
 1) Get Tiramisu
