@@ -259,6 +259,7 @@ endif()
 
 # target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
 # target_link_libraries(tiramisu ${LINK_FLAGS})
+add_subdirectory(src)
 
 if (WITH_PYTHON_BINDINGS)
   message(STATUS "Building Python bindings enabled")
