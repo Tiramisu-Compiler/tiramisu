@@ -21,3 +21,4 @@ set_target_properties(tiramisu
   PROPERTIES
   LIBRARY_OUTPUT_NAME tiramisu
   EXPORT_NAME tiramisu)
+target_include_directories(tiramisu PUBLIC ${CMAKE_SOURCE_DIR}/include/tiramisu)
