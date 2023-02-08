@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(tiramisu)
+project(Tiramisu)
 
 enable_testing()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -7,6 +7,13 @@ set(PROJECT_DIR ${CMAKE_SOURCE_DIR})
 set(CMAKE_VERBOSE_MAKEFILE "ON")
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 include(configure.cmake)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(PROJECT_BUILD ${CMAKE_BINARY_DIR})
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
+
+
 
 # Add CMake header files
 set(HEADER_FILES
@@ -243,20 +250,9 @@ if(${ENABLE_DEBUG})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_DEBUG -DDEBUG_LEVEL=${DEBUG_LEVEL}")
 endif()
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_DIR}/build)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_DIR}/build)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_DIR}/build)
 
-set(T_CODE "")
 
-foreach (obj ${OBJS})
-    set(T_CODE ${T_CODE} src/tiramisu_${obj}.cpp)
-endforeach ()
-
-add_library(tiramisu SHARED ${T_CODE})
-
-target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
-target_link_libraries(tiramisu ${LINK_FLAGS})
+add_subdirectory(src)
 
 if (WITH_PYTHON_BINDINGS)
   message(STATUS "Building Python bindings enabled")
@@ -341,11 +337,11 @@ if (APPLE)
 else ()
     set(LIB_SUF so)
 endif ()
-
+if (WITH_TESTS)
 function(new_test descriptor)
     parse_descriptor(${descriptor})
     set(generator_target test_${id}_fct_generator)
-    set_obj(${PROJECT_DIR}/build/generated_fct_test_${id}.o)
+    set_obj(${PROJECT_BUILD}/generated_fct_test_${id}.o)
     set(test_name test_${id})
     build_g(${generator_target} tests/test_${id}.cpp "${obj}")
     build_w(${test_name} "${obj}" tests/wrapper_test_${id}.cpp tests/wrapper_test_${id}.h)
@@ -354,7 +350,7 @@ function(new_test descriptor)
         add_test(NAME ${id} COMMAND ${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
     elseif (${USE_MPI}) # This is an MPI test (sanity check that we want to use MPI though)
         # configure the options so files are copied on the fly as necessary.
-        add_test(NAME ${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --wdir /tmp/ --preload-files ${PROJECT_DIR}/build/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_DIR}/build/${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        add_test(NAME ${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --wdir /tmp/ --preload-files ${PROJECT_BUILD}/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_BUILD}/${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
     endif()
     set_tests_properties(${id} PROPERTIES DEPENDS ${id}_build)
 endfunction()
@@ -366,15 +362,17 @@ set_tests_properties(global PROPERTIES DEPENDS global_build)
 foreach(t ${TIRAMISU_TESTS})
     new_test(${t})
 endforeach()
+endif() #WITH_TESTS
 
+if (WITH_BENCHMARKS)
 add_custom_target(benchmarks)
 
 function(new_benchmark descriptor)
     parse_descriptor(${descriptor})
     set(tiramisu_generator_target bench_tiramisu_${id}_generator)
     set(halide_generator_target   bench_halide_${id}_generator)
-    set_obj("${PROJECT_DIR}/build/generated_fct_${id}.o")
-    set(generated_obj_halide   ${PROJECT_DIR}/build/generated_fct_${id}_ref.o)
+    set_obj("${PROJECT_BUILD}/generated_fct_${id}.o")
+    set(generated_obj_halide   ${PROJECT_BUILD}/generated_fct_${id}_ref.o)
     set(bench_name bench_${id})
     build_g(${tiramisu_generator_target} benchmarks/halide/${id}_tiramisu.cpp "${obj}")
     build_halide_g(${halide_generator_target} benchmarks/halide/${id}_ref.cpp ${generated_obj_halide})
@@ -384,7 +382,7 @@ function(new_benchmark descriptor)
         add_custom_command(TARGET benchmarks COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
     elseif (${USE_MPI})
         # configure the options so files are copied on the fly as necessary.
-        add_custom_target(run_benchmark_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe -wdir ${PROJECT_DIR} --preload-files ${PROJECT_DIR}/build/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_DIR}/build/${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        add_custom_target(run_benchmark_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe -wdir ${PROJECT_DIR} --preload-files ${PROJECT_BUILD}/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_BUILD}/${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
     endif()
     add_dependencies(run_benchmark_${id} ${bench_name})
 endfunction()
@@ -400,8 +398,8 @@ function(new_dist_benchmark descriptor)
     parse_descriptor(${descriptor})
     set(tiramisu_generator_target dist_bench_tiramisu_${id}_generator)
     set(ref_generator_target   dist_bench_ref_${id}_generator)
-    set_obj("${PROJECT_DIR}/build/generated_fct_${id}.o")
-    set(generated_obj_ref   ${PROJECT_DIR}/build/generated_fct_${id}_ref.o)
+    set_obj("${PROJECT_BUILD}/generated_fct_${id}.o")
+    set(generated_obj_ref   ${PROJECT_BUILD}/generated_fct_${id}_ref.o)
     set(bench_name bench_${id})
     build_g(${tiramisu_generator_target} benchmarks/automatic_comm/${id}_tiramisu.cpp "${obj}")
     build_g(${ref_generator_target} benchmarks/automatic_comm/${id}_ref.cpp ${generated_obj_ref})
@@ -411,7 +409,7 @@ function(new_dist_benchmark descriptor)
         add_custom_command(TARGET dist_benchmarks COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
     elseif (${USE_MPI})
         # configure the options so files are copied on the fly as necessary.
-        add_custom_target(run_dist_benchmark_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe -wdir ${PROJECT_DIR} --preload-files ${PROJECT_DIR}/build/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_DIR}/build/${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        add_custom_target(run_dist_benchmark_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe -wdir ${PROJECT_DIR} --preload-files ${PROJECT_BUILD}/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_BUILD}/${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
     endif()
     add_dependencies(run_dist_benchmark_${id} ${bench_name})
 endfunction()
@@ -420,15 +418,23 @@ foreach(b ${TIRAMISU_DIST_BENCHMARKS})
     new_dist_benchmark(${b})
 endforeach()
 
+# Individual benchmarks are moved to benchmarks/CMakeLists.txt to reduce clutter
+add_subdirectory(benchmarks)
+
+endif() #WITH_BENCHMAKRS
+
+if (WITH_DOCS)
 add_custom_target(doc DEPENDS ${PROJECT_DIR}/utils/doc_generation/Doxyfile)
 add_custom_command(TARGET doc COMMAND doxygen utils/doc_generation/Doxyfile WORKING_DIRECTORY ${PROJECT_DIR})
+endif()
 
+if (WITH_TUTORIALS)
 add_custom_target(tutorials)
 
 function(new_developers_tutorial descriptor)
     parse_descriptor(${descriptor})
     set(generator_target developers_tutorial_${id}_fct_generator)
-    set_obj("${PROJECT_DIR}/build/generated_fct_developers_tutorial_${id}.o")
+    set_obj("${PROJECT_BUILD}/generated_fct_developers_tutorial_${id}.o")
     set(tutorial_name tutorial_developers_${id})
     build_g(${generator_target} tutorials/developers/tutorial_${id}/tutorial_${id}.cpp "${obj}")
     build_w(${tutorial_name} "${obj}" tutorials/developers/tutorial_${id}/wrapper_tutorial_${id}.cpp tutorials/developers/tutorial_${id}/wrapper_tutorial_${id}.h)
@@ -437,7 +443,7 @@ function(new_developers_tutorial descriptor)
         add_custom_command(TARGET tutorials COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
     elseif (${USE_MPI}) # This is an MPI test (sanity check that we want to use MPI though)
         # configure the options so files are copied on the fly as necessary.
-        add_custom_target(run_developers_tutorial_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --wdir /tmp/ --preload-files ${PROJECT_DIR}/build/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_DIR}/build/${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        add_custom_target(run_developers_tutorial_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --wdir /tmp/ --preload-files ${PROJECT_BUILD}/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_BUILD}/${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
     endif()
     add_dependencies(run_developers_tutorial_${id} ${tutorial_name})
 endfunction()
@@ -445,7 +451,7 @@ endfunction()
 function(new_users_tutorial descriptor)
     parse_descriptor(${descriptor})
     set(generator_target users_tutorial_${id}_fct_generator)
-    set_obj("${PROJECT_DIR}/build/generated_fct_users_tutorial_${id}.o")
+    set_obj("${PROJECT_BUILD}/generated_fct_users_tutorial_${id}.o")
     set(tutorial_name tutorial_users_${id})
     build_g(${generator_target} tutorials/users/tutorial_${id}/tutorial_${id}.cpp "${obj}")
     build_w(${tutorial_name} "${obj}" tutorials/users/tutorial_${id}/wrapper_tutorial_${id}.cpp tutorials/users/tutorial_${id}/wrapper_tutorial_${id}.h)
@@ -454,28 +460,30 @@ function(new_users_tutorial descriptor)
         add_custom_command(TARGET tutorials COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
     elseif (${USE_MPI}) # This is an MPI test (sanity check that we want to use MPI though)
         # configure the options so files are copied on the fly as necessary.
-        add_custom_target(run_users_tutorial_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --wdir /tmp/ --preload-files ${PROJECT_DIR}/build/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_DIR}/build/${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        add_custom_target(run_users_tutorial_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --wdir /tmp/ --preload-files ${PROJECT_BUILD}/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_BUILD}/${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
     endif()
     add_dependencies(run_users_tutorial_${id} ${tutorial_name})
 endfunction()
 
 
-foreach(t ${TIRAMISU_DEVELOPERS_TUTORIALS})
-    new_developers_tutorial(${t})
-endforeach()
 
-foreach(t ${TIRAMISU_USERS_TUTORIALS})
-    new_users_tutorial(${t})
-endforeach()
+   foreach(t ${TIRAMISU_DEVELOPERS_TUTORIALS})
+   	     new_developers_tutorial(${t})
+   endforeach()
+   foreach(t ${TIRAMISU_USERS_TUTORIALS})
+   	      new_users_tutorial(${t})
+   endforeach()
+endif() #WITH_TUTORIALS
 
-# Individual benchmarks are moved to benchmarks/CMakeLists.txt to reduce clutter
-add_subdirectory(benchmarks)
 
 
 install(TARGETS tiramisu
 EXPORT tiramisu_Targets
 LIBRARY DESTINATION lib
-INCLUDES DESTINATION include)
+INCLUDES DESTINATION include
+PUBLIC_HEADER DESTINATION include/tiramisu
+)
+
 
 if (WITH_PYTHON_BINDINGS)
   install(FILES ${CMAKE_SOURCE_DIR}/python_bindings/tiramisu.pyi ${CMAKE_SOURCE_DIR}/python_bindings/__init__.py
@@ -483,6 +491,4 @@ if (WITH_PYTHON_BINDINGS)
   install(TARGETS Tiramisu_Python
   EXPORT tiramisu_Targets
   LIBRARY DESTINATION "${Tiramisu_INSTALL_PYTHONDIR}/tiramisu")
-
-
 endif()
