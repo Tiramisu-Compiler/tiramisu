@@ -11,6 +11,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(PROJECT_BUILD ${CMAKE_BINARY_DIR})
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
+
+
 
 # Add CMake header files
 set(HEADER_FILES
@@ -249,16 +252,6 @@ endif()
 
 
 
-# set(T_CODE "")
-
-# foreach (obj ${OBJS})
-#     set(T_CODE ${T_CODE} src/tiramisu_${obj}.cpp)
-# endforeach ()
-
-# add_library(tiramisu SHARED ${T_CODE})
-
-# target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
-# target_link_libraries(tiramisu ${LINK_FLAGS})
 add_subdirectory(src)
 
 if (WITH_PYTHON_BINDINGS)
@@ -344,7 +337,7 @@ if (APPLE)
 else ()
     set(LIB_SUF so)
 endif ()
-
+if (WITH_TESTS)
 function(new_test descriptor)
     parse_descriptor(${descriptor})
     set(generator_target test_${id}_fct_generator)
@@ -369,7 +362,9 @@ set_tests_properties(global PROPERTIES DEPENDS global_build)
 foreach(t ${TIRAMISU_TESTS})
     new_test(${t})
 endforeach()
+endif() #WITH_TESTS
 
+if (WITH_BENCHMARKS)
 add_custom_target(benchmarks)
 
 function(new_benchmark descriptor)
@@ -423,9 +418,17 @@ foreach(b ${TIRAMISU_DIST_BENCHMARKS})
     new_dist_benchmark(${b})
 endforeach()
 
+# Individual benchmarks are moved to benchmarks/CMakeLists.txt to reduce clutter
+add_subdirectory(benchmarks)
+
+endif() #WITH_BENCHMAKRS
+
+if (WITH_DOCS)
 add_custom_target(doc DEPENDS ${PROJECT_DIR}/utils/doc_generation/Doxyfile)
 add_custom_command(TARGET doc COMMAND doxygen utils/doc_generation/Doxyfile WORKING_DIRECTORY ${PROJECT_DIR})
+endif()
 
+if (WITH_TUTORIALS)
 add_custom_target(tutorials)
 
 function(new_developers_tutorial descriptor)
@@ -463,16 +466,15 @@ function(new_users_tutorial descriptor)
 endfunction()
 
 
-foreach(t ${TIRAMISU_DEVELOPERS_TUTORIALS})
-    new_developers_tutorial(${t})
-endforeach()
 
-foreach(t ${TIRAMISU_USERS_TUTORIALS})
-    new_users_tutorial(${t})
-endforeach()
+   foreach(t ${TIRAMISU_DEVELOPERS_TUTORIALS})
+   	     new_developers_tutorial(${t})
+   endforeach()
+   foreach(t ${TIRAMISU_USERS_TUTORIALS})
+   	      new_users_tutorial(${t})
+   endforeach()
+endif() #WITH_TUTORIALS
 
-# Individual benchmarks are moved to benchmarks/CMakeLists.txt to reduce clutter
-add_subdirectory(benchmarks)
 
 
 install(TARGETS tiramisu
@@ -486,6 +488,4 @@ if (WITH_PYTHON_BINDINGS)
   install(TARGETS Tiramisu_Python
   EXPORT tiramisu_Targets
   LIBRARY DESTINATION "${Tiramisu_INSTALL_PYTHONDIR}/tiramisu")
-
-
 endif()

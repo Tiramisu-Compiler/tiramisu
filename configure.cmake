@@ -14,10 +14,18 @@ option(USE_CUDNN "Build with cuDNN for benchmark comparisons" FALSE)
 
 option(WITH_PYTHON_BINDINGS "Build Python bindings" ON)
 
+option(WITH_TUTORIALS "Build Tutorials" OFF)
+
+option(WITH_BENCHMAKRS "Build Benchmarks" OFF)
+
+option(WITH_TESTS "Build Tests" OFF)
+
+option(WITH_DOCS "Build Docs" OFF)
+
 
 
 # If you set this to true, you should correctly set MKL_PREFIX (see below)
-option(USE_MKL_WRAPPERS "Build with MKL wrappers provided by Tiramisu" TRUE)
+option(USE_MKL_WRAPPERS "Build with MKL wrappers provided by Tiramisu" FALSE)
 
 option(USE_AUTO_SCHEDULER "Build the Tiramisu auto-scheduler" FALSE)
 
