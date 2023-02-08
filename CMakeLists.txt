@@ -480,7 +480,10 @@ endif() #WITH_TUTORIALS
 install(TARGETS tiramisu
 EXPORT tiramisu_Targets
 LIBRARY DESTINATION lib
-INCLUDES DESTINATION include)
+INCLUDES DESTINATION include
+PUBLIC_HEADER DESTINATION include/tiramisu
+)
+
 
 if (WITH_PYTHON_BINDINGS)
   install(FILES ${CMAKE_SOURCE_DIR}/python_bindings/tiramisu.pyi ${CMAKE_SOURCE_DIR}/python_bindings/__init__.py
