@@ -17,3 +17,7 @@ tiramisu_externs.cpp
 add_library(tiramisu SHARED ${SOURCES} )
 target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
 target_link_libraries(tiramisu ${LINK_FLAGS})
+set_target_properties(tiramisu
+  PROPERTIES
+  LIBRARY_OUTPUT_NAME tiramisu
+  EXPORT_NAME tiramisu)
