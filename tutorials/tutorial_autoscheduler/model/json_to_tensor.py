@@ -58,8 +58,9 @@ MAX_MATRICES = 5
 def get_representation_template(program_json, no_sched_json, max_depth, train_device="cpu"):
     # Set the max and min number of accesses allowed 
     max_accesses = 15
-    min_accesses = 1
-
+    min_accesses = 0
+    with open("comp_name.txt", "a") as f:
+            f.write(str(program_json))
     comps_repr_templates_list = []
     comps_expr_repr_templates_list = []
     comps_indices_dict = dict()
@@ -79,14 +80,18 @@ def get_representation_template(program_json, no_sched_json, max_depth, train_de
         expr_dict = comp_dict["expression_representation"]
         comp_type = comp_dict["data_type"]
         comps_expr_repr_templates_list.append(get_tree_expr_repr(expr_dict, comp_type))
+        with open("accesses.txt", "a") as f:
+            f.write("accesses: ")
+            f.write(str(len(comp_dict["accesses"])))
+            f.write("\n")
         if len(comp_dict["accesses"]) > max_accesses:
             raise NbAccessException
         
         if len(comp_dict["accesses"]) < min_accesses:
             raise NbAccessException
         
-        if len(comp_dict["iterators"]) > max_depth:
-            raise LoopsDepthException
+        # if len(comp_dict["iterators"]) > max_depth:
+        #     raise LoopsDepthException
 
         comp_repr_template = []
 

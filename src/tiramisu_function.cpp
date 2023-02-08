@@ -1815,7 +1815,7 @@ void tiramisu::function::reset_computations()
         comp->definitions_number -= comp->updates.size()-1;
         comp->updates = std::vector<tiramisu::computation *>(comp->updates.begin(),comp->updates.begin()+1);
         // we extract the correct name for the computation
-        int pos = comp->name.find("_update");
+        int pos = comp->name.find("_update_");
         std::string correct_name; 
         if( pos != std::string::npos){
             correct_name = comp->name.substr(1,pos-1);
@@ -2718,7 +2718,7 @@ bool tiramisu::function::check_legality_for_function()
         
         left_comp = this->get_computation_by_name(left_computation_name)[0];
         right_comp = this->get_computation_by_name(right_computation_name)[0];
-        
+
         if( left_comp->involved_subset_of_dependencies_is_legal(right_comp) == false)
         {
             over_all_legality = false;

@@ -22,22 +22,29 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     fct->set_original_number_of_computations();
     setenv("INIT_EXEC_TIME", "0", true); // set the INIT_EXEC_TIME to 0 meaning that it's the non scheduled version
     float initial_timeout = std::atof(read_env_var("INITIAL_TIMEOUT"));
-
-    std::vector<float> initial_measurements = exec_evaluator->get_measurements(ast, true, initial_timeout);
-    // std::vector<float> initial_measurements = {1};
-
+    std::vector<float> initial_measurements;
+    if (std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1 || std::atoi(read_env_var("EXECUTE_BEST_AND_INITIAL_SCHED"))==1){
+        initial_measurements =  exec_evaluator->get_measurements(ast, true, initial_timeout);
+    }else{
+        // If we're exploring using the model, the speed up for the original schedule is 1.
+        initial_measurements = {1};
+        // If we don't execute the initial schedule now we will have to reinitialize the computation graph using the reset schedules function.
+        // The computation graph is modified when instanciating the autoscheduler.
+        fct->reset_schedules();
+    }
     initial_exec_time = min_eval(initial_measurements);
     if (std::isinf(initial_exec_time)){
         std::cerr << "error: Evaluation of the non scheduled version of the program failed "<< std::endl;
         exit(1);
     }
     ast.evaluation = initial_exec_time;
-//    if (std::atoi(read_env_var("AS_VERBOSE"))==1)
-    std::cout << "Initial exec time : " << initial_exec_time << std::endl;
+
+   if (std::atoi(read_env_var("AS_VERBOSE"))==1)
+        std::cout << "Initial exec time : " << initial_exec_time << std::endl;
     std::string program_json = evaluate_by_learning_model::get_program_json(ast);
     std::vector<std::string> schedules_annotations;
 
-    // add the no_schedule version to the schedule list
+    // Add the no_schedule version to the schedule list
     std::string empty_schedule_json = evaluate_by_learning_model::get_schedule_json(ast);
     empty_schedule_json.pop_back(); // remove the last two characters }\n
     empty_schedule_json.pop_back();
@@ -99,30 +106,31 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
 
     std::chrono::steady_clock::time_point sampling_end = std::chrono::steady_clock::now();
     float best_execution_time = searcher->get_best_evaluation() != FLT_MAX ? searcher->get_best_evaluation() : initial_exec_time;
+
     std::cout << "Search time : " << std::chrono::duration_cast<std::chrono::milliseconds>(sampling_end - sampling_start).count() << " ms" << std::endl;
     std::cout << "Best execution time : " << best_execution_time << std::endl;
     
     if(std::atoi(read_env_var("SAVE_BEST_SCHED_IN_FILE"))==1){
         syntax_tree* best_ast = searcher->get_best_evaluation() != FLT_MAX ? searcher->get_best_ast() : &ast;
         std::ofstream myfile;
-        ///
-        myfile.open ("/data/commit/tiramisu/data_factory_kb4083/in_progress_bench/new_benchmarks_by_execution_2.txt",std::ios_base::app);
+
+        myfile.open(read_env_var("LOG_FILE_PATH"), std::ios_base::app);
         myfile<<"\""<<filename.substr(2,filename.size()-26)<<"\",";
-        myfile << "\""<< initial_exec_time<<"\",";
+        
 
         if(std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1){
+            myfile << "\""<< initial_exec_time<<"\",";
             myfile << "\""<< best_execution_time<<"\",";
 
-        }else if (std::atoi(read_env_var("EXECUTE_BEST_SCHED"))==1)
+        }else if (std::atoi(read_env_var("EXECUTE_BEST_AND_INITIAL_SCHED"))==1)
         {
+            myfile << "\""<< initial_exec_time<<"\",";
             myfile << "\""<<min_eval(exec_evaluator->get_measurements(*best_ast, false, schedule_timeout))<<"\",";
         }
         
         myfile << "\"" << best_ast->get_schedule_str() <<"\""<< std::endl;
         myfile.close();
     }
-    
-
 }
 
 void auto_scheduler::find_schedule()

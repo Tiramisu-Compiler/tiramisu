@@ -336,26 +336,43 @@ void syntax_tree::order_computations()
             
             int level = sched_graph_child.second;
             
-            
+
             if (level < 0)
                 continue;
-                
+
 
             ast_node *parent_comp_ast_node = find_node_by_level(parent_comp, level);
             ast_node *child_comp_ast_node = find_node_by_level(child_comp, level);
             
+            // In the case where the computations are at different levels,
+            // we modify all of the child computation iterators to be the same as the praent comp iterators
+            std::vector<computation_info *> parent_comp_info;
+            parent_comp_ast_node->collect_all_computation(parent_comp_info);
+
+            // We know there is at least one computation underneath this node: parent_comp.
+            assert(parent_comp_info.size()>0);
+
+            std::vector<dnn_iterator> parent_comp_iterators = parent_comp_info.at(0)->iters;
+            std::vector<dnn_iterator> modified_iterators;
             // Insert computations
             if (!child_comp_ast_node->computations.empty())
             {
                 if (parent_comp_ast_node->children.empty())
                 {
+                    // In the case where the computations will be joined at the same level, they share the same iterators.
+                    std::vector<computation_info *> parent_comp_info;
+                    parent_comp_ast_node->collect_all_computation(parent_comp_info);
+
+                    // We know there is at least one computation underneath this node: parent_comp.
+                    assert(parent_comp_info.size()>0);
+
                     for (computation_info& comp_info : child_comp_ast_node->computations)
                     {
+                        comp_info.iters = std::vector<dnn_iterator>(parent_comp_iterators.begin(), parent_comp_iterators.end());
                         parent_comp_ast_node->computations.push_back(comp_info);
                         computations_mapping[comp_info.comp_ptr] = parent_comp_ast_node;
                     }
                 }
-
                 else
                 {
                     
@@ -368,10 +385,28 @@ void syntax_tree::order_computations()
                     new_node->computations = child_comp_ast_node->computations;
                     new_node->parent = parent_comp_ast_node;
 
-                    for (computation_info& comp_info : child_comp_ast_node->computations)
+                    for (computation_info& comp_info : child_comp_ast_node->computations){
                         computations_mapping[comp_info.comp_ptr] = new_node;
-
+                    }
+                    for (computation_info& comp_info : new_node->computations){
+                        // We copy the first (level+1) iterators from the parent computation to the child. We use level+1 since the levels start at 0.
+                        modified_iterators = std::vector<dnn_iterator>(parent_comp_iterators.begin(), parent_comp_iterators.begin()+level+1);
+                        comp_info.iters = modified_iterators;
+                    }
                     parent_comp_ast_node->children.push_back(new_node);
+                }
+            }else{
+                std::vector<computation_info *> child_comp_info;
+                child_comp_ast_node->collect_all_computation(child_comp_info);
+                for (auto comp_info : child_comp_info){
+                    // We copy the first (level+1) iterators from the parent computation to the child. We use level+1 since the levels start at 0.
+                    modified_iterators = std::vector<dnn_iterator>(parent_comp_iterators.begin(), parent_comp_iterators.begin()+level+1);
+                    
+                    if (comp_info->iters.size()>level+1){
+                        modified_iterators.insert(modified_iterators.end(), comp_info->iters.begin()+level+1, comp_info->iters.end());
+                    }
+                    
+                    comp_info->iters = modified_iterators;
                 }
             }
 
