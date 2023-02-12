@@ -1321,23 +1321,32 @@ public:
     bool check_partial_legality_in_function(std::vector<tiramisu::computation * > involved_computations);
 
     /**
-     * Computes the best legal skewing parameters for 3 use cases (outer parallelism, locality and innermost parallelism).
-     * The method relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
-     * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
-     * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
-     * The output of this method is a tuple of vectors, each vector represent a usecase,
-     * the elements of the vector are the pair that should be given as an input for Computation.skew() method (skewing method).
+     * \brief Computes the best legal skewing parameters for 3 use cases (outer parallelism, locality and innermost parallelism)
+     *  on 2 consecutive loops.
+     * \attention the method uses the dependence analysis results, so invoking \p prepare_schedules_for_legality_checks() 
+     *  (to align and order schedules with same out dimension size)
+     *  then \p perform_full_dependency_analysis() before is mandatory. 
      * 
-     * First vector contains either 1 pairs of <int,int> that allows parallism on outer_variable, or an empty vector.
-     * Second vector contains a vector of pairs that enables parallism on inner_variable.
-     * Third vector contains a vector of parameters that should in theory improve locality (without any parallism).
+     * \param fused_computations All computations inside the 2 consecutive loops
+     * \param outer_variable the outer of the 2 consecutive loops
+     * \param inner_variable the inner of the 2 consecutive loops
      * 
-     * nb_parallel is the number of solutions (pairs) inside the second vector (parallism on inner_variable),
+     * \returns a tuple of vectors, each vector represents possible skewings (with 2 parameters),
+     * each skewing can be used as an input to Computation.skew().
+     * 
+     * \note Skewing is useful to enable parallelism in some cases where it was impossible initially.
+     * if the \p outer_variable is already parallel with \p loop_parallelization_is_legal  then THIS skewing is not needed.
+     * This solver will try to find a skewing, sometimes it will fail and no skewing could be found to enable parallelism.
+     * (if the dependencies are empty or not empty but impossible to solve)
+     * In case pairs are returned, they enable parallelism on either \p outer_variable or \p inner_variable.
+     * 
+     * \details First vector contains either 1 pairs of <int,int> that allows parallelism on outer_variable, or an empty vector.
+     * Second vector contains a vector of pairs that enables parallelism on inner_variable.
+     * Third vector contains a vector of parameters that should in theory improve locality (without any parallelism).
+     * 
+     * nb_parallel is the number of solutions (pairs) inside the second vector (parallelism on inner_variable),
      * the second vector size's should be equal to twice the value of nb_parallel in the regular case.
      * for nb_parallel=1 it only returns the smallest skewing (best) possible for this use case.
-     * 
-     * In case of a lack of dependencies within the scope of fused_computations, or in case of some dependencies impossible to solve,
-     * the output should be 3 empty vectors.
     */
     std::tuple<
       std::vector<std::pair<int,int>>,
