@@ -677,10 +677,18 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             
         // Set lower and upper bounds
         i_outer->low_bound = "0";
-        i_outer->up_bound =  i_outer->get_extent() + "/" + std::to_string((double)opt.l0_fact - 1);
+        if(check_if_number(i_outer->get_extent())){
+            i_outer->up_bound =  std::to_string((int)ceil((double)stoi(i_outer->get_extent()) / (double)opt.l0_fact) - 1);
+        }else{
+            i_outer->up_bound =  i_outer->get_extent() + "/" + std::to_string((double)opt.l0_fact - 1);
+        }
             
         j_outer->low_bound = "0";
-        j_outer->up_bound = j_outer->get_extent() + "/" + std::to_string((double)opt.l1_fact - 1);
+        if(check_if_number(j_outer->get_extent())){
+            j_outer->up_bound =  std::to_string((int)ceil((double)stoi(j_outer->get_extent()) / (double)opt.l1_fact) - 1);
+        }else{
+            j_outer->up_bound =  j_outer->get_extent() + "/" + std::to_string((double)opt.l1_fact - 1);
+        }
             
         i_inner->low_bound = "0";
         i_inner->up_bound = std::to_string(opt.l0_fact - 1);
@@ -781,13 +789,25 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             
         // Set lower and upper bounds
         i_outer->low_bound = "0";
-        i_outer->up_bound = i_outer->get_extent() + "/" + std::to_string((double)opt.l0_fact - 1);
+        if(check_if_number(i_outer->get_extent())){
+            i_outer->up_bound =  std::to_string((int)ceil((double)stoi(i_outer->get_extent()) / (double)opt.l0_fact) - 1);
+        }else{
+            i_outer->up_bound =  i_outer->get_extent() + "/" + std::to_string((double)opt.l0_fact - 1);
+        }
             
         j_outer->low_bound = "0";
-        j_outer->up_bound = j_outer->get_extent() + "/" + std::to_string((double)opt.l1_fact - 1);
+        if(check_if_number(j_outer->get_extent())){
+            j_outer->up_bound =  std::to_string((int)ceil((double)stoi(j_outer->get_extent()) / (double)opt.l1_fact) - 1);
+        }else{
+            j_outer->up_bound =  j_outer->get_extent() + "/" + std::to_string((double)opt.l1_fact - 1);
+        }
             
         k_outer->low_bound = "0";
-        k_outer->up_bound = k_outer->get_extent() + "/" + std::to_string((double)opt.l2_fact - 1);
+        if(check_if_number(k_outer->get_extent())){
+            k_outer->up_bound =  std::to_string((int)ceil((double)stoi(k_outer->get_extent()) / (double)opt.l2_fact) - 1);
+        }else{
+            k_outer->up_bound =  k_outer->get_extent() + "/" + std::to_string((double)opt.l2_fact - 1);
+        }
             
         i_inner->low_bound = "0";
         i_inner->up_bound = std::to_string(opt.l0_fact - 1);
@@ -1519,8 +1539,11 @@ void ast_node::print_node() const
     {
         for (int i = 0; i < depth; ++i)
             std::cout << "\t";
-
-        std::cout<<this->depth <<"- "<< "for " << low_bound << " <= " << name << " < " << up_bound + "+1" << " | " << unrolled ;
+        if(check_if_number(up_bound)){
+            std::cout<<this->depth <<"- "<< "for " << low_bound << " <= " << name << " < " << stoi(up_bound) + 1 << " | " << unrolled ;
+        }else{
+            std::cout<<this->depth <<"- "<< "for " << low_bound << " <= " << name << " < " << up_bound + "+1" << " | " << unrolled ;
+        }
 
         if (parallelized)
             std::cout << " | P";

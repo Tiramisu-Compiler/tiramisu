@@ -340,7 +340,11 @@ public:
     /**
      * Return the extent of this loop level.
      */
-    std::string get_extent() const { return up_bound + "-" + low_bound + "+1"; }
+    std::string get_extent() const {
+        if(check_if_number(low_bound) && check_if_number(up_bound))
+            return std::to_string(stoi(up_bound) - stoi(low_bound) + 1);
+        return up_bound + "-" + low_bound + "+1"; 
+    }
     
     /**
      * Copy this node and return the copy.
