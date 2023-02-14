@@ -40,30 +40,6 @@ computation_info::computation_info(tiramisu::computation *comp, syntax_tree *ast
         matrix.buffer_id = ast->get_buffer_id_from_computation_name(matrix.buffer_name);
 }
 
-/*
-computation_info::computation_info(computation_info const& reference)
-:accesses(reference.accesses)
-{
-    std::cout<<"IN123";
-    this->iters = reference.iters;
-    std::cout<<"ZZZZ";
-
-    this->buffer_nb_dims = reference.buffer_nb_dims;
-    this->is_reduction = reference.is_reduction;
-    this->nb_additions = reference.nb_additions;
-    this->nb_divisions = reference.nb_divisions;
-    this->nb_multiplications = reference.nb_multiplications;
-    this->nb_substractions = reference.nb_substractions;
-    this->storage_buffer_id = reference.storage_buffer_id;
-    this->write_access_relation = reference.write_access_relation;
-    this->data_type_str = reference.data_type_str;
-    this->data_type_size = reference.data_type_size;
-
-    std::cout<<"INFO_C";
-    
-}
-*/
-
 int computation_info::get_data_type_size(){
     if (comp_ptr->get_data_type()==tiramisu::p_boolean)
         return 1;
@@ -633,7 +609,11 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
     recover_isl_states();
     if(opt.unimodular_transformation_type == 1){
         this->transform_ast_by_interchange(opt);
-    }else if (opt.unimodular_transformation_type == 3)
+    }
+    else if (opt.unimodular_transformation_type == 2){
+        this->transform_ast_by_reversal(opt);
+    }
+    else if (opt.unimodular_transformation_type == 3)
     {
         this->transform_ast_by_skewing(opt);
     }
@@ -1007,7 +987,26 @@ void syntax_tree::transform_ast_by_parallelism(const optimization_info &info) {
     // Just sets the parallilezed tag to true
     info.node->parallelized = true;
 }
+void syntax_tree::transform_ast_by_reversal(const optimization_info &info){
+    stage_isl_states();
+    ast_node *node_1 = info.node;
+    node_1->name = "-" + node_1->name;
+    if(check_if_number(node_1->low_bound)){
+        node_1->low_bound = std::to_string( -stoi(node_1->low_bound)); 
+    }else{
+        node_1->low_bound = "-(" + node_1->low_bound + ")"; 
+    }
+    if(check_if_number(node_1->up_bound)){
+        node_1->up_bound = std::to_string( -stoi(node_1->up_bound)); 
+    }else{
+        node_1->up_bound = "-(" + node_1->up_bound + ")"; 
+    } 
+    std::string tmp = node_1->low_bound;
+    node_1->low_bound =  node_1->up_bound;
+    node_1->up_bound = tmp;
+    recover_isl_states();
 
+}
 void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
     stage_isl_states();
 
@@ -1015,18 +1014,28 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
     
     ast_node *node_2 = node_1->children[0];
 
-    std::string number_space_outer =   node_1->up_bound + " - " +node_1->low_bound ;
-    std::string inner_space =  node_2->up_bound + " - " + node_2->low_bound ;
-
-    std::string new_1 = "_skew_" + std::to_string(info.l0_fact) +"_"+std::to_string(info.l1_fact) ;
-    std::string new_2 = "_skew";
-
     node_2->low_bound = "0";
-    //node_1->low_bound = info.l0_fact * node_1->low_bound + info.l1_fact *node_2->low_bound; 
-    node_1->low_bound = std::to_string(abs(info.l0_fact)) + " * " + node_1->low_bound; 
-    node_1->up_bound = node_1->low_bound + " + " + std::to_string(abs(info.l0_fact)) + " * " + number_space_outer + " + " + std::to_string(abs(info.l1_fact)) + " * " + inner_space ;
-    node_2->up_bound =   "(( " + number_space_outer + " * " + inner_space + " )" + "/" + "( " + node_1->up_bound + " - "+ node_1->low_bound + " ) ) + 1";	
-
+    if(check_if_number(node_1->low_bound)){
+        node_1->low_bound = std::to_string(abs(info.l0_fact) * stoi(node_1->low_bound)); 
+    }else{
+        node_1->low_bound = std::to_string(abs(info.l0_fact)) + " * " + node_1->low_bound; 
+    } 
+    // In the case where the space is rectangular, we keep the same behaviour
+    if(check_if_number(node_1->low_bound) && check_if_number(node_1->up_bound) && check_if_number(node_2->low_bound) && check_if_number(node_2->up_bound)){
+        int number_space_outer =   stoi(node_1->up_bound) - stoi(node_1->low_bound) ;
+        int inner_space =   stoi(node_2->up_bound) - stoi(node_2->low_bound) ;
+        
+        node_1->up_bound = std::to_string(stoi(node_1->low_bound) + abs(info.l0_fact) * number_space_outer + abs(info.l1_fact) *inner_space) ;
+        node_2->up_bound =  (( number_space_outer * inner_space )/(stoi(node_1->up_bound) - stoi(node_1->low_bound))) + 1;
+    }else{
+        // Non-recntangularity
+        // We write the expression as a string
+        std::string number_space_outer =   node_1->up_bound + " - " +node_1->low_bound ;
+        std::string inner_space =  node_2->up_bound + " - " + node_2->low_bound ;
+        
+        node_1->up_bound = node_1->low_bound + " + " + std::to_string(abs(info.l0_fact)) + " * " + number_space_outer + " + " + std::to_string(abs(info.l1_fact)) + " * " + inner_space ;
+        node_2->up_bound =   "(( " + number_space_outer + " * " + inner_space + " )" + "/" + "( " + node_1->up_bound + " - "+ node_1->low_bound + " ) ) + 1";	
+    }
 
     node_1->skewed = true;
     node_2->skewed = true;

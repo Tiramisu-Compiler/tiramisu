@@ -631,10 +631,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
     case optimization_type::SKEWING:
 
-        /*
-            optim_info.comps = new_ast->computations_list;
-        }*/
-
         ast.stage_isl_states();
 
         //for shared nodes the list of involved computations is always the same.

@@ -6,7 +6,7 @@
 #include <tiramisu/auto_scheduler/optimization_info.h>
 namespace tiramisu::auto_scheduler
 {
-
+// Return true if the string contains a number only
 inline bool check_if_number(const std::string s)
 {
     char* p;
