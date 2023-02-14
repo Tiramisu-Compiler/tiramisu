@@ -192,7 +192,7 @@ namespace tiramisu::auto_scheduler
         {
             for (int unrolling_factor : unrolling_factors_list)
             {
-                if (!can_split_iterator(node->up_bound, node->low_bound, unrolling_factor))
+                if (!can_split_iterator(node->up_bound, node->low_bound, unrolling_factor, optimization_type::UNROLLING))
                     continue;
 
                 // Copy the AST, and add unrolling to the list of optimizations
@@ -273,7 +273,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
             }
 
             std::vector<computation *> seen_computations;
-                    // computations list used for shifting solver
+            // computations list used for shifting solver
             ast.get_previous_computations(seen_computations, node, std::get<1>(node_computation));
 
 
@@ -594,7 +594,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
             bool result = ast.fct->loop_parallelization_is_legal(var(loop_name), involved_computations);
 
-            if (result) // unrollable: test all possible values
+            if (result) 
             {
                 ast.recover_isl_states();
 
@@ -932,7 +932,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
             {
                 // Copy the AST and add interchange to the list of optimizations
                 syntax_tree *new_ast = new syntax_tree();
-                ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[0]);
+                ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[i]);
 
                 optimization_info optim_info;
                 optim_info.type = optimization_type::MATRIX;
@@ -988,7 +988,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         // Copy the AST and add interchange to the list of optimizations
         syntax_tree *new_ast = new syntax_tree();
         // TODOF important why shared_nodes[0]
-        ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[0]);
+        ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[i]);
 
         optimization_info optim_info;
         optim_info.type = optimization_type::MATRIX;

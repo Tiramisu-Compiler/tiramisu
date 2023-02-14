@@ -623,9 +623,7 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
     std::vector<tiramisu::computation *> all_data;
     std::vector<ast_node *> all_nodes;
     opt.node->get_all_nodes(all_nodes);
-    std::vector<ast_node*> to_change_nodes;
-    std::vector<ast_node*> temp_to_change;
-    std::vector<std::vector<int>> temp_matrix;
+             
     for(ast_node* node1 : all_nodes ){
         for(computation_info info : node1->computations)
         {   
@@ -633,6 +631,13 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
         }
     } 
     recover_isl_states();
+    if(opt.unimodular_transformation_type == 1){
+        this->transform_ast_by_interchange(opt);
+    }else if (opt.unimodular_transformation_type == 3)
+    {
+        this->transform_ast_by_skewing(opt);
+    }
+    // TODOF: add trasnform_ast_by_reversal. Would only used for better vizualization?
     
 }
 
@@ -857,59 +862,31 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
 
 void syntax_tree::transform_ast_by_interchange(optimization_info const& opt)
 { 
-    // stage_isl_states();
-
-    // ast_node *node1 = opt.node;
-    
-    // // Find the node to interchange with
-    // ast_node *node2 = node1;
-    // //for (int i = opt.l0; i < opt.l1; ++i)
-    // //    node2 = node2->children[0];
-    // while(node2->depth < opt.l1)
-    // {
-    //     node2 = node2->children[0];
-    // }
+    stage_isl_states();
+    ast_node *node1 = opt.node;
+    // Find the node to interchange with
+    ast_node *node2 = node1;
+    //for (int i = opt.l0; i < opt.l1; ++i)
+    //    node2 = node2->children[0];
+    while(node2->depth < opt.l1)
+    {
+        node2 = node2->children[0];
+    }
+    // Rename the two nodes
+    std::string tmp_str =  node1->name;
+    node1->name = node2->name;
+    node2->name = tmp_str;
             
-    // // Rename the two nodes
-    // std::string tmp_str =  node1->name;
-    // node1->name = node2->name;
-    // node2->name = tmp_str;
-            
-    // int tmp_int  = node1->low_bound;
-    // node1->low_bound = node2->low_bound;
-    // node2->low_bound = tmp_int;
+    std::string tmp_int  = node1->low_bound;
+    node1->low_bound = node2->low_bound;
+    node2->low_bound = tmp_int;
         
-    // tmp_int = node1->up_bound;
-    // node1->up_bound = node2->up_bound;
-    // node2->up_bound = tmp_int;
+    tmp_int = node1->up_bound;
+    node1->up_bound = node2->up_bound;
+    node2->up_bound = tmp_int;
 
-
-    // /**
-    //  * Applying to staging
-    // */
-    // std::vector<tiramisu::computation*> all_data;
-        
-    // //collect computations to tile
-    // node2->get_all_computations(all_data);
-
-    // for(computation* info:all_data)
-    // {
-    //     std::vector<std::string> loop_names = info->get_loop_level_names();
-            
-    //     std::string outer_name = loop_names[node1->depth];
-    //     std::string inner_name = loop_names[node2->depth];
     
-    //     info->interchange(var(outer_name),var(inner_name));
-           
-    //     std::string f = "";
-    //     for(auto& str:loop_names)
-    //     {
-    //         f+=str+" ";
-    //     }
-    //     //std::cout<<" vars "<<f<<" interchange : "<<outer_name<<" & "<<inner_name ;
-    // }
-
-    // recover_isl_states();
+    recover_isl_states();
 }
 
 void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
@@ -926,6 +903,7 @@ void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
     
     for (ast_node *node : nodes_list)
     {
+
         // TODOF check the case where the bound is N  
         if (!node->unrolled)
         {
@@ -1031,64 +1009,30 @@ void syntax_tree::transform_ast_by_parallelism(const optimization_info &info) {
 }
 
 void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
-    // stage_isl_states();
+    stage_isl_states();
 
-    // ast_node *node_1 = info.node;
-    // ast_node *node_2 = node_1->children[0];
-
-    // int number_space_outer =   node_1->up_bound - node_1->low_bound ;
-    // int inner_space =  node_2->up_bound - node_2->low_bound ;
-
-    // std::string new_1 = "_skew_" + std::to_string(info.l0_fact) +"_"+std::to_string(info.l1_fact) ;
-    // std::string new_2 = "_skew";
-
-    // node_2->low_bound = 0;
-    // //node_1->low_bound = info.l0_fact * node_1->low_bound + info.l1_fact *node_2->low_bound; 
-    // node_1->low_bound = abs(info.l0_fact) * node_1->low_bound; 
-    // node_1->up_bound = node_1->low_bound + abs(info.l0_fact) * number_space_outer + abs(info.l1_fact) *inner_space ;
-    // node_2->up_bound =  (( number_space_outer * inner_space )/(node_1->up_bound - node_1->low_bound)) + 1;	
-
-    // std::vector<computation_info*> all_data;
-        
-    // std::string outer_name = "";
-    // std::string inner_name = "";
-
-    // //collect computations to tile
-    // node_2->collect_all_computation(all_data);
-
-    // for(computation_info* info_comp:all_data)
-    // {
-    //     std::vector<std::string> loop_names = info_comp->comp_ptr->get_loop_level_names();
-            
-    //     outer_name = loop_names[node_1->depth];
-    //     inner_name = loop_names[node_1->depth+1];
+    ast_node *node_1 = info.node;
     
-    //     info_comp->comp_ptr->skew(var(outer_name),var(inner_name),
-    //         info.l0_fact,info.l1_fact,
-    //         var(outer_name+new_1),var(inner_name+new_2));
+    ast_node *node_2 = node_1->children[0];
 
-    //     if(info.l2_fact == -1)
-    //     {//reversal on second loop
-    //         info_comp->comp_ptr->loop_reversal(var(inner_name+new_2),var(inner_name+new_2+"_R"));
-    //     }
-           
-    //     std::string f = "";
-    //     for(auto& str:loop_names)
-    //     {
-    //         f+=str+" ";
-    //     }
-    //     //std::cout<<" vars "<<f<<" Skewing : "<<outer_name<<" & "<<inner_name ;
-    // }
+    std::string number_space_outer =   node_1->up_bound + " - " +node_1->low_bound ;
+    std::string inner_space =  node_2->up_bound + " - " + node_2->low_bound ;
 
-    // node_1->name = outer_name+new_1;
-    // node_2->name = inner_name+new_2;
+    std::string new_1 = "_skew_" + std::to_string(info.l0_fact) +"_"+std::to_string(info.l1_fact) ;
+    std::string new_2 = "_skew";
 
-    // node_1->skewed = true;
-    // node_2->skewed = true;
+    node_2->low_bound = "0";
+    //node_1->low_bound = info.l0_fact * node_1->low_bound + info.l1_fact *node_2->low_bound; 
+    node_1->low_bound = std::to_string(abs(info.l0_fact)) + " * " + node_1->low_bound; 
+    node_1->up_bound = node_1->low_bound + " + " + std::to_string(abs(info.l0_fact)) + " * " + number_space_outer + " + " + std::to_string(abs(info.l1_fact)) + " * " + inner_space ;
+    node_2->up_bound =   "(( " + number_space_outer + " * " + inner_space + " )" + "/" + "( " + node_1->up_bound + " - "+ node_1->low_bound + " ) ) + 1";	
+
+
+    node_1->skewed = true;
+    node_2->skewed = true;
     
-    // node_1->transforme_accesses_with_skewing(info.l0_fact,info.l1_fact);
-
-    // recover_isl_states();
+    node_1->transforme_accesses_with_skewing(info.l0_fact,info.l1_fact);
+    recover_isl_states();
 }
 
 
@@ -1567,7 +1511,8 @@ void ast_node::print_node() const
         for (int i = 0; i < depth; ++i)
             std::cout << "\t";
 
-        std::cout<<this->depth <<"- "<< "for " << low_bound << " <= " << name << " < " << up_bound + "1" << " | " << unrolled ;
+        std::cout<<this->depth <<"- "<< "for " << low_bound << " <= " << name << " < " << up_bound + "+1" << " | " << unrolled ;
+
         if (parallelized)
             std::cout << " | P";
 
@@ -2288,6 +2233,9 @@ std::string syntax_tree::get_schedule_str()
 
 bool syntax_tree::schedule_is_prunable()
 {
+    if (std::atoi(read_env_var("PRUNE_SLOW_SCHEDULES"))!=1){
+        return false;
+    }
     // The following filtering rules are selected after a statistical analysis of inefficient schedule patterns
     std::string schedule_str = get_schedule_str();
 
@@ -2351,6 +2299,9 @@ bool syntax_tree::ast_is_prunable()
 }
 bool syntax_tree::can_set_default_evaluation()
 {
+    if (std::atoi(read_env_var("SET_DEFAULT_EVALUATION"))!=1){
+        return false;
+    }
     std::vector<int> depths(this->get_computations().size());
     int min;
     for (optimization_info optim: new_optims){
@@ -2365,13 +2316,16 @@ bool syntax_tree::can_set_default_evaluation()
             // Only get the depths from identity matrices
             if(min>0) break;
         }
-    
+
     std::string schedule_str = get_schedule_str();
     
     //check if innermost loop is parallelized, if yes set the speedup to 0.001 
     std::string reg = "";
     for(int i=0;i<depths.size();i++){
-        reg += ".*P\\(\\{(C[0-9],)*C" + std::to_string(i) + "(,C[0-9])*\\},L"+ std::to_string(depths.at(i)-1)+"\\)$|"; 
+        // we only set a default evaluation for loops that have 3 nested loops or more
+        if(depths.at(i)>2){
+            reg += ".*P\\(\\{(C[0-9],)*C" + std::to_string(i) + "(,C[0-9])*\\},L"+ std::to_string(depths.at(i)-1)+"\\)$|"; 
+        }
     }
     if(depths.size()>0){
         reg.pop_back();
@@ -2399,14 +2353,15 @@ std::vector<ast_node*> ast_node::collect_heads_of_ast(int allowed_splits, ast_no
         return result1;
     }
 
-    if(current->get_extent() != "0-0+1")
+    if (current->name.compare("dummy_iter")!=0)
     {
         result1.push_back(current);
     }
 
     ast_node * current_itr = current;
-
-    while(current_itr->children.size() == 1)
+    // if we encounter a split in the tree or the node has computations, the current branch must end here
+    // This is because the split (or presenace of computations) will stop us from exploring transformations
+    while(current_itr->children.size() == 1 && current_itr->computations.size() == 0)
     {
         current_itr = current_itr->children[0];
     }
@@ -2477,9 +2432,10 @@ std::vector<std::pair<ast_node*,int>> syntax_tree::compute_search_space_states(o
     // represent the node along with the computation's index in the computations's list in that
     // specific node.
 
-    int allowed_splits = 1;
+    int allowed_splits = 25;
     // number of allowed splits when defining the target nodes to explore.
     // when allowed_split=0 we will explore optimizations on shared nodes only.
+    // Since we are exploring complicated, multi root programs, we set a high number of allowed splits. 
                  
 
     switch (optimization)
@@ -2517,7 +2473,8 @@ std::vector<std::pair<ast_node*,int>> syntax_tree::compute_search_space_states(o
 
             for(auto& node:result_vect)
             {
-                heads.push_back(std::make_pair(node,0)); // why always first comp?
+                // We always add the pair with 0 as the second element because that attribute is only used if we're exploring fusion.
+                heads.push_back(std::make_pair(node,0)); 
             }
 
         }        

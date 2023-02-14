@@ -3199,8 +3199,7 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
 
     DEBUG(3, tiramisu::str_dump("Final transformation map : ", isl_map_to_str(transformation_map)));
     schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
-    DEBUG(3, tiramisu::str_dump("Schedule after interchange: ", isl_map_to_str(schedule)));
-   
+    DEBUG(3, tiramisu::str_dump("Schedule after applying matrix: ", isl_map_to_str(schedule)));
     this->set_schedule(schedule);
     
     DEBUG_INDENT(-4);
