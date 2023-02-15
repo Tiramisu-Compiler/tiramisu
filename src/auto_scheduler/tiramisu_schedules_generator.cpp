@@ -879,7 +879,7 @@ std::vector<int> get_skew_params(int f_i, int f_j)
         result.push_back(sigma);
         return result;
 }
-    
+
 std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(syntax_tree &ast)
 {
     //this method uses the AST custom schedule generator
