@@ -2846,7 +2846,50 @@ void tiramisu::function::prepare_schedules_for_legality_checks(bool reset_static
 
     this->gen_ordering_schedules();
 }
+bool tiramisu::function::loop_interchnage_is_legal(int i, int j, std::vector<tiramisu::computation *> fuzed_computations)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+    
+    DEBUG(3, tiramisu::str_dump("interchange check for level : "+std::to_string(i)+" and level "+std::to_string(j)));
 
+    bool result = true;
+
+    for(auto& computation : fuzed_computations)
+    {
+        // get upper and lower bound for first node from set first_node_upper and first_node_lower
+        // get upper and lower bound for second node from set second_node_upper and second_node_lower
+        isl_set *iter_domain = computation->get_iteration_domain();
+        int nb_iterators = isl_set_dim(iter_domain, isl_dim_set);
+        
+        assert(i < nb_iterators && j < nb_iterators);
+        // Get the iterator name of the first interchange parameter loop.
+        std::string first_level_name = isl_set_get_dim_name(iter_domain, isl_dim_set, i);
+
+        // Get both bounds for the second interchange parameter loop.
+        std::string second_level_low_bound = utility::get_bound(iter_domain, j, false).to_str();
+        std::string second_level_up_bound = utility::get_bound(iter_domain, j, true).to_str();
+        // In all the nodes that are inbetween the two levels to interchange check:
+        for (int level = i; level < j; ++level)
+        {
+            // Get the information of the current node.
+            std::string name = isl_set_get_dim_name(iter_domain, isl_dim_set, level);
+            std::string low_bound = utility::get_bound(iter_domain, level, false).to_str();
+            std::string up_bound = utility::get_bound(iter_domain, level, true).to_str();
+
+            //  If the second node bounds depend on the current node iterator
+            if(second_level_up_bound.find(name) != std::string::npos || second_level_low_bound.find(name) != std::string::npos){
+                return false;
+            }
+            //  If the current node bounds depend on the first node iterator
+            if(low_bound.find(first_level_name) != std::string::npos || up_bound.find(first_level_name) != std::string::npos){
+                return false;
+            }
+        }
+    }
+    DEBUG_INDENT(-4);
+    return result;
+}
 bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<tiramisu::computation *> fuzed_computations)
 {
     DEBUG_FCT_NAME(3);
@@ -2864,7 +2907,6 @@ bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<t
     DEBUG(3, tiramisu::str_dump(" unrolling check for var : "+i.get_name()));
 
     std::vector<std::string> original_loop_level_names = first_computation->get_loop_level_names();
-    //std::cout<<"function:: after get loop level names "<<std::endl;
     std::vector<int> dimensions =
         first_computation->get_loop_level_numbers_from_dimension_names({i.get_name()});
 

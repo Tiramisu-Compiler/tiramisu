@@ -1314,6 +1314,12 @@ public:
     bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
 
     /**
+    * Checks if the given fuzed computations could legally have the loop levels \p i and \p j interchanged.
+    * This function checks the control dependencies for the two loops.
+    */
+    bool loop_interchnage_is_legal(int i, int j, std::vector<tiramisu::computation *> fuzed_computations);
+
+    /**
      * Checks if the given fuzed computations could legally have their loop level \p i vectorized.
     */
     bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);

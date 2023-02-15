@@ -2742,7 +2742,6 @@ std::vector<int> computation::get_loop_level_numbers_from_dimension_names(
         }
         else
         {
-            //std::cout<<"computation::get_loop_level_numbers_from_dimension_names schedule: "<<isl_map_to_str(this->get_schedule())<<std::endl;
             int d = isl_map_find_dim_by_name(this->get_schedule(), isl_dim_out,
                                              dim.c_str());
             DEBUG(10, tiramisu::str_dump("Searching in the range of ",
@@ -4885,17 +4884,13 @@ bool computation::unrolling_is_legal(var l)
         assert(l.get_name().length() > 0);
         assert(!this->get_name().empty());
         assert(this->get_function() != NULL);
-        //std::cout<<"computation::unrolling_is_legal: started "<<std::endl;
 
         std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
 
-        //std::cout<<"computation::unrolling_is_legal: get_loop_level_numbers_from_dimension_names: "<<l.get_name()<<std::endl;
         std::vector<int> dimensions =
             this->get_loop_level_numbers_from_dimension_names({l.get_name()});
-        //std::cout<<"computation::unrolling_is_legal: get_loop_level_numbers_from_dimension_names "<<std::endl;
         this->check_dimensions_validity(dimensions);
 
-        //std::cout<<"computation::unrolling_is_legal: check_dimensions_validity "<<std::endl;
 
         std::string str_schedule(isl_map_to_str(this->schedule));
 
@@ -4944,17 +4939,14 @@ bool computation::unrolling_is_legal(var l)
         }
 
         isl_map *normal_schedule = isl_map_copy(this->schedule);
-        //std::cout<<"computation::unrolling_is_legal: before reverse "<<std::endl;
         isl_map *reverse = isl_map_reverse(isl_map_copy(normal_schedule));
 
         std::string set_complete = set_n + set_var + "]}";
-        //std::cout<<"computation::unrolling_is_legal: first isl_set_apply "<<std::endl;
         isl_set *reversed_set = isl_set_apply(
             isl_set_read_from_str(this->get_ctx(), set_complete.c_str()),
             reverse);
 
         DEBUG(10, tiramisu::str_dump(" to initial set  " + std::string(isl_set_to_str(reversed_set))));
-        //std::cout<<"computation::unrolling_is_legal: isl_set_apply "<<std::endl;
         
         isl_set *normal_set = isl_set_apply(reversed_set, normal_schedule);
 
@@ -4964,7 +4956,6 @@ bool computation::unrolling_is_legal(var l)
         
         isl_pw_aff *max = isl_set_dim_max(isl_set_copy(normal_set), dimension_index);
         isl_pw_aff *min = isl_set_dim_min(isl_set_copy(normal_set), dimension_index);
-        //std::cout<<"computation::unrolling_is_legal: got min and max "<<std::endl;
         // count the number of element that forms the max & min for the specified var
 
         DEBUG(3, tiramisu::str_dump(" max is  : " + std::string(isl_pw_aff_to_str(max))));
@@ -4975,7 +4966,6 @@ bool computation::unrolling_is_legal(var l)
 
         int n_piece_max = isl_pw_aff_n_piece(max);
         int n_piece_min = isl_pw_aff_n_piece(min);
-        //std::cout<<"computation::unrolling_is_legal: isl_pw_aff_n_piece "<<std::endl;
 
         if ((n_piece_max == 1) && (n_piece_min == 1))
         {
