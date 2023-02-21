@@ -1042,16 +1042,16 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
     } 
     // In the case where the space is rectangular, we keep the same behaviour
     if(check_if_number(node_1->low_bound) && check_if_number(node_1->up_bound) && check_if_number(node_2->low_bound) && check_if_number(node_2->up_bound)){
-        int number_space_outer =   stoi(node_1->up_bound) - stoi(node_1->low_bound) ;
-        int inner_space =   stoi(node_2->up_bound) - stoi(node_2->low_bound) ;
+        int number_space_outer =   stoi(node_1->up_bound) - stoi(node_1->low_bound);
+        int inner_space =   stoi(node_2->up_bound) - stoi(node_2->low_bound);
         
-        node_1->up_bound = std::to_string(stoi(node_1->low_bound) + abs(info.l0_fact) * number_space_outer + abs(info.l1_fact) *inner_space) ;
-        node_2->up_bound =  (( number_space_outer * inner_space )/(stoi(node_1->up_bound) - stoi(node_1->low_bound))) + 1;
+        node_1->up_bound = std::to_string(stoi(node_1->low_bound) + abs(info.l0_fact) * number_space_outer + abs(info.l1_fact) *inner_space);
+        node_2->up_bound =  std::to_string((( number_space_outer * inner_space )/(stoi(node_1->up_bound) - stoi(node_1->low_bound))) + 1);
     }else{
         // Non-recntangularity
         // We write the expression as a string
-        std::string number_space_outer =   node_1->up_bound + " - " +node_1->low_bound ;
-        std::string inner_space =  node_2->up_bound + " - " + node_2->low_bound ;
+        std::string number_space_outer =   node_1->up_bound + " - " +node_1->low_bound;
+        std::string inner_space =  node_2->up_bound + " - " + node_2->low_bound;
         
         node_1->up_bound = node_1->low_bound + " + " + std::to_string(abs(info.l0_fact)) + " * " + number_space_outer + " + " + std::to_string(abs(info.l1_fact)) + " * " + inner_space ;
         node_2->up_bound =   "(( " + number_space_outer + " * " + inner_space + " )" + "/" + "( " + node_1->up_bound + " - "+ node_1->low_bound + " ) ) + 1";	
