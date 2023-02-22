@@ -77,6 +77,8 @@ public:
     */
     void skew(var i, var j, int a, int b, var ni, var nj) override;
     void skew(int i, int j, int a, int b) override;
+    void skew(var i, var j, int a, int b, int c, int d, var ni, var nj) override;
+    void skew(int i, int j, int a, int b, int c, int d) override;
     void split(var L0, int sizeX) override;
     void split(var L0, int sizeX, var L0_outer, var L0_inner) override;
     void split(int L0, int sizeX) override;

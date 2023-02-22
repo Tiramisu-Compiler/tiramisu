@@ -3738,12 +3738,13 @@ std::vector<std::tuple<tiramisu::var,int>> function::correcting_loop_fusion_with
 }
 
 
-std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vector<tiramisu::computation *> fuzed_computations, tiramisu::var outer_variable, 
+std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vector<tiramisu::computation *> fused_computations, tiramisu::var outer_variable,
                                               tiramisu::var inner_variable, int&  legal_process)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
+    // TO-DO : memory leaks for exists with process != 1
     assert(outer_variable.get_name().length() > 0);
     assert(inner_variable.get_name().length() > 0);
     assert(!this->get_name().empty());
@@ -3751,9 +3752,9 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
     assert(this->dep_read_after_write != NULL ) ;
     assert(this->dep_write_after_write != NULL ) ;
     assert(this->dep_write_after_read != NULL ) ;
-    assert(fuzed_computations.size()>0) ;
+    assert(fused_computations.size()>0) ;
 
-    computation * first_computation = fuzed_computations[0]  ;
+    computation * first_computation = fused_computations[0]  ;
     
     DEBUG(3, tiramisu::str_dump(" skewing solving for : "+outer_variable.get_name()+" and "+inner_variable.get_name()));
 
@@ -3767,7 +3768,6 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
     int outer_dim_full = tiramisu::loop_level_into_dynamic_dimension(dimensions[0]);
     int inner_dim_full = tiramisu::loop_level_into_dynamic_dimension(dimensions[1]);
 
-    assert((outer_dim_full + 2) == inner_dim_full);
 
 
     DEBUG(3, tiramisu::str_dump(" par dim number is : "+std::to_string(outer_dim_full)+ " and "+std::to_string(inner_dim_full)));
@@ -3803,7 +3803,7 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
 
     isl_map * schedule_one = NULL ;
 
-    for( auto& computation: fuzed_computations)
+    for( auto& computation: fused_computations)
     {
         schedule_one = isl_map_copy(computation->get_schedule()) ;
 
@@ -3828,7 +3828,7 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
 
         legal_process = 0 ; // disables skewing
         DEBUG_INDENT(-4);
-        return {NULL,NULL,NULL,NULL,NULL};
+        return {NULL,NULL,NULL,NULL,NULL,NULL};
         
     }
 
@@ -3836,14 +3836,31 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
 
     DEBUG(3, tiramisu::str_dump(" all the used dependencies after transformed to map are  : "+std::string(isl_map_to_str(equation_map))));
 
-     for(int i=0;i<outer_dim_full;i++)
+    // remove already solved dimensions and project them out
+    for(int i=0;i<outer_dim_full;i++)
     {
         equation_map = isl_map_equate(equation_map,isl_dim_in,i,isl_dim_out,i);
         DEBUG(3, tiramisu::str_dump(" --> remaining deps at itr "+std::to_string(i)+" : "+std::string(isl_map_to_str(equation_map))));    
     }
 
-    equation_map = isl_map_equate(equation_map,isl_dim_in,outer_dim_full+1,isl_dim_out,outer_dim_full+1);
     //equate the middle static dimension [i,_0_,j]
+    equation_map = isl_map_equate(equation_map,isl_dim_in,outer_dim_full+1,isl_dim_out,outer_dim_full+1);
+
+    for (int i = outer_dim_full + 2; i < inner_dim_full; i++){
+        // equation_map = isl_map_equate(equation_map,isl_dim_in,i,isl_dim_out,i);
+        // skip removal
+        DEBUG(3, tiramisu::str_dump(" --> remaining deps at itr "+std::to_string(i)+" : "+std::string(isl_map_to_str(equation_map)))); 
+    }
+
+    if (inner_dim_full - outer_dim_full - 2 > 0){
+        // case where there is more than 1 static dimension in between target loops
+        // remove and project them out
+        equation_map = isl_map_project_out(equation_map, isl_dim_in,
+                outer_dim_full + 2,inner_dim_full - outer_dim_full - 2);
+        equation_map = isl_map_project_out(equation_map, isl_dim_out,
+                outer_dim_full + 2,inner_dim_full - outer_dim_full - 2);
+    }
+    DEBUG(3, tiramisu::str_dump(" Map without in between dimensions : "+std::string(isl_map_to_str(equation_map))));
 
     int left_size = isl_map_dim(equation_map, isl_dim_in);
     int right_size = isl_map_dim(equation_map, isl_dim_out);
@@ -3912,15 +3929,18 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
     double second_int=0.0;
     double tan_value = 0.0;
 
-    std::string normal_map_str = "{ [0,j]->[1,0]: j>0; [i,j]->[j,-i] : j>0 and i!=0 ; [i,j]->[-j,i] : j<0 and i!=0 }";
 
-    //std::string normal_map_str = "{ [0,j]->[1,0]: j>0; [i,0]->[0,1]: i!=0 ; [i,j]->[j,-i] : j>0 and i!=0 ; [i,j]->[-j,i] : j<0 and i!=0 }";
+    std::string normal_map_str = "{ [0,j]->[1,0]: j>0; [i,0]->[0,1]: i!=0 ; [i,j]->[j,-i] : j>0 and i!=0 ; [i,j]->[-j,i] : j<0 and i!=0 }";
 
     isl_map * normal_map_calculator = isl_map_read_from_str(this->get_isl_ctx(),normal_map_str.c_str());
 
-    std::string upper_domain_str = "{[a,b] : a>0 and b>0 }";
+    std::string upper_domain_str = "{[a,b] : a>0 and b>0}"; 
+
+    // a set used to compute the domain of gamma & sigma 
+    std::string upper_domain_real_domain = "{[a,b] : a>=0 and b>=0 and a+b>0}";
 
     isl_basic_set * upper_weakly = isl_basic_set_read_from_str(this->get_isl_ctx(),upper_domain_str.c_str());
+    isl_basic_set * upper_weakly_gamma_sigma = isl_basic_set_read_from_str(this->get_isl_ctx(),upper_domain_real_domain.c_str());
 
     isl_basic_set * upper_strongly = isl_basic_set_read_from_str(this->get_isl_ctx(),upper_domain_str.c_str());
 
@@ -4087,6 +4107,7 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
                         constraint = isl_constraint_set_constant_si(constraint,-1);
 
                         upper_weakly = isl_basic_set_add_constraint(upper_weakly,isl_constraint_copy(constraint));
+                        upper_weakly_gamma_sigma = isl_basic_set_add_constraint(upper_weakly_gamma_sigma,isl_constraint_copy(constraint));
                         upper_strongly = isl_basic_set_add_constraint(upper_strongly,constraint);
                         
                     }
@@ -4103,28 +4124,12 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
                         strong_constraint = isl_constraint_set_constant_si(strong_constraint,-1);
 
                         upper_strongly = isl_basic_set_add_constraint(upper_strongly,strong_constraint);
+                        upper_weakly_gamma_sigma = isl_basic_set_add_constraint(upper_weakly_gamma_sigma,isl_constraint_copy(constraint));
                         upper_weakly = isl_basic_set_add_constraint(upper_weakly,constraint);
                     }
 
                     DEBUG(3, tiramisu::str_dump(" --> ---> new upper strongly domain is "+std::string(isl_basic_set_to_str(upper_weakly))));
                     DEBUG(3, tiramisu::str_dump(" --> ---> new upper weakly domain is "+std::string(isl_basic_set_to_str(upper_strongly))));
-
-                    if(!outer_impossible)
-                    {
-                        isl_space * space = isl_basic_set_get_space(outer_most_parallelism);
-                        isl_constraint * constraint = isl_constraint_alloc_equality(isl_local_space_from_space(space));
-
-                        constraint = isl_constraint_set_coefficient_si(constraint,isl_dim_set,0, second );
-                        constraint = isl_constraint_set_coefficient_si(constraint,isl_dim_set,1, -first);
-
-                        outer_most_parallelism = isl_basic_set_add_constraint(outer_most_parallelism,constraint);
-
-                        if(isl_basic_set_is_empty(outer_most_parallelism))
-                        {
-                            outer_impossible = true;
-                            DEBUG(3, tiramisu::str_dump(" --> Outer most parallism impossible "));
-                        }
-                    }
                         
                 }
                 else
@@ -4165,24 +4170,24 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
                     }
                     DEBUG(3, tiramisu::str_dump(" --> ---> new lower strongly domain is "+std::string(isl_basic_set_to_str(lower_strongly))));
                     DEBUG(3, tiramisu::str_dump(" --> ---> new lower weakly domain is "+std::string(isl_basic_set_to_str(lower_weakly))));
-
-                    if(!outer_impossible)
-                    {
-                        isl_space * space = isl_basic_set_get_space(outer_most_parallelism);
-                        isl_constraint * constraint = isl_constraint_alloc_equality(isl_local_space_from_space(space));
-
-                        constraint = isl_constraint_set_coefficient_si(constraint,isl_dim_set,0, second );
-                        constraint = isl_constraint_set_coefficient_si(constraint,isl_dim_set,1, -first);
-
-                        outer_most_parallelism = isl_basic_set_add_constraint(outer_most_parallelism,constraint);
-
-                        if(isl_basic_set_is_empty(outer_most_parallelism))
-                        {
-                            outer_impossible = true;
-                            DEBUG(3, tiramisu::str_dump(" --> Outer most parallism impossible "));
-                        }
-                    }
                     
+                }
+
+                if(!outer_impossible)
+                {
+                    isl_space * space = isl_basic_set_get_space(outer_most_parallelism);
+                    isl_constraint * constraint = isl_constraint_alloc_equality(isl_local_space_from_space(space));
+
+                    constraint = isl_constraint_set_coefficient_si(constraint,isl_dim_set,0, second );
+                    constraint = isl_constraint_set_coefficient_si(constraint,isl_dim_set,1, -first);
+
+                    outer_most_parallelism = isl_basic_set_add_constraint(outer_most_parallelism,constraint);
+
+                    if(isl_basic_set_is_empty(outer_most_parallelism))
+                    {
+                        outer_impossible = true;
+                        DEBUG(3, tiramisu::str_dump(" --> Outer most parallism impossible "));
+                    }
                 }
 
                 iteration++;
@@ -4231,19 +4236,19 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
         DEBUG(3, tiramisu::str_dump(" lower weakly : "+std::string(isl_basic_set_to_str(lower_weakly))));
         DEBUG(3, tiramisu::str_dump(" lower strongly : "+std::string(isl_basic_set_to_str(lower_strongly))));
         DEBUG(3, tiramisu::str_dump(" outermost parallism : "+std::string(isl_basic_set_to_str(outer_most_parallelism))));
+        DEBUG(3, tiramisu::str_dump(" gamma sigma set : "+std::string(isl_basic_set_to_str(upper_weakly_gamma_sigma))));
 
     DEBUG_INDENT(-4);
 
-    return {upper_weakly,upper_strongly,lower_weakly,lower_strongly,outer_most_parallelism} ;
+    return {upper_weakly,upper_strongly,lower_weakly,lower_strongly,outer_most_parallelism,upper_weakly_gamma_sigma} ;
 
 }
-
 
 
 std::tuple<
       std::vector<std::pair<int,int>>,
       std::vector<std::pair<int,int>>,
-      std::vector<std::pair<int,int>>> tiramisu::function::skewing_local_solver(std::vector<tiramisu::computation *> fuzed_computations,
+      std::vector<std::pair<int,int>>> tiramisu::function::skewing_local_solver(std::vector<tiramisu::computation *> fused_computations,
                                                             tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel)
 {
     DEBUG_FCT_NAME(3);
@@ -4255,7 +4260,7 @@ std::tuple<
     assert(this->dep_read_after_write != NULL );
     assert(this->dep_write_after_write != NULL );
     assert(this->dep_write_after_read != NULL );
-    assert(fuzed_computations.size()>0);
+    assert(fused_computations.size()>0);
 
     isl_basic_set * upper_strongly = NULL;
     isl_basic_set * upper_weakly = NULL;
@@ -4271,11 +4276,11 @@ std::tuple<
     std::vector<std::pair<int,int>> outermost;
     std::vector<std::pair<int,int>> innermost;
 
-    auto result_vector = this->compute_legal_skewing(fuzed_computations,outer_variable,inner_variable,process);
+    auto result_vector = this->compute_legal_skewing(fused_computations,outer_variable,inner_variable,process);
 
     if(process == 1)
     {
-        assert(result_vector.size() == 5);
+        assert(result_vector.size() == 6);
         upper_weakly = result_vector[0];
         upper_strongly = result_vector[1];
         lower_weakly = result_vector[2];
@@ -4524,6 +4529,590 @@ std::tuple<
 
     return std::make_tuple(outermost,innermost,locality);
 
+}
+/**
+ * Given skewing parameters alpha & beta, this method computes the corresponding parameters for gamma and sigma
+ * to enforce the condition Det(A)=1 while also making the dependencies positive and enabling tiling.
+ * Legal_domain is the isl_set for the correct values of alpha and beta.
+ * This set is proven to be exactly the same for gamma and sigma 
+ * values is a tuple providing <alpha, beta, gamma, sigma> were will use alpha & beta given to fill gamma & sigma.
+ * This function returns true if it was able to find gamma and sigma in the positive domain, false otherwise
+*/
+bool compute_gamma_sigma_values(isl_basic_set * legal_domain, std::tuple<int,int,int,int>& values)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    isl_set * domain = isl_set_from_basic_set(isl_basic_set_copy(legal_domain));
+    // add constraint alpha*gamma - beta*sigma = 1
+
+    isl_space * space = isl_set_get_space(domain);
+
+    isl_constraint * constraint = isl_constraint_alloc_equality(isl_local_space_from_space(space));
+
+    constraint = isl_constraint_set_coefficient_si(constraint, isl_dim_set, 0, -std::get<1>(values));
+    constraint = isl_constraint_set_coefficient_si(constraint, isl_dim_set, 1, std::get<0>(values));
+    constraint = isl_constraint_set_constant_si(constraint, -1);
+    domain = isl_set_add_constraint(domain, constraint);
+
+    DEBUG(3, tiramisu::str_dump(" For alpha & beta  :" + std::to_string(std::get<0>(values)) + " & " +
+         std::to_string(std::get<1>(values))));
+
+    DEBUG(3, tiramisu::str_dump(" set of gamma & sigma  :"+std::string(isl_set_to_str(domain))));
+
+    // extract the min parameters for gamma and sigma
+    isl_set * result = isl_set_lexmin(domain);
+    DEBUG(3, tiramisu::str_dump(" choosen gamma & sigma "+std::string(isl_set_to_str(result))));
+    isl_basic_set * result_basic = isl_set_polyhedral_hull(result);
+
+    DEBUG(3, tiramisu::str_dump(" polyhedral hull is :"+std::string(isl_basic_set_to_str(result_basic))));
+
+    if(isl_basic_set_is_empty(result_basic)){
+        DEBUG_INDENT(-4);
+        return false;
+    }
+    
+    isl_val * gamma_val = isl_basic_set_dim_max_val(isl_basic_set_copy(result_basic), 0);
+    isl_val * sigma_val = isl_basic_set_dim_max_val(isl_basic_set_copy(result_basic), 1);
+
+    int gamma = isl_val_get_d(gamma_val);
+    int sigma = isl_val_get_d(sigma_val);
+
+    std::get<2>(values) = gamma;
+    std::get<3>(values) = sigma;
+
+    isl_basic_set_free(result_basic);
+    isl_val_free(gamma_val);
+    isl_val_free(sigma_val);
+
+    DEBUG_INDENT(-4);
+    return true;
+}
+
+std::tuple<
+      std::vector<std::tuple<int,int,int,int>>,
+      std::vector<std::tuple<int,int,int,int>>,
+      std::vector<std::tuple<int,int,int,int>>> tiramisu::function::skewing_local_solver_positive(std::vector<tiramisu::computation *> fused_computations,
+                                                          tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(outer_variable.get_name().length() > 0);
+    assert(inner_variable.get_name().length() > 0);
+    assert(!this->get_name().empty());
+    assert(this->dep_read_after_write != NULL );
+    assert(this->dep_write_after_write != NULL );
+    assert(this->dep_write_after_read != NULL );
+    assert(fused_computations.size()>0);
+
+    isl_basic_set * upper_strongly = NULL;
+    isl_basic_set * upper_weakly = NULL;
+
+    // set used to computed gamma & sigma
+    isl_basic_set * positive_secondary_set = NULL;
+
+    isl_basic_set * parallism = NULL;
+
+    int process = -1;
+
+    std::vector<std::tuple<int,int,int,int>> locality;
+    std::vector<std::tuple<int,int,int,int>> outermost;
+    std::vector<std::tuple<int,int,int,int>> innermost;
+    std::vector<std::tuple<int,int,int,int>> identity;
+
+    auto result_vector = this->compute_legal_skewing(fused_computations,outer_variable,inner_variable,process);
+
+    if(process == 1)
+    {
+        assert(result_vector.size() == 6);
+        upper_weakly = result_vector[0];
+
+        identity.push_back(std::make_tuple(1, 0, 0, 0));
+
+        // set is exactly similar to constraints for alpha and beta
+        positive_secondary_set = result_vector[5];
+        upper_strongly = result_vector[1];
+        parallism = result_vector[4];
+        DEBUG(3, tiramisu::str_dump(" EXTRACTING Values of alpha & beta : "));
+
+        DEBUG(3, tiramisu::str_dump(" Upper weakly : "+std::string(isl_basic_set_to_str(upper_weakly))));
+        DEBUG(3, tiramisu::str_dump(" Upper strongly : "+std::string(isl_basic_set_to_str(upper_strongly))));
+        DEBUG(3, tiramisu::str_dump(" outermost parallism : "+std::string(isl_basic_set_to_str(parallism))));
+
+
+        /**
+         * Solving locality
+        */
+
+       isl_set * upper_intersect = isl_set_subtract(
+           isl_set_from_basic_set(upper_weakly),
+           isl_set_from_basic_set(isl_basic_set_copy(upper_strongly))
+       );
+
+       DEBUG(3, tiramisu::str_dump(" substracted locality upper "+std::string(isl_set_to_str(upper_intersect))));
+
+       if(!isl_set_is_empty(upper_intersect))
+       {
+           upper_intersect = isl_set_lexmin(upper_intersect);
+           DEBUG(3, tiramisu::str_dump(" choosen locality upper "+std::string(isl_set_to_str(upper_intersect))));
+           isl_basic_set * result = isl_set_polyhedral_hull(upper_intersect);
+
+           DEBUG(3, tiramisu::str_dump(" polyhedral hull is :"+std::string(isl_basic_set_to_str(result))));
+           
+           isl_val * value1 = isl_basic_set_dim_max_val( isl_basic_set_copy(result),0);
+           isl_val * value2 = isl_basic_set_dim_max_val( isl_basic_set_copy(result),1);
+
+           int locality_var1 = isl_val_get_d(value1);
+           int locality_var2 = isl_val_get_d(value2);
+
+           DEBUG(3, tiramisu::str_dump(" skewing upper locality is (alpha,beta) = ("+std::to_string(locality_var1)+","+std::to_string(locality_var2)+")"));
+
+           locality.push_back(std::make_tuple(locality_var1, locality_var2, 0, 0));
+
+           isl_basic_set_free(result);
+           isl_val_free(value1);
+           isl_val_free(value2);
+       }
+       else
+       {
+           isl_set_free(upper_intersect);
+       }
+
+        /**
+         * Solving outermost parallelism 
+        */
+        
+        if(!isl_basic_set_is_empty(parallism))
+        {
+           isl_set * isl_outer_sol = isl_basic_set_lexmin(parallism);
+           DEBUG(3, tiramisu::str_dump(" choosen outer parallism "+std::string(isl_set_to_str(isl_outer_sol))));
+           isl_basic_set * result = isl_set_polyhedral_hull(isl_outer_sol);
+
+           DEBUG(3, tiramisu::str_dump(" polyhedral hull is :"+std::string(isl_basic_set_to_str(result))));
+           
+           isl_val * value1 = isl_basic_set_dim_max_val( isl_basic_set_copy(result),0);
+           isl_val * value2 = isl_basic_set_dim_max_val( isl_basic_set_copy(result),1);
+
+           int locality_var1 = isl_val_get_d(value1);
+           int locality_var2 = isl_val_get_d(value2);
+
+           DEBUG(3, tiramisu::str_dump(" skewing outer_parallelism is (alpha,beta) = ("+std::to_string(locality_var1)+","+std::to_string(locality_var2)+")"));
+
+           outermost.push_back(std::make_tuple(locality_var1, locality_var2, 0, 0));
+
+           isl_basic_set_free(result);
+           isl_val_free(value1);
+           isl_val_free(value2);
+        }
+
+        /**
+         * Solving the parallelism 
+         * */
+        isl_set * upper_set = isl_set_from_basic_set(upper_strongly);
+
+        std::string upper_new_set_str = "{[a,b]:a>0 and b>0}";
+
+        //extracting from upper domain
+        int i = 0;
+        
+        while((i < nb_parallel) && (!isl_set_is_empty(upper_set)))
+        {
+            DEBUG(3, tiramisu::str_dump("# upper inner parallism solution set :"+std::string(isl_set_to_str(upper_set))));
+
+            isl_set * solution = isl_set_lexmin(isl_set_copy(upper_set));
+            DEBUG(3, tiramisu::str_dump(" choosen inner parallism "+std::string(isl_set_to_str(solution))));
+
+            isl_basic_set * result = isl_set_polyhedral_hull(solution);
+
+            DEBUG(3, tiramisu::str_dump(" polyhedral hull is :"+std::string(isl_basic_set_to_str(result))));
+           
+            isl_val * value1 = isl_basic_set_dim_max_val(isl_basic_set_copy(result),0);
+            isl_val * value2 = isl_basic_set_dim_max_val(result,1);
+
+            int locality_var1 = isl_val_get_d(value1);
+            int locality_var2 = isl_val_get_d(value2);
+
+            DEBUG(3, tiramisu::str_dump(" skewing upper inner_parallelism is (alpha,beta) = ("+std::to_string(locality_var1)+","+std::to_string(locality_var2)+")"));
+
+            innermost.push_back(std::make_tuple(locality_var1, locality_var2, 0, 0));
+
+            // adding new constraint a!=b as to avoid same solution twice
+            isl_space * space = isl_set_get_space(upper_set);
+
+            isl_set * new_set = isl_set_read_from_str(this->get_isl_ctx(),upper_new_set_str.c_str());
+
+            DEBUG(3, tiramisu::str_dump(" new set  :"+std::string(isl_set_to_str(new_set))));
+
+            isl_constraint * constraint = isl_constraint_alloc_equality(isl_local_space_from_space(space));
+
+            constraint = isl_constraint_set_coefficient_si(constraint,isl_dim_set,0, locality_var2);
+            constraint = isl_constraint_set_coefficient_si(constraint,isl_dim_set,1, -locality_var1);
+            new_set = isl_set_add_constraint(new_set,constraint);
+
+            DEBUG(3, tiramisu::str_dump(" new set with constraint :"+std::string(isl_set_to_str(new_set))));
+
+            upper_set = isl_set_subtract(upper_set,new_set);
+
+            upper_set = isl_set_coalesce(upper_set);
+
+            isl_val_free(value1);
+            isl_val_free(value2);
+
+            i++;
+        }
+
+        isl_set_free(upper_set);
+
+        // compute gamma & sigma for all produced alpha & beta
+        // it's possible not to find gamma & sigma for outmost parameters
+        if(outermost.size() > 0){
+            if(! compute_gamma_sigma_values(positive_secondary_set, outermost[0])){
+                outermost.clear();
+            }
+        }
+
+        for (auto& params :innermost){
+            compute_gamma_sigma_values(positive_secondary_set, params);
+        }
+        // we know we will not be able to find gamma & sigma in the positive domain 
+        // while using these locality alpha & beta
+        /*
+        for (auto& params :locality){
+            compute_gamma_sigma_values(positive_secondary_set, params);
+        }
+        */
+        for (auto& params :identity){
+            compute_gamma_sigma_values(positive_secondary_set, params);
+        }
+
+        isl_basic_set_free(positive_secondary_set);
+        
+    }
+    else if (process == 0) // no dependencies to be solved
+    {
+        identity.push_back(std::make_tuple(1, 0, 0, 1));
+    }
+     
+    DEBUG_INDENT(-4);
+
+    return std::make_tuple(outermost,innermost,identity);
+
+}
+
+
+std::tuple<
+      std::vector<std::tuple<int,int,int,int,int,int,int,int,int>>,
+      std::vector<std::tuple<int,int,int,int,int,int,int,int,int>>,
+      std::vector<std::tuple<int,int,int,int,int,int,int,int,int>>> tiramisu::function::skewing_local_3D_solver_positive(
+                                                  std::vector<tiramisu::computation *> fused_computations, tiramisu::var var_outer,
+                                                  tiramisu::var var2, tiramisu::var var_inner)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(var_outer.get_name().length() > 0);
+    assert(var_inner.get_name().length() > 0);
+    assert(var2.get_name().length() > 0);
+    assert(!this->get_name().empty());
+    assert(this->dep_read_after_write != NULL );
+    assert(this->dep_write_after_write != NULL );
+    assert(this->dep_write_after_read != NULL );
+    assert(fused_computations.size()>0);
+
+    computation * first_computation = fused_computations[0]  ;
+    
+    DEBUG(3, tiramisu::str_dump(" skewing solving for : " + var_outer.get_name() + 
+        " and "+var2.get_name() +" and "+var_inner.get_name()));
+
+    std::vector<std::string> original_loop_level_names = first_computation->get_loop_level_names();
+
+    std::vector<int> dimensions =
+        first_computation->get_loop_level_numbers_from_dimension_names(
+            {var_outer.get_name(), var2.get_name(), var_inner.get_name()});
+
+    first_computation->check_dimensions_validity(dimensions);
+
+    int out_dim = tiramisu::loop_level_into_dynamic_dimension(dimensions[0]);
+    int mid_dim = tiramisu::loop_level_into_dynamic_dimension(dimensions[1]);
+    int inner_dim = tiramisu::loop_level_into_dynamic_dimension(dimensions[2]);
+
+    assert(mid_dim == out_dim + 2);
+    assert(inner_dim == mid_dim + 2);
+
+    // create a vector of the iterators
+    std::vector<tiramisu::var> target_variables;
+    target_variables.push_back(var_outer);
+    target_variables.push_back(var2);
+    target_variables.push_back(var_inner);
+
+
+    // backup all schedules of computations
+    std::vector<isl_map*> schedules_backups;
+
+    for(auto const& computation : fused_computations)
+    {
+        schedules_backups.push_back(isl_map_copy(computation->get_schedule()));
+    }
+
+    bool solvable_solutions = true;
+    // compute the 3d skewings for 3 dimensions
+
+    // results (would be filled if solutions were found)
+    std::vector<std::tuple<int,int,int,int,int,int,int,int,int>> outer_params;
+    std::vector<std::tuple<int,int,int,int,int,int,int,int,int>> inner_params;
+    std::vector<std::tuple<int,int,int,int,int,int,int,int,int>> tiling_params;
+    
+    std::string parameters = "{[i0,i1,i2]->[i0,i1,i2]}";
+    isl_basic_map * parameters_map = isl_basic_map_read_from_str(this->get_isl_ctx(),parameters.c_str());
+
+    for (int j_inner = target_variables.size() - 1; solvable_solutions && (j_inner >= 1); j_inner --)
+    {
+        for (int i_outer = j_inner - 1; i_outer >= 0; i_outer --)
+        {
+            auto result_tmp = this->skewing_local_solver_positive(
+                fused_computations, target_variables[i_outer], target_variables[j_inner], 1);
+            // special case for the last iteration
+            if ((i_outer == 0) && (j_inner == 1)){
+                // generate inner parallelism or outer parralism
+                if (std::get<0>(result_tmp).size() > 0){
+                    isl_basic_map * outer_map = NULL;
+                    
+                    auto identity_values = std::get<0>(result_tmp)[0];
+                    DEBUG(3, tiramisu::str_dump(" outer skewing iteration is : " + std::to_string(std::get<0>(identity_values)) + 
+                        "," + std::to_string(std::get<1>(identity_values)) + "," +std::to_string(std::get<2>(identity_values)) +
+                        "," + std::to_string(std::get<3>(identity_values)) ));
+                    
+                    int index_different = 0;
+                    while((index_different == i_outer) || (index_different == j_inner))
+                    {
+                        index_different++;
+                    }
+                    assert(index_different < 4);
+
+                    std::string transformation_in = "{[i0,i1,i2]->[i_0,i_1,i_2] : " 
+                        " i_" + std::to_string(index_different) + " = i" + std::to_string(index_different) +" and "
+                        "i_" + std::to_string(i_outer) + " = i"+std::to_string(i_outer)+"*" + std::to_string(std::get<0>(identity_values)) +
+                            " + i" + std::to_string(j_inner)+"*" + std::to_string(std::get<1>(identity_values)) +" and "
+                        "i_" + std::to_string(j_inner) + " = i"+std::to_string(i_outer)+"*" + std::to_string(std::get<2>(identity_values)) +
+                            " + i" + std::to_string(j_inner)+"*" + std::to_string(std::get<3>(identity_values)) +" } ";
+                    isl_basic_map * transformation = isl_basic_map_read_from_str(this->get_isl_ctx(),transformation_in.c_str());
+
+                    DEBUG(10, tiramisu::str_dump(" Current corresponding transformation :", isl_basic_map_to_str(transformation)));
+                    outer_map = isl_basic_map_apply_range(isl_basic_map_copy(parameters_map), transformation);
+                    DEBUG(10, tiramisu::str_dump(" outer-parallelism transformation :", isl_basic_map_to_str(outer_map))); 
+
+                    outer_params.push_back(this->extract_3d_skewing_params(outer_map));         
+
+                }
+                if (std::get<1>(result_tmp).size() > 0){
+                    isl_basic_map * inner_map = NULL;
+                    
+                    auto identity_values = std::get<1>(result_tmp)[0];
+                    DEBUG(3, tiramisu::str_dump(" inner skewing iteration is : " + std::to_string(std::get<0>(identity_values)) + 
+                        "," + std::to_string(std::get<1>(identity_values)) + "," +std::to_string(std::get<2>(identity_values)) +
+                        "," + std::to_string(std::get<3>(identity_values)) ));
+                    
+                    int index_different = 0;
+                    while((index_different == i_outer) || (index_different == j_inner))
+                    {
+                        index_different++;
+                    }
+                    assert(index_different < 4);
+
+                    std::string transformation_in = "{[i0,i1,i2]->[i_0,i_1,i_2] : " 
+                        " i_" + std::to_string(index_different) + " = i" + std::to_string(index_different) +" and "
+                        "i_" + std::to_string(i_outer) + " = i"+std::to_string(i_outer)+"*" + std::to_string(std::get<0>(identity_values)) +
+                            " + i" + std::to_string(j_inner)+"*" + std::to_string(std::get<1>(identity_values)) +" and "
+                        "i_" + std::to_string(j_inner) + " = i"+std::to_string(i_outer)+"*" + std::to_string(std::get<2>(identity_values)) +
+                            " + i" + std::to_string(j_inner)+"*" + std::to_string(std::get<3>(identity_values)) +" } ";
+                    isl_basic_map * transformation = isl_basic_map_read_from_str(this->get_isl_ctx(),transformation_in.c_str());
+
+                    DEBUG(10, tiramisu::str_dump(" Current corresponding transformation :", isl_basic_map_to_str(transformation)));
+                    inner_map = isl_basic_map_apply_range(isl_basic_map_copy(parameters_map), transformation);
+                    DEBUG(10, tiramisu::str_dump(" inner-parallelism transformation :", isl_basic_map_to_str(inner_map)));
+
+                    inner_params.push_back(this->extract_3d_skewing_params(inner_map));        
+                    
+                }
+                if (std::get<2>(result_tmp).size() > 0){
+                    isl_basic_map * tiling_map = NULL;
+                    
+                    auto identity_values = std::get<2>(result_tmp)[0];
+                    DEBUG(3, tiramisu::str_dump(" positive-dependencies skewing iteration is : " + std::to_string(std::get<0>(identity_values)) + 
+                        "," + std::to_string(std::get<1>(identity_values)) + "," +std::to_string(std::get<2>(identity_values)) +
+                        "," + std::to_string(std::get<3>(identity_values)) ));
+                    
+                    int index_different = 0;
+                    while((index_different == i_outer) || (index_different == j_inner))
+                    {
+                        index_different++;
+                    }
+                    assert(index_different < 4);
+
+                    std::string transformation_in = "{[i0,i1,i2]->[i_0,i_1,i_2] : " 
+                        " i_" + std::to_string(index_different) + " = i" + std::to_string(index_different) +" and "
+                        "i_" + std::to_string(i_outer) + " = i"+std::to_string(i_outer)+"*" + std::to_string(std::get<0>(identity_values)) +
+                            " + i" + std::to_string(j_inner)+"*" + std::to_string(std::get<1>(identity_values)) +" and "
+                        "i_" + std::to_string(j_inner) + " = i"+std::to_string(i_outer)+"*" + std::to_string(std::get<2>(identity_values)) +
+                            " + i" + std::to_string(j_inner)+"*" + std::to_string(std::get<3>(identity_values)) +" } ";
+                    isl_basic_map * transformation = isl_basic_map_read_from_str(this->get_isl_ctx(),transformation_in.c_str());
+
+                    DEBUG(10, tiramisu::str_dump(" Current corresponding transformation :", isl_basic_map_to_str(transformation)));
+                    tiling_map = isl_basic_map_apply_range(isl_basic_map_copy(parameters_map), transformation);
+                    DEBUG(10, tiramisu::str_dump(" positive-dependencies transformation :", isl_basic_map_to_str(tiling_map)));     
+
+                    tiling_params.push_back(this->extract_3d_skewing_params(tiling_map));      
+                    
+                }
+
+            }
+            else
+            {
+                auto identity_vector = std::get<2>(result_tmp);
+                if (identity_vector.size() == 0){
+                    DEBUG(10, tiramisu::str_dump(" unable to find 3d skewing solution "));  
+                    solvable_solutions = false;
+                    break;
+                }
+                auto identity_values = identity_vector[0];
+                DEBUG(3, tiramisu::str_dump(" skewing iteration is : " + std::to_string(std::get<0>(identity_values)) + 
+                    "," + std::to_string(std::get<1>(identity_values)) + "," +std::to_string(std::get<2>(identity_values)) +
+                    "," + std::to_string(std::get<3>(identity_values)) ));
+                
+                int index_different = 0;
+                while((index_different == i_outer) || (index_different == j_inner))
+                {
+                    index_different++;
+                }
+                assert(index_different < 4);
+
+                std::string transformation_in = "{[i0,i1,i2]->[i_0,i_1,i_2] : " 
+                    " i_" + std::to_string(index_different) + " = i" + std::to_string(index_different) +" and "
+                    "i_" + std::to_string(i_outer) + " = i"+std::to_string(i_outer)+"*" + std::to_string(std::get<0>(identity_values)) +
+                        " + i" + std::to_string(j_inner)+"*" + std::to_string(std::get<1>(identity_values)) +" and "
+                    "i_" + std::to_string(j_inner) + " = i"+std::to_string(i_outer)+"*" + std::to_string(std::get<2>(identity_values)) +
+                        " + i" + std::to_string(j_inner)+"*" + std::to_string(std::get<3>(identity_values)) +" } ";
+                isl_basic_map * transformation = isl_basic_map_read_from_str(this->get_isl_ctx(),transformation_in.c_str());
+
+                DEBUG(10, tiramisu::str_dump(" Current corresponding transformation :", isl_basic_map_to_str(transformation)));
+                parameters_map = isl_basic_map_apply_range(parameters_map, transformation);
+                DEBUG(10, tiramisu::str_dump(" Current overall transformation :", isl_basic_map_to_str(parameters_map)));           
+
+                // apply the skewing and rename the variables
+
+                tiramisu::var var1(std::string(target_variables[i_outer].get_name())+"_");
+                tiramisu::var var2(std::string(target_variables[j_inner].get_name())+"_");
+                
+                for (auto& computation : fused_computations)
+                {
+                    computation->skew(target_variables[i_outer],target_variables[j_inner],
+                        std::get<0>(identity_values),
+                        std::get<1>(identity_values),
+                        std::get<2>(identity_values),
+                        std::get<3>(identity_values),
+                        var1, var2);
+                    target_variables[i_outer] = var1;
+                    target_variables[j_inner] = var2;
+                }
+
+            }
+        
+        }
+    }
+
+    // restaure all computations
+    assert(fused_computations.size() == schedules_backups.size());
+    int index = 0;
+    for(auto const& computation : fused_computations)
+    {   
+        isl_map_free(computation->get_schedule());
+        computation->set_schedule(schedules_backups[0]);
+        index ++;
+    }
+
+    isl_basic_map_free(parameters_map);
+    DEBUG_INDENT(-4);
+
+    return std::make_tuple(outer_params,inner_params,tiling_params);
+}
+
+/**
+ * Method made to extract coefficents from isl_basic_map
+ * For instance {[i0,i1,i2]->[2i0+i2,i1,i2]} for first dimension i0 return {2,0,1}
+ * **/
+std::vector<int> tiramisu::function::extract_transformation_coeffcients(isl_basic_map * transformation, int position)
+{
+    int input_dim = isl_basic_map_dim(transformation, isl_dim_in);
+    int output_dim = isl_basic_map_dim(transformation, isl_dim_out);
+
+    assert(input_dim == output_dim);
+    assert(position < input_dim);
+
+    std::string set_extractor = "{[";
+
+    for (int i=0; i < input_dim; i++){
+        if (i == position){
+            set_extractor += "1";
+        }
+        else{
+            set_extractor += "0";
+        }
+
+        if (i < (input_dim -1)){
+            set_extractor += ",";
+        }
+    }
+    set_extractor += "]}";
+
+    isl_basic_set * set = isl_basic_set_read_from_str(this->get_isl_ctx(), set_extractor.c_str());
+
+    set = isl_basic_set_apply(set, isl_basic_map_copy(transformation));
+
+    std::vector<int> result;
+
+    for (int i=0; i < input_dim; i++)
+    {
+        isl_val * value_isl = isl_basic_set_dim_max_val( isl_basic_set_copy(set),i);
+
+        int value = isl_val_get_d(value_isl);
+
+        result.push_back(value);
+
+    }
+    return result;
+}
+
+std::tuple<int,int,int,int,int,int,int,int,int> tiramisu::function::extract_3d_skewing_params(
+    isl_basic_map * transformation)
+{   
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    int input_dim = isl_basic_map_dim(transformation, isl_dim_in);
+    int output_dim = isl_basic_map_dim(transformation, isl_dim_out);
+    assert(input_dim == output_dim);
+    assert(input_dim == 3);
+
+    std::vector<int> v1 = this->extract_transformation_coeffcients(transformation, 0);
+    std::vector<int> v2 = this->extract_transformation_coeffcients(transformation, 1);
+    std::vector<int> v3 = this->extract_transformation_coeffcients(transformation, 2);
+
+    assert(v1.size() == 3);
+    assert(v2.size() == 3);
+    assert(v3.size() == 3);
+
+    DEBUG(10, tiramisu::str_dump(" Extracted parameters are : " + 
+    std::to_string(v1[0])+ " "+ std::to_string(v2[0]) +" "+ std::to_string(v3[0]) +" | "
+    + std::to_string(v1[1])+ " "+ std::to_string(v2[1]) +" "+ std::to_string(v3[1]) +" | "
+    + std::to_string(v1[2])+ " "+ std::to_string(v2[2]) +" "+ std::to_string(v3[2])
+    ));
+
+    DEBUG_INDENT(-4);
+    
+    return std::make_tuple(v1[0],v2[0],v3[0],
+                           v1[1],v2[1],v3[1],
+                           v1[2],v2[2],v3[2]);
 }
 
 

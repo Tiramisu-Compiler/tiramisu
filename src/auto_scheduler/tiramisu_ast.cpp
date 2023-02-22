@@ -592,9 +592,6 @@ void update_node(std::vector<ast_node *> shared_nodes, std::vector<std::vector<i
 }
 void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
 {
-    /**
-     * Applying to staging
-    */  
     stage_isl_states(); 
     std::vector<tiramisu::computation *> all_data;
     std::vector<ast_node *> all_nodes;
@@ -1060,10 +1057,9 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
     node_1->skewed = true;
     node_2->skewed = true;
     
-    node_1->transforme_accesses_with_skewing(info.l0_fact,info.l1_fact);
+    node_1->transform_accesses_with_skewing(info.l0_fact,info.l1_fact);
     recover_isl_states();
 }
-
 
 void syntax_tree::transform_ast_by_shifting(const optimization_info &info){
     stage_isl_states();
@@ -1659,7 +1655,7 @@ void ast_node::print_computations_accesses() const
     }
 }
 
-void ast_node::transforme_accesses_with_skewing(int a,int b)
+void ast_node::transform_accesses_with_skewing(int a,int b)
 {
     /*
         compute isl Map of transformation here
@@ -1720,7 +1716,10 @@ void ast_node::transforme_accesses_with_skewing(int a,int b)
 
     this->set_accesses_changes_with_skewing(this->depth,f_i,f_j,gamma,sigma);
 }
-
+void ast_node::transform_accesses_with_skewing_positive(int a,int b,int c, int d)
+{
+    this->set_accesses_changes_with_skewing(this->depth,a,b,c,d);
+}
 void ast_node::set_accesses_changes_with_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma)
 {
     for(auto& comp:this->computations)

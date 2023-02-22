@@ -442,7 +442,9 @@ public:
     /**
      * Changes the access within computation_info after applying the skewing optimization
     */
-    void transforme_accesses_with_skewing(int a,int b);
+    void transform_accesses_with_skewing(int a,int b);
+
+    void transform_accesses_with_skewing_positive(int a,int b,int c, int d);
 
     void set_accesses_changes_with_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma);
 
@@ -684,6 +686,7 @@ public:
     void transform_ast_by_vectorization(const optimization_info &opt);
     void transform_ast_by_parallelism(const optimization_info &info);
     void transform_ast_by_skewing(const optimization_info &opt);
+    void transform_ast_by_skewing_positive(const optimization_info &opt);
     void transform_ast_by_reversal(const optimization_info &opt);
     void transform_ast_by_shifting(const optimization_info &opt);
     void transform_ast_by_matrix(const optimization_info &opt);

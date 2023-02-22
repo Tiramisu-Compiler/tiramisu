@@ -1351,29 +1351,95 @@ public:
     bool check_partial_legality_in_function(std::vector<tiramisu::computation * > involved_computations);
 
     /**
-     * Computes the best legal skewing parameters for 3 use cases (outer parallelism, locality and innermost parallelism).
-     * The method relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * \brief Computes the best legal skewing parameters for 3 use cases (outer parallelism, locality and innermost parallelism)
+     *  on 2 consecutive loops.
+     * \attention the method uses the dependence analysis results, so invoking \p prepare_schedules_for_legality_checks() 
+     *  (to align and order schedules with same out dimension size)
+     *  then \p perform_full_dependency_analysis() before is mandatory. 
+     * 
+     * \param fused_computations All computations inside the 2 consecutive loops
+     * \param outer_variable the outer of the 2 consecutive loops
+     * \param inner_variable the inner of the 2 consecutive loops
+     * 
+     * \returns a tuple of vectors, each vector represents possible skewings (with 2 parameters),
+     * each skewing can be used as an input to Computation.skew().
+     * 
+     * \note Skewing is useful to enable parallelism in some cases where it was impossible initially.
+     * if the \p outer_variable is already parallel with \p loop_parallelization_is_legal  then THIS skewing is not needed.
+     * This solver will try to find a skewing, sometimes it will fail and no skewing could be found to enable parallelism.
+     * (if the dependencies are empty or not empty but impossible to solve)
+     * In case pairs are returned, they enable parallelism on either \p outer_variable or \p inner_variable.
+     * 
+     * \details First vector contains either 1 pairs of <int,int> that allows parallelism on outer_variable, or an empty vector.
+     * Second vector contains a vector of pairs that enables parallelism on inner_variable.
+     * Third vector contains a vector of parameters that should in theory improve locality (without any parallelism).
+     * 
+     * nb_parallel is the number of solutions (pairs) inside the second vector (parallelism on inner_variable),
+     * the second vector size's should be equal to twice the value of nb_parallel in the regular case.
+     * for nb_parallel=1 it only returns the smallest skewing (best) possible for this use case.
+    */
+    std::tuple<
+      std::vector<std::pair<int,int>>,
+      std::vector<std::pair<int,int>>,
+      std::vector<std::pair<int,int>>> skewing_local_solver(std::vector<tiramisu::computation *> fused_computations,
+                                                            tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel);
+
+    /**
+     * Computes the best legal skewing parameters for 3 use cases (outer parallelism, innermost parallelism and identity).
+     * This method also make sure the dependencies becomes positive with skewing in order to enable Tiling. 
+     * The method relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
      * The output of this method is a tuple of vectors, each vector represent a usecase,
-     * the elements of the vector are the pair that should be given as an input for Computation.skew() method (skewing method).
+     * the elements of the vector are the 4 skewing parameters (alpha,beta,gamma,sigma) that should be given 
+     * as an input for Computation.skew() method (skewing method that takes 4 parameters).
      * 
-     * First vector contains either 1 pairs of <int,int> that allows parallism on outer_variable, or an empty vector.
-     * Second vector contains a vector of pairs that enables parallism on inner_variable.
-     * Third vector contains a vector of parameters that should in theory improve locality (without any parallism).
+     * 
+     * First vector contains either 1 set of parameters that allows parallism on outer_variable, or an empty vector.
+     * Second vector contains a vector of parameters that enables parallism on inner_variable.
+     * Third vector contains a vector of parameters that enables tiling and makes the dependencies positive for identity (alpha=1, beta=0).
      * 
      * nb_parallel is the number of solutions (pairs) inside the second vector (parallism on inner_variable),
      * the second vector size's should be equal to twice the value of nb_parallel in the regular case.
      * for nb_parallel=1 it only returns the smallest skewing (best) possible for this use case.
      * 
-     * In case of a lack of dependencies within the scope of fuzed_computations, or in case of some dependencies impossible to solve, 
+     * In case of a lack of dependencies within the scope of fused_computations, or in case of some dependencies impossible to solve,
      * the output should be 3 empty vectors.
     */
     std::tuple<
-      std::vector<std::pair<int,int>>,
-      std::vector<std::pair<int,int>>,
-      std::vector<std::pair<int,int>>> skewing_local_solver(std::vector<tiramisu::computation *> fuzed_computations,
-                                                            tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel);
+      std::vector<std::tuple<int,int,int,int>>,
+      std::vector<std::tuple<int,int,int,int>>,
+      std::vector<std::tuple<int,int,int,int>>> skewing_local_solver_positive(std::vector<tiramisu::computation *> fused_computations,
+                                                          tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel);
+                                                          
+    /**
+     * Computes the best legal 3D skewing parameters for 3 use cases (outer parallelism, innermost parallelism and identity).
+     * This method also make sure the dependencies becomes positive with skewing in order to enable Tiling. 
+     * The method relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
+     * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
+     * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
+     * The output of this method is a tuple of vectors, each vector represent a usecase,
+     * the elements of the vector are the 9 skewing parameters (3 for 1st dimension, 3 for second, then 3 for the third)
+     * 
+     * 
+     * First vector contains either 1 set of parameters that allows parallism on outer_variable, or an empty vector.
+     * Second vector contains a vector of parameters that enables parallism on inner_variable.
+     * Third vector contains a vector of parameters that enables tiling and makes the dependencies positive for identity (alpha=1, beta=0).
+     * 
+     * Note that for all 3 cases the dependencies becomes positive in all 3 dimensions which will enable tiling 3D.
+     * In case of a lack of dependencies within the scope of fused_computations, or in case of some dependencies impossible to solve,
+     * the output should be 3 empty vectors.
+    */
+    std::tuple<
+      std::vector<std::tuple<int,int,int,int,int,int,int,int,int>>,
+      std::vector<std::tuple<int,int,int,int,int,int,int,int,int>>,
+      std::vector<std::tuple<int,int,int,int,int,int,int,int,int>>> skewing_local_3D_solver_positive(
+                                                  std::vector<tiramisu::computation *> fused_computations, tiramisu::var var_outer,
+                                                  tiramisu::var var2, tiramisu::var var_inner);
+                                                          
+    std::vector<int> extract_transformation_coeffcients(isl_basic_map * transformation, int position);
+
+    std::tuple<int,int,int,int,int,int,int,int,int> extract_3d_skewing_params(isl_basic_map * transformation);
 
     /**
      * for each computation, it computes potentiel canidate for vectorization, then it regroups it in result vector. 
@@ -4304,6 +4370,39 @@ public:
     virtual void skew(var i, var j, int a , int b, var ni, var nj);
 
     virtual void skew(int i, int j, int a, int b); 
+    // @}
+
+        /**
+      * Apply skewing on the loop levels \p i and \p j and replace them with the new loop levels i' and j' such that:
+      * i' = a*i +b*j 
+      * j' = gamma*i + sigma*j.
+      *  |a*sigma - gamma*b| = 1
+      * additional constraints for inputs are :  b!=0 & a >=0
+      *           a & b must be prime between themselves
+      * This command transforms the loop (i, j) into the loop (a*i+b*j,j').
+      * For example if you have the following loop
+      *
+      * \code
+      for (int i = 1; i < N; i++)
+        for (int j = 1; j < M; j++)
+          a[i][j] = a[i - 1][j] + a[i][j - 1];
+       \endcode
+      * and apply
+      \code
+        a.skew(i, j, 1, 1, 0, 1, ni, nj);
+      \endcode
+      * you would get
+      *
+      \code
+      for (int i = 1; i < 2N; i++)
+        for (int j = max(i,N-i); j < Min(i,N) ; j++)
+          a[i-j][j] = a[i - j - 1][j] + a[i-j][j - 1];
+      \endcode
+      */
+    // @{
+    virtual void skew(var i, var j, int alpha , int beta, int gamma , int sigma, var ni, var nj);
+
+    virtual void skew(int i, int j, int alpha , int beta, int gamma , int sigma); 
     // @}
 
     /**

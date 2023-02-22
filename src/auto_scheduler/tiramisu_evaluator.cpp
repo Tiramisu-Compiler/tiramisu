@@ -44,7 +44,6 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
     fct->reset_schedules();
     // Apply all the optimizations
     apply_optimizations(ast);
-    // parallelize_outermost_levels(ast.computations_list);
     
     // Compile the program to an object file
     fct->lift_dist_comps();
@@ -684,7 +683,7 @@ std::string evaluate_by_learning_model::get_tree_structure_json(ast_node *node)
         
     for (ast_node *child : node->children)
     {
-        if (child->get_extent() != "0-0+1")
+        if (child->name.compare("dummy_iter")!=0)
             continue;
             
         for (int j = 0; j < child->computations.size(); ++j)
@@ -705,7 +704,7 @@ std::string evaluate_by_learning_model::get_tree_structure_json(ast_node *node)
     bool has_children = false;
     for (ast_node *child : node->children)
     {
-        if (child->get_extent() == "0-0+1")
+        if (child->name.compare("dummy_iter")!=0)
             continue;
             
         json += "{" + get_tree_structure_json(child) + "},";
