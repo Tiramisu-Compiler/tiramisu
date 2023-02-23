@@ -29,7 +29,7 @@ ${CMAKE_SOURCE_DIR}/include/tiramisu/tiramisu.h
 )
 
 add_library(tiramisu SHARED ${SOURCES})
-target_link_libraries(tiramisu Halide::Halide Halide::Runtime Halide::Tools Halide::ImageIO ${ISLLib})
+target_link_libraries(tiramisu Halide::Halide Halide::Runtime Halide::Tools ${ISLLib})
 target_link_libraries(tiramisu ${LINK_FLAGS})
 set_target_properties(tiramisu
   PROPERTIES
@@ -38,6 +38,7 @@ set_target_properties(tiramisu
   PUBLIC_HEADER "${HEADERS}"
   )
 target_include_directories(tiramisu PUBLIC ${CMAKE_SOURCE_DIR}/include/tiramisu)
+target_include_directories(tiramisu PUBLIC "${ISL_INCLUDE_DIRECTORY}")
 
 if (${USE_AUTO_SCHEDULER})
 add_subdirectory(auto_scheduler)

@@ -84,7 +84,7 @@ if (${USE_MPI})
 endif()
 
 
-include_directories("include" "${ISL_INCLUDE_DIRECTORY}" "build")
+
 set(LINK_FLAGS "-ldl -lpthread ")
 if(${USE_MPI})
     set(LINK_FLAGS "${LINK_FLAGS} -lmpi")
@@ -96,6 +96,7 @@ if(${ENABLE_DEBUG})
 endif()
 
 ### Create targets ###
+
 add_subdirectory(src)
 
 if (WITH_PYTHON_BINDINGS)
