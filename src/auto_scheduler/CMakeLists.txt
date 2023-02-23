@@ -22,7 +22,7 @@ set(AUTO_HEADERS
 )
 
 add_library(tiramisu_auto_scheduler SHARED ${AUTO_SOURCES})
-target_link_libraries(tiramisu_auto_scheduler tiramisu Halide::Halide Halide::Runtime Halide::Tools)
+target_link_libraries(tiramisu_auto_scheduler tiramisu Halide::Halide Halide::Runtime Halide::Tools Halide::ImageIO)
 target_link_libraries(tiramisu_auto_scheduler ${LINK_FLAGS}))
 target_link_libraries(tiramisu_auto_scheduler ${LINK_FLAGS})
 

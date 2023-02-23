@@ -46,7 +46,3 @@ set(DEBUG_LEVEL 0 CACHE STRING "Debug level value")
 # ISL paths
 set(ISL_INCLUDE_DIRECTORY "3rdParty/isl/build/include/" CACHE PATH "Path to ISL include directory")
 set(ISL_LIB_DIRECTORY "3rdParty/isl/build/lib/" CACHE PATH "Path to ISL library directory")
-
-# Halide Paths
-set(HALIDE_SOURCE_DIRECTORY "3rdParty/Halide/build/" CACHE PATH "Path to Halide source directory")
-set(HALIDE_LIB_DIRECTORY "3rdParty/Halide/build/src" CACHE PATH "Path to Halide library directory")
