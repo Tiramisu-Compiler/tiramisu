@@ -48,7 +48,7 @@ This section provides a short description of how to build Tiramisu.  A more deta
 
 #### Prerequisites
 ###### Required
-1) [CMake](https://cmake.org/): version 3.5 or greater.
+1) [CMake](https://cmake.org/): version 3.22 or greater.
 
 2) [Autoconf](https://www.gnu.org/software/autoconf/) and [libtool](https://www.gnu.org/software/libtool/).
   
