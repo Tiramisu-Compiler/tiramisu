@@ -30,7 +30,7 @@ ${CMAKE_SOURCE_DIR}/include/tiramisu/tiramisu.h
 
 add_library(tiramisu SHARED ${SOURCES})
 target_link_libraries(tiramisu Halide::Halide Halide::Runtime Halide::Tools ${ISLLib})
-target_link_libraries(tiramisu ${LINK_FLAGS})
+target_link_libraries(tiramisu Threads::Threads)
 set_target_properties(tiramisu
   PROPERTIES
   LIBRARY_OUTPUT_NAME tiramisu

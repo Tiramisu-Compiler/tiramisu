@@ -85,7 +85,8 @@ endif()
 
 
 
-set(LINK_FLAGS "-ldl -lpthread ")
+
+set(LINK_FLAGS "-ldl -lpthread")
 if(${USE_MPI})
     set(LINK_FLAGS "${LINK_FLAGS} -lmpi")
 endif()
@@ -94,6 +95,9 @@ endif()
 if(${ENABLE_DEBUG})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_DEBUG -DDEBUG_LEVEL=${DEBUG_LEVEL}")
 endif()
+
+FindThreads() # Enable pthreads
+
 
 ### Create targets ###
 

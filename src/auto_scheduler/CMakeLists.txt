@@ -23,8 +23,7 @@ set(AUTO_HEADERS
 
 add_library(tiramisu_auto_scheduler SHARED ${AUTO_SOURCES})
 target_link_libraries(tiramisu_auto_scheduler tiramisu Halide::Halide Halide::Runtime Halide::Tools)
-target_link_libraries(tiramisu_auto_scheduler ${LINK_FLAGS}))
-target_link_libraries(tiramisu_auto_scheduler ${LINK_FLAGS})
+target_link_libraries(tiramisu_auto_scheduler Threads::Threads)
 target_include_directories(tiramisu_auto_scheduler PUBLIC "${ISL_INCLUDE_DIRECTORY}")
 target_include_directories(tiramisu_auto_scheduler PUBLIC ${CMAKE_SOURCE_DIR}/include/tiramisu/auto_scheduler)
 
