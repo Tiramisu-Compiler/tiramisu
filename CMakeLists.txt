@@ -95,7 +95,7 @@ if(${ENABLE_DEBUG})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_DEBUG -DDEBUG_LEVEL=${DEBUG_LEVEL}")
 endif()
 
-# Create targets:
+### Create targets ###
 add_subdirectory(src)
 
 if (WITH_PYTHON_BINDINGS)
@@ -132,7 +132,7 @@ endif()
 
 
 
-### BROKEN: SETUP TESTS/BENCHMARKS ###
+### BROKEN: SETUP TESTS/BENCHMARKS/ETC ###
 
 FILE(STRINGS tests/test_list.txt TIRAMISU_TESTS_RAW)
 FILE(STRINGS benchmarks/benchmark_list.txt TIRAMISU_BENCHMARKS_RAW)
@@ -365,7 +365,7 @@ endif() #WITH_BENCHMAKRS
 if (WITH_DOCS)
 add_custom_target(doc DEPENDS ${PROJECT_DIR}/utils/doc_generation/Doxyfile)
 add_custom_command(TARGET doc COMMAND doxygen utils/doc_generation/Doxyfile WORKING_DIRECTORY ${PROJECT_DIR})
-endif()
+endif() #WITH_DOCS
 
 if (WITH_TUTORIALS)
 add_custom_target(tutorials)
