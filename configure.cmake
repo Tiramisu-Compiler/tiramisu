@@ -4,12 +4,6 @@ option(USE_GPU "Build with GPU support" OFF)
 
 option(USE_MPI "Build with MPI support" OFF)
 
-option(USE_FLEXNLP "Build with FlexNLP support" OFF)
-
-option(USE_LIBPNG "Build with libpng for the Halide benchmark" FALSE)
-
-option(USE_LIBJPEG "Build with libjpeg for the Halide benchmark" FALSE)
-
 option(USE_CUDNN "Build with cuDNN for benchmark comparisons" FALSE)
 
 option(WITH_PYTHON_BINDINGS "Build Python bindings" ON)
@@ -44,8 +38,6 @@ set(MPI_NODES "" CACHE PATH "Use of MPI node paths")
 # Example:
 # set(MKL_PREFIX "/data/scratch/baghdadi/libs/intel/mkl/")
 set(MKL_PREFIX "" CACHE PATH "Intel MKL library path")
-
-set(LLVM_CONFIG_BIN "${CMAKE_SOURCE_DIR}/3rdParty/llvm/prefix/bin/" CACHE PATH "Directory containing llvm-config executable")
 
 # Debug
 option(ENABLE_DEBUG "Enable debug printing" TRUE)

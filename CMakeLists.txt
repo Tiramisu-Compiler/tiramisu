@@ -90,21 +90,6 @@ if(${USE_MPI})
     set(LINK_FLAGS "${LINK_FLAGS} -lmpi")
 endif()
 
-if(${USE_LIBPNG})
-    execute_process(COMMAND libpng-config --I_opts OUTPUT_VARIABLE LIBPNG_INCLUDE_OPTIONS)
-    string(STRIP ${LIBPNG_INCLUDE_OPTIONS} LIBPNG_INCLUDE_OPTIONS)
-    add_compile_options("${LIBPNG_INCLUDE_OPTIONS}")
-    execute_process(COMMAND libpng-config --ldflags OUTPUT_VARIABLE LIBPNG_FLAGS)
-    string(STRIP ${LIBPNG_FLAGS} LIBPNG_FLAGS)
-    set(LINK_FLAGS "${LINK_FLAGS} ${LIBPNG_FLAGS}")
-endif()
-
-if(${USE_LIBJPEG})
-    set(LINK_FLAGS "${LINK_FLAGS} -ljpeg")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHALIDE_NO_JPEG")
-endif()
-
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHALIDE_BUILD=\"${HALIDE_LIB_DIRECTORY}\"")
 if(${ENABLE_DEBUG})
