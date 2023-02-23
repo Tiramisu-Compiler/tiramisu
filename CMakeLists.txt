@@ -13,46 +13,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(PROJECT_BUILD ${CMAKE_BINARY_DIR})
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
 
-
-
-# Add CMake header files
-set(HEADER_FILES
-        include/tiramisu/block.h
-        include/tiramisu/cuda_ast.h
-        include/tiramisu/core.h
-        include/tiramisu/debug.h
-        include/tiramisu/utils.h
-        include/tiramisu/type.h
-        include/tiramisu/expr.h
-        include/tiramisu/mpi_comm.h
-        include/tiramisu/externs.h
-        )
-	
-
-
-# Add autoscheduler headers if USE_AUTO_SCHEDULER is TRUE in configure.cmake
-if (${USE_AUTO_SCHEDULER})
-    set(HEADER_FILES ${HEADER_FILES}
-        include/tiramisu/auto_scheduler/auto_scheduler.h
-        include/tiramisu/auto_scheduler/utils.h
-        include/tiramisu/auto_scheduler/optimization_info.h
-        include/tiramisu/auto_scheduler/dnn_accesses.h
-        include/tiramisu/auto_scheduler/ast.h
-        include/tiramisu/auto_scheduler/evaluator.h
-        include/tiramisu/auto_scheduler/schedules_generator.h
-        include/tiramisu/auto_scheduler/search_method.h
-        )
-endif()
-
-# Add CMake cpp files
-set(OBJS expr block core codegen_halide codegen_c debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
-
-# Add autoscheduler cpp files if USE_AUTO_SCHEDULER is TRUE in configure.cmake
-if (${USE_AUTO_SCHEDULER})
-    set(OBJS_AUTO_SCHEDULER auto_scheduler optimization_info dnn_accesses ast evaluator schedules_generator search_method)
-endif()
-
-### CMAKE FILE INTERNALS ###
+### FIND EXTERNAL DEPS ###
 if (${USE_GPU})
     find_package(CUDA REQUIRED)
     add_definitions(-DNVCC_PATH="${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc")
@@ -65,26 +26,10 @@ if (${USE_GPU})
     endif()
 endif()
 
-
-
 if (${USE_MKL_WRAPPERS})
     add_library(mkl_wrapper STATIC "src/tiramisu_mkl_wrappers.cpp")
     target_include_directories(mkl_wrapper PUBLIC ${MKL_PREFIX}/include)
 endif()
-
-# Need to define FLEXNLP_LIBRARIES and FLEXNLP_INCLUDE_DIRS
-#if (${USE_FLEXNLP})
-    add_library(flexnlp_wrapper STATIC "src/tiramisu_flexnlp_wrappers.cpp")
-    target_link_libraries(flexnlp_wrapper ${FLEXNLP_LIBRARIES})
-    target_include_directories(flexnlp_wrapper PUBLIC ${FLEXNLP_INCLUDE_DIRS})
-#endif()
-
-FILE(STRINGS tests/test_list.txt TIRAMISU_TESTS_RAW)
-FILE(STRINGS benchmarks/benchmark_list.txt TIRAMISU_BENCHMARKS_RAW)
-FILE(STRINGS benchmarks/automatic_comm/dist_benchmark_list.txt TIRAMISU_DIST_BENCHMARKS_RAW)
-FILE(STRINGS tutorials/developers_tutorial_list.txt TIRAMISU_DEVELOPERS_TUTORIALS_RAW)
-FILE(STRINGS tutorials/users_tutorial_list.txt TIRAMISU_USERS_TUTORIALS_RAW)
-
 
 macro(init_tags)
     set(is_gpu false)
@@ -109,6 +54,109 @@ macro(parse_tags tags)
         endif()
     endforeach()
 endmacro()
+
+
+
+# Check that MPI variables are set correctly if we need it
+if (${USE_MPI})
+    if (MPI_BUILD_DIR STREQUAL "")
+        message(FATAL_ERROR "USE_MPI==true but MPI_BUILD_DIR is empty.")
+    elseif (MPI_NODES STREQUAL "")
+        message(FATAL_ERROR "USE_MPI==true but MPI_NODES is empty.")
+    endif()
+endif()
+
+set(CMAKE_CXX_FLAGS "-std=c++17 -Wall -Wno-sign-compare")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_STANDARD 17)  # or newer
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(CMAKE_CXX_EXTENSIONS NO)
+
+find_package(Halide REQUIRED)
+find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
+
+if (${USE_MPI})
+    set(CMAKE_CXX_COMPILER "${MPI_BUILD_DIR}/bin/mpicxx")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_MPI")
+    link_directories(${MPI_BUILD_DIR}/lib)
+    include_directories(${MPI_BUILD_DIR}/include)
+endif()
+
+
+include_directories("include" "${ISL_INCLUDE_DIRECTORY}" "build")
+set(LINK_FLAGS "-ldl -lpthread ")
+if(${USE_MPI})
+    set(LINK_FLAGS "${LINK_FLAGS} -lmpi")
+endif()
+
+if(${USE_LIBPNG})
+    execute_process(COMMAND libpng-config --I_opts OUTPUT_VARIABLE LIBPNG_INCLUDE_OPTIONS)
+    string(STRIP ${LIBPNG_INCLUDE_OPTIONS} LIBPNG_INCLUDE_OPTIONS)
+    add_compile_options("${LIBPNG_INCLUDE_OPTIONS}")
+    execute_process(COMMAND libpng-config --ldflags OUTPUT_VARIABLE LIBPNG_FLAGS)
+    string(STRIP ${LIBPNG_FLAGS} LIBPNG_FLAGS)
+    set(LINK_FLAGS "${LINK_FLAGS} ${LIBPNG_FLAGS}")
+endif()
+
+if(${USE_LIBJPEG})
+    set(LINK_FLAGS "${LINK_FLAGS} -ljpeg")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHALIDE_NO_JPEG")
+endif()
+
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHALIDE_BUILD=\"${HALIDE_LIB_DIRECTORY}\"")
+if(${ENABLE_DEBUG})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_DEBUG -DDEBUG_LEVEL=${DEBUG_LEVEL}")
+endif()
+
+# Create targets:
+add_subdirectory(src)
+
+if (WITH_PYTHON_BINDINGS)
+  message(STATUS "Building Python bindings enabled")
+  add_subdirectory(python_bindings)
+  target_include_directories(Tiramisu_Python PRIVATE "include")
+endif()
+
+##SETUUP INSTALLS:
+
+install(TARGETS tiramisu
+EXPORT tiramisu_Targets
+LIBRARY DESTINATION lib
+INCLUDES DESTINATION include
+PUBLIC_HEADER DESTINATION include/tiramisu
+)
+
+if (USE_AUTO_SCHEDULER)
+   install(TARGETS tiramisu_auto_scheduler
+   EXPORT tiramisu_Targets
+   LIBRARY DESTINATION lib
+   INCLUDES DESTINATION include
+   PUBLIC_HEADER DESTINATION include/tiramisu/autoscheduler
+endif()
+
+
+if (WITH_PYTHON_BINDINGS)
+  install(FILES ${CMAKE_SOURCE_DIR}/python_bindings/tiramisu.pyi ${CMAKE_SOURCE_DIR}/python_bindings/__init__.py
+  DESTINATION "${Tiramisu_INSTALL_PYTHONDIR}/tiramisu")
+  install(TARGETS Tiramisu_Python
+  EXPORT tiramisu_Targets
+  LIBRARY DESTINATION "${Tiramisu_INSTALL_PYTHONDIR}/tiramisu")
+endif()
+
+
+
+### BROKEN: SETUP TESTS/BENCHMARKS ###
+
+FILE(STRINGS tests/test_list.txt TIRAMISU_TESTS_RAW)
+FILE(STRINGS benchmarks/benchmark_list.txt TIRAMISU_BENCHMARKS_RAW)
+FILE(STRINGS benchmarks/automatic_comm/dist_benchmark_list.txt TIRAMISU_DIST_BENCHMARKS_RAW)
+FILE(STRINGS tutorials/developers_tutorial_list.txt TIRAMISU_DEVELOPERS_TUTORIALS_RAW)
+FILE(STRINGS tutorials/users_tutorial_list.txt TIRAMISU_USERS_TUTORIALS_RAW)
+
+
 
 # transforms the list of the format (program_name/program_name[tag0,tag1,..,tagn]) into a list
 # containing a list of "program_name property0 property1 property2 .. propertyn"
@@ -180,99 +228,6 @@ parse_list("${TIRAMISU_DEVELOPERS_TUTORIALS_RAW}" TIRAMISU_DEVELOPERS_TUTORIALS)
 parse_list("${TIRAMISU_USERS_TUTORIALS_RAW}" TIRAMISU_USERS_TUTORIALS)
 parse_list("${TIRAMISU_DIST_BENCHMARKS_RAW}" TIRAMISU_DIST_BENCHMARKS)
 
-
-# Check that MPI variables are set correctly if we need it
-if (${USE_MPI})
-    if (MPI_BUILD_DIR STREQUAL "")
-        message(FATAL_ERROR "USE_MPI==true but MPI_BUILD_DIR is empty.")
-    elseif (MPI_NODES STREQUAL "")
-        message(FATAL_ERROR "USE_MPI==true but MPI_NODES is empty.")
-    endif()
-endif()
-
-set(CMAKE_CXX_FLAGS "-std=c++17 -Wall -Wno-sign-compare")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-include_directories("include"
-        "${ISL_INCLUDE_DIRECTORY}"
-        "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
-        "build")
-
-if (${USE_MPI})
-    set(CMAKE_CXX_COMPILER "${MPI_BUILD_DIR}/bin/mpicxx")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_MPI")
-    link_directories(${MPI_BUILD_DIR}/lib)
-    include_directories(${MPI_BUILD_DIR}/include)
-else ()
-  #set(CMAKE_CXX_COMPILER "g++")
-  #get_filename_component(CMAKE_CXX_COMPILER "g++" REALPATH)
-endif()
-
-
-find_library(HalideLib Halide PATHS ${HALIDE_LIB_DIRECTORY} NO_DEFAULT_PATH)
-find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
-
-# Require LLVM 5.0 or greater to keep in line with Halide
-execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --version OUTPUT_VARIABLE LLVM_VERSION)
-string(STRIP "${LLVM_VERSION}" LLVM_VERSION)
-if ("${LLVM_VERSION}" VERSION_LESS 12.0)
-    message(FATAL_ERROR "tiramisu requires LLVM version >= 12.0")
-endif()
-
-execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --ignore-libllvm --system-libs OUTPUT_VARIABLE LLVM_FLAGS)
-string(STRIP ${LLVM_FLAGS} LLVM_FLAGS)
-
-set(LINK_FLAGS "-ldl -lpthread ${LLVM_FLAGS}")
-
-if(${USE_MPI})
-    set(LINK_FLAGS "${LINK_FLAGS} -lmpi")
-endif()
-
-if(${USE_LIBPNG})
-    execute_process(COMMAND libpng-config --I_opts OUTPUT_VARIABLE LIBPNG_INCLUDE_OPTIONS)
-    string(STRIP ${LIBPNG_INCLUDE_OPTIONS} LIBPNG_INCLUDE_OPTIONS)
-    add_compile_options("${LIBPNG_INCLUDE_OPTIONS}")
-    execute_process(COMMAND libpng-config --ldflags OUTPUT_VARIABLE LIBPNG_FLAGS)
-    string(STRIP ${LIBPNG_FLAGS} LIBPNG_FLAGS)
-    set(LINK_FLAGS "${LINK_FLAGS} ${LIBPNG_FLAGS}")
-endif()
-
-if(${USE_LIBJPEG})
-    set(LINK_FLAGS "${LINK_FLAGS} -ljpeg")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHALIDE_NO_JPEG")
-endif()
-
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHALIDE_BUILD=\"${HALIDE_LIB_DIRECTORY}\"")
-
-if(${ENABLE_DEBUG})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_DEBUG -DDEBUG_LEVEL=${DEBUG_LEVEL}")
-endif()
-
-
-
-add_subdirectory(src)
-
-if (WITH_PYTHON_BINDINGS)
-  message(STATUS "Building Python bindings enabled")
-  add_subdirectory(python_bindings)
-  target_include_directories(Tiramisu_Python PRIVATE "include")
-
-endif()
-
-
-
-if (${USE_AUTO_SCHEDULER})
-    set(AUTO_SCHEDULER_CODE "")
-    foreach(obj ${OBJS_AUTO_SCHEDULER})
-        set(AUTO_SCHEDULER_CODE ${AUTO_SCHEDULER_CODE} src/auto_scheduler/tiramisu_${obj}.cpp)
-    endforeach()
-
-    add_library(tiramisu_auto_scheduler SHARED ${AUTO_SCHEDULER_CODE})
-    target_link_libraries(tiramisu_auto_scheduler tiramisu ${HalideLib} ${ISLLib})
-    target_link_libraries(tiramisu_auto_scheduler ${LINK_FLAGS})
-endif()
 
 function(link_tags name)
     if (${is_gpu})
@@ -476,19 +431,3 @@ endfunction()
 endif() #WITH_TUTORIALS
 
 
-
-install(TARGETS tiramisu
-EXPORT tiramisu_Targets
-LIBRARY DESTINATION lib
-INCLUDES DESTINATION include
-PUBLIC_HEADER DESTINATION include/tiramisu
-)
-
-
-if (WITH_PYTHON_BINDINGS)
-  install(FILES ${CMAKE_SOURCE_DIR}/python_bindings/tiramisu.pyi ${CMAKE_SOURCE_DIR}/python_bindings/__init__.py
-  DESTINATION "${Tiramisu_INSTALL_PYTHONDIR}/tiramisu")
-  install(TARGETS Tiramisu_Python
-  EXPORT tiramisu_Targets
-  LIBRARY DESTINATION "${Tiramisu_INSTALL_PYTHONDIR}/tiramisu")
-endif()
