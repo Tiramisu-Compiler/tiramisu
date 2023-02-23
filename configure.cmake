@@ -37,8 +37,6 @@ set(CUDNN_LOCATION /data/scratch/akkas/cudnn7 CACHE PATH "CUDNN library location
 # has a version of openmpi installed, you will have to read the docs to see what the appropriate
 # way of launching mpi jobs is. For our testing, we use mpirun.
 # Examples:
-#set(MPI_BUILD_DIR "/data/scratch/jray/Repositories/tiramisu/3rdParty/openmpi-3.1.2/build/")
-#set(MPI_NODES "lanka01,lanka02,lanka03,lanka04,lanka05,lanka06,lanka12,lanka13,lanka14,lanka15")
 set(MPI_BUILD_DIR "" CACHE PATH "Build directory of MPI")
 set(MPI_NODES "" CACHE PATH "Use of MPI node paths")
 
