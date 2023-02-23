@@ -104,7 +104,7 @@ if (WITH_PYTHON_BINDINGS)
   target_include_directories(Tiramisu_Python PRIVATE "include")
 endif()
 
-##SETUUP INSTALLS:
+## SETUP INSTALLS:
 
 install(TARGETS tiramisu
 EXPORT tiramisu_Targets
@@ -118,7 +118,7 @@ if (USE_AUTO_SCHEDULER)
    EXPORT tiramisu_Targets
    LIBRARY DESTINATION lib
    INCLUDES DESTINATION include
-   PUBLIC_HEADER DESTINATION include/tiramisu/autoscheduler
+   PUBLIC_HEADER DESTINATION include/tiramisu/autoscheduler)
 endif()
 
 
@@ -369,6 +369,7 @@ endif()
 
 if (WITH_TUTORIALS)
 add_custom_target(tutorials)
+
 
 function(new_developers_tutorial descriptor)
     parse_descriptor(${descriptor})
