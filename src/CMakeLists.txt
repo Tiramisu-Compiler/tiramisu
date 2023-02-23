@@ -37,7 +37,7 @@ set_target_properties(tiramisu
   EXPORT_NAME tiramisu
   PUBLIC_HEADER "${HEADERS}"
   )
-target_include_directories(tiramisu PUBLIC ${CMAKE_SOURCE_DIR}/include/tiramisu)
+target_include_directories(tiramisu PUBLIC ${CMAKE_SOURCE_DIR}/include/)
 target_include_directories(tiramisu PUBLIC "${ISL_INCLUDE_DIRECTORY}")
 
 if (${USE_AUTO_SCHEDULER})
