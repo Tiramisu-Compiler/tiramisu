@@ -70,9 +70,9 @@ The second two only differ in how they setup the dependenies.
 ##### Building with spack
 
 Install spack and then run:
-
-        spack install tiramisu
-
+```
+spack install tiramisu
+```
 
 
 ##### Building Dependencies with Homebrew
