@@ -118,23 +118,26 @@ ISL_LIB_DIRECTORY=..
 		
 ##### Building with cmake 
 1) Get Tiramisu
-
-        git clone https://github.com/Tiramisu-Compiler/tiramisu.git
-	cd tiramisu
-	mkdir build
+```bash
+git clone https://github.com/Tiramisu-Compiler/tiramisu.git
+cd tiramisu
+mkdir build
+```
 
 2) Setup the configure.cmake. In particular, choose if you want to use a GPU or MPI setup. Choose if you want to use the python bindings. Choose if you want to us the auto scheduler. You may need to add other options to support these.
 
 3) Configure:
 
-
-        cmake . -B build -DISL_INCLUDE_DIRECTORY=$ISL_INCLUDE_DIRECTORY -DISL_INCLUDE_DIRECTORY=$ISL_INCLUDE_DIRECTORY -DPython3_EXECUTABLE=`which python3`
+```bash
+cmake . -B build -DISL_INCLUDE_DIRECTORY=$ISL_INCLUDE_DIRECTORY -DISL_INCLUDE_DIRECTORY=$ISL_INCLUDE_DIRECTORY -DPython3_EXECUTABLE=`which python3`
+```
 		
 If you want to install, add `CMAKE_INSTALL_PREFIX`. If you are installing the python bindings, add `Tiramisu_INSTALL_PYTHONDIR` to tell Tiramisu where to place a python package. You will need add these install locations to the relevant path variables such as `PYTHONPATH` and `LD_LIBRARY_PATH`.
 
 4) Build:
-
-	cmake --build build
+```bash
+cmake --build build
+```
 
 You can also install if you want via `cmake --install`.
 		
@@ -142,14 +145,14 @@ You can also install if you want via `cmake --install`.
 
 ##### Building Dependencies via Script
 1) Get Tiramisu
-
-        git clone https://github.com/Tiramisu-Compiler/tiramisu.git
-        cd tiramisu
-
+```bash
+git clone https://github.com/Tiramisu-Compiler/tiramisu.git
+cd tiramisu
+```
 2) Get and install Tiramisu submodules (ISL, LLVM and Halide).  This step may take between few minutes to few hours (downloading and compiling LLVM is time consuming).
-
-        ./utils/scripts/install_submodules.sh <TIRAMISU_ROOT_DIR>
-
+```bash
+./utils/scripts/install_submodules.sh <TIRAMISU_ROOT_DIR>
+```
     - Note: Make sure `<TIRAMISU_ROOT_DIR>` is absolute path!
 
 3) Optional: configure the tiramisu build by editing `configure.cmake`.  Needed only if you want to generate MPI or GPU code, run the BLAS benchmarks, or if you want to build the autoscheduler module.  A description of what each variable is and how it should be set is provided in comments in `configure.cmake`.
@@ -159,21 +162,21 @@ You can also install if you want via `cmake --install`.
     - To build the autoscheduler module, set `USE_AUTO_SCHEDULER` to `TRUE`.
 	
 4) Add Halide's cmake to the `CMAKE_PREFIX_PATH`: 
-
-        export CMAKE_PREFIX_PATH=<TIRAMISU_ROOT_DIR>/3rdParty/Halide/build/:$CMAKE_PREFIX_PATH
-
-
+```bash
+export CMAKE_PREFIX_PATH=<TIRAMISU_ROOT_DIR>/3rdParty/Halide/build/:$CMAKE_PREFIX_PATH
+```
 5) Build the main Tiramisu library
-
-        mkdir build
-        cd build
-        cmake ..
-        make -j tiramisu
+```bash
+mkdir build
+cd build
+cmake ..
+make -j tiramisu
+```
         
 6) If you want to build the autoscheduler module, set `USE_AUTO_SCHEDULER` to `TRUE` in `configure.cmake`, and after building Tiramisu :
-
-        make tiramisu_auto_scheduler
-
+```bash
+make tiramisu_auto_scheduler
+```
 ## Old Tiramisu on a Virtual Machine
 Users can use the Tiramisu [virtual machine disk image](http://groups.csail.mit.edu/commit/software/TiramisuVM.zip).  The image is created using virtual box (5.2.12) and has Tiramisu already pre-compiled and ready for use. It was compiled using the same instructions in this README file.
 
