@@ -63,10 +63,10 @@ This section provides a description of how to build Tiramisu.  The installation 
 
 There are several ways to acquire Tiramisu:
 1) From [spack](https://packages.spack.io/package.html?name=tiramisu).
-2) From sources with system package managers for dependencies. 
+2) From source, but using system package managers for dependencies. 
 3) Purely from source, manually building all dependencies. 
 
-The second two only differ in how they setup the dependenies.
+The second two only differ only in how they setup the dependenies.
 ##### Building with spack
 
 Install spack and then run:
