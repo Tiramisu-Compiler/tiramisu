@@ -1,6 +1,8 @@
-find_library(HALIDE_LIB Halide::Halide)
+find_library(HALIDE_LIB Halide PATHS Halide::Halide)
+message("HALIDELIB: "${HALIDE_LIB})
 
-get_filename_component(HALIDE_LIB_DIRECTORY ${HALIDE_LIB} DIRECTORY)
+get_filename_component(HALIDE_LIB_DIRECTORY ${HALIDE_LIB}  DIRECTORY)
+message("HALIDELIB: "${HALIDE_LIB_DIRECTORY})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHALIDE_BUILD=\"${HALIDE_LIB_DIRECTORY}\"")
 
