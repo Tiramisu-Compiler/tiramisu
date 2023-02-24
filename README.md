@@ -70,7 +70,7 @@ The second two only differ in how they setup the dependenies.
 ##### Building with spack
 
 Install spack and then run:
-```
+```bash
 spack install tiramisu
 ```
 
