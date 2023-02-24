@@ -44,7 +44,7 @@ void generate_code()
 
 ## Building Tiramisu from Sources
 
-This section provides a short description of how to build Tiramisu.  A more detailed description is provided in [INSTALL](INSTALL.md).  The installation instructions below have been tested on Linux Ubuntu (14.04 and 18.04) and MacOS (10.12) but should work on other Linux and MacOS versions. Some users reported issues with Ubuntu 20.04 (and the default packages installed in Ubunut 20.04). For building Tiramisu on MacOS 11 and newer versions, please refer to this [guide](utils/scripts/macOS11_patch/README.md).
+This section provides a description of how to build Tiramisu.  The installation instructions below have been tested on Linux Ubuntu (18.04) and MacOS (13.0.1) but should work on other Linux and MacOS versions.
 
 #### Prerequisites
 ###### Required
@@ -56,8 +56,89 @@ This section provides a short description of how to build Tiramisu.  A more deta
 1) [OpenMPI](https://www.open-mpi.org/) and [OpenSSh](https://www.openssh.com/): if you want to generate and run distributed code (MPI).
 2) [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit): if you want to generate and run CUDA code.
 
+3) Python 3.8 or higher if you want to use the python bindings. (Along with Pybind 2.10.2, Cython, and Numpy).
 
-#### Building
+
+#### Build Methods
+
+There are several ways to acquire Tiramisu:
+1) From [spack](https://packages.spack.io/package.html?name=tiramisu).
+2) From sources with system package managers for dependencies. 
+3) Purely from source, manually building all dependencies. 
+
+The second two only differ in how they setup the dependenies.
+##### Building with spack
+
+Install spack and then run:
+
+        spack install tiramisu
+
+
+
+##### Building Dependencies with Homebrew
+If you are on MacOS and using Homebrew, you can run the following commands to setup the dependencies:
+
+        brew install cmake
+		brew install llvm@14
+		brew install halide
+		brew install isl
+        brew link halide
+		brew link isl
+
+If any of these ask you to update your path, do so. Using the following command, you can find the isl include and library directories:
+
+        brew info isl
+		ISL_INCLUDE_DIRECTORY=..
+		ISL_LIB_DIRECTORY=..
+		
+
+##### Building Dependencies with Apt
+
+If you are on Ubuntu/Debian, you can use apt to setup the dependencies:
+
+
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 14 all
+		sudo apt-get install liblld-14-dev llvm-14-runtime
+        sudo apt-get install libllvm14 llvm-14-dev
+        sudo apt-get install llvm14-*
+		sudo apt-get install halide
+		sudo apt-get install libisl-dev
+
+		
+		
+ Using the following command, you can find the isl include and library directories:
+
+		dpkg -L libisl-dev
+		ISL_INCLUDE_DIRECTORY=..
+		ISL_LIB_DIRECTORY=..
+		
+##### Building with cmake 
+1) Get Tiramisu
+
+        git clone https://github.com/Tiramisu-Compiler/tiramisu.git
+		cd tiramisu
+		mkdir build
+
+2) Setup the configure.cmake. In particular, choose if you want to use a GPU or MPI setup. Choose if you want to use the python bindings. Choose if you want to us the auto scheduler. You may need to add other options to support these.
+
+3) Configure:
+
+
+        cmake . -B build -DISL_INCLUDE_DIRECTORY=$ISL_INCLUDE_DIRECTORY -DISL_INCLUDE_DIRECTORY=$ISL_INCLUDE_DIRECTORY -DPython3_EXECUTABLE=`which python3`
+		
+If you want to install, add `CMAKE_INSTALL_PREFIX`. If you are installing the python bindings, add `Tiramisu_INSTALL_PYTHONDIR`. 
+
+4) Build:
+
+	cmake --build build
+
+You can also install if you want via `cmake --install`.
+		
+
+
+##### Building Dependencies via Script
 1) Get Tiramisu
 
         git clone https://github.com/Tiramisu-Compiler/tiramisu.git
@@ -74,19 +155,24 @@ This section provides a short description of how to build Tiramisu.  A more deta
     - To use the GPU backend, set `USE_GPU` to `TRUE`. If the CUDA library is not found automatically while building Tiramisu, the user will be prompt to provide the path to the CUDA library.
     - To use the distributed backend, set `USE_MPI` to `TRUE`. If the MPI library is not found automatically, set the following variables: MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS.
     - To build the autoscheduler module, set `USE_AUTO_SCHEDULER` to `TRUE`.
+	
+4) Add Halide's cmake to the `CMAKE_PREFIX_PATH`: 
 
-4) Build the main Tiramisu library
+        export CMAKE_PREFIX_PATH=<TIRAMISU_ROOT_DIR>/3rdParty/Halide/build/:$CMAKE_PREFIX_PATH
+
+
+5) Build the main Tiramisu library
 
         mkdir build
         cd build
         cmake ..
         make -j tiramisu
         
-5) If you want to build the autoscheduler module, set `USE_AUTO_SCHEDULER` to `TRUE` in `configure.cmake`, and after building Tiramisu :
+6) If you want to build the autoscheduler module, set `USE_AUTO_SCHEDULER` to `TRUE` in `configure.cmake`, and after building Tiramisu :
 
         make tiramisu_auto_scheduler
 
-## Tiramisu on a Virtual Machine
+## Old Tiramisu on a Virtual Machine
 Users can use the Tiramisu [virtual machine disk image](http://groups.csail.mit.edu/commit/software/TiramisuVM.zip).  The image is created using virtual box (5.2.12) and has Tiramisu already pre-compiled and ready for use. It was compiled using the same instructions in this README file.
 
 Once you download the image, unzip it and use virtual box to open the file 'TiramisuVM.vbox'.
