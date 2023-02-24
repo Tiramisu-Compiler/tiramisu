@@ -110,9 +110,9 @@ If you are on Ubuntu/Debian, you can use apt to setup the dependencies:
 		
  Using the following command, you can find the isl include and library directories:
 
-		dpkg -L libisl-dev
-		ISL_INCLUDE_DIRECTORY=..
-		ISL_LIB_DIRECTORY=..
+	dpkg -L libisl-dev
+	ISL_INCLUDE_DIRECTORY=..
+	ISL_LIB_DIRECTORY=..
 		
 ##### Building with cmake 
 1) Get Tiramisu
