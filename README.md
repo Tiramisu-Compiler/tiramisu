@@ -77,42 +77,44 @@ spack install tiramisu
 
 ##### Building Dependencies with Homebrew
 If you are on MacOS and using Homebrew, you can run the following commands to setup the dependencies:
-
-        brew install cmake
-	brew install llvm@14
-	brew install halide
-	brew install isl
-        brew link halide
-	brew link isl
+```bash
+brew install cmake
+brew install llvm@14
+brew install halide
+brew install isl
+brew link halide
+brew link isl
+```
 
 If any of these ask you to update your path, do so. Using the following command, you can find the isl include and library directories:
-
-        brew info isl
-	ISL_INCLUDE_DIRECTORY=..
-	ISL_LIB_DIRECTORY=..
-		
+```bash
+brew info isl
+ISL_INCLUDE_DIRECTORY=..
+ISL_LIB_DIRECTORY=..
+```		
 
 ##### Building Dependencies with Apt
 
 If you are on Ubuntu/Debian, you can use apt to setup the dependencies:
 
-
-        wget https://apt.llvm.org/llvm.sh
-        chmod +x llvm.sh
-        sudo ./llvm.sh 14 all
-	sudo apt-get install liblld-14-dev llvm-14-runtime
-        sudo apt-get install libllvm14 llvm-14-dev
-        sudo apt-get install llvm14-*
-	sudo apt-get install halide
-	sudo apt-get install libisl-dev
+```bash
+wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+sudo ./llvm.sh 14 all
+sudo apt-get install liblld-14-dev llvm-14-runtime
+sudo apt-get install libllvm14 llvm-14-dev
+sudo apt-get install llvm14-*
+sudo apt-get install halide
+sudo apt-get install libisl-dev
 
 		
 		
  Using the following command, you can find the isl include and library directories:
-
-	dpkg -L libisl-dev
-	ISL_INCLUDE_DIRECTORY=..
-	ISL_LIB_DIRECTORY=..
+```bash
+dpkg -L libisl-dev
+ISL_INCLUDE_DIRECTORY=..
+ISL_LIB_DIRECTORY=..
+```
 		
 ##### Building with cmake 
 1) Get Tiramisu
