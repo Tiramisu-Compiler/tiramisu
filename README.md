@@ -79,17 +79,17 @@ Install spack and then run:
 If you are on MacOS and using Homebrew, you can run the following commands to setup the dependencies:
 
         brew install cmake
-		brew install llvm@14
-		brew install halide
-		brew install isl
+	brew install llvm@14
+	brew install halide
+	brew install isl
         brew link halide
-		brew link isl
+	brew link isl
 
 If any of these ask you to update your path, do so. Using the following command, you can find the isl include and library directories:
 
         brew info isl
-		ISL_INCLUDE_DIRECTORY=..
-		ISL_LIB_DIRECTORY=..
+	ISL_INCLUDE_DIRECTORY=..
+	ISL_LIB_DIRECTORY=..
 		
 
 ##### Building Dependencies with Apt
@@ -100,11 +100,11 @@ If you are on Ubuntu/Debian, you can use apt to setup the dependencies:
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
         sudo ./llvm.sh 14 all
-		sudo apt-get install liblld-14-dev llvm-14-runtime
+	sudo apt-get install liblld-14-dev llvm-14-runtime
         sudo apt-get install libllvm14 llvm-14-dev
         sudo apt-get install llvm14-*
-		sudo apt-get install halide
-		sudo apt-get install libisl-dev
+	sudo apt-get install halide
+	sudo apt-get install libisl-dev
 
 		
 		
@@ -118,8 +118,8 @@ If you are on Ubuntu/Debian, you can use apt to setup the dependencies:
 1) Get Tiramisu
 
         git clone https://github.com/Tiramisu-Compiler/tiramisu.git
-		cd tiramisu
-		mkdir build
+	cd tiramisu
+	mkdir build
 
 2) Setup the configure.cmake. In particular, choose if you want to use a GPU or MPI setup. Choose if you want to use the python bindings. Choose if you want to us the auto scheduler. You may need to add other options to support these.
 
@@ -128,7 +128,7 @@ If you are on Ubuntu/Debian, you can use apt to setup the dependencies:
 
         cmake . -B build -DISL_INCLUDE_DIRECTORY=$ISL_INCLUDE_DIRECTORY -DISL_INCLUDE_DIRECTORY=$ISL_INCLUDE_DIRECTORY -DPython3_EXECUTABLE=`which python3`
 		
-If you want to install, add `CMAKE_INSTALL_PREFIX`. If you are installing the python bindings, add `Tiramisu_INSTALL_PYTHONDIR`. 
+If you want to install, add `CMAKE_INSTALL_PREFIX`. If you are installing the python bindings, add `Tiramisu_INSTALL_PYTHONDIR` to tell Tiramisu where to place a python package. You will need add these install locations to the relevant path variables such as `PYTHONPATH` and `LD_LIBRARY_PATH`.
 
 4) Build:
 
