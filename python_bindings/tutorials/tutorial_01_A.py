@@ -1,4 +1,5 @@
 import tiramisu as tm
+
 tm.init("test")
 
 p0 = tm.constant("N", tm.expr(20))
@@ -15,7 +16,10 @@ S0.store_in(buf0)
 
 tm.pycodegen([buf0], "generated_fct_developers_tutorial_01.o", False)
 import test
+
 print(test.test)
+import numpy as np
 
-
-
+temp = np.zeros((20), dtype=np.uint8)
+test.test(temp)
+print(temp)
