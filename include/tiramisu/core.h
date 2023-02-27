@@ -183,27 +183,27 @@ void prepare_schedules_for_legality_checks(bool reset_static_dimesion = false);
 
   bool loop_parallelization_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
   //@}
-/**
- * Checks if the given fuzed computations could legally have their loop level \p i unrolled.
- */
+  /**
+  * Checks if the given fuzed computations could legally have their loop level \p i unrolled.
+  */
   //@{
   bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
 
   bool loop_unrolling_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
   //@}
   /**
-   * Checks if the given fuzed computations could legally have their loop level \p i vectorized.
-   */
+  * Checks if the given fuzed computations could legally have their loop level \p i vectorized.
+  */
   bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
 
-  //*******************************************************
+//*******************************************************
 
-  /**
-   * A class to represent functions in Tiramisu. A function in Tiramisu is composed of
-   * a set of computations (tiramisu::computation).
-   */
-  class function
-  {
+/**
+ * A class to represent functions in Tiramisu. A function in Tiramisu is composed of
+ * a set of computations (tiramisu::computation).
+ */
+class function
+{
     // Friend classes.  They can access the private members of the "function" class.
     friend buffer;
     friend computation;
