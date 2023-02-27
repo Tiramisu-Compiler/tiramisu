@@ -130,7 +130,6 @@ void apply_optimizations(optimization_info const& optim_info)
             ast_node *previous_comp_node = ast.computations_mapping.at(previous_comp);
             ast_node *last_shared_parent = ast.get_last_shared_parent(current_comp_node, previous_comp_node);
 
-
             int fusion_level;
             if (last_shared_parent != nullptr){
                 fusion_level = last_shared_parent->depth;

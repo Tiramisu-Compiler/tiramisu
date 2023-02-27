@@ -595,7 +595,11 @@ void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, 
     
     // Represent basic information about this iterator
     iter_json += "\"lower_bound\" : \"" + node->low_bound + "\",";
-    iter_json += "\"upper_bound\" : \"" + node->up_bound + "+1" + "\",";
+    if(check_if_number(node->up_bound)){
+        iter_json += "\"upper_bound\" : \"" + std::to_string(stoi(node->up_bound) + 1) + "\",";
+    }else{
+        iter_json += "\"upper_bound\" : \"" + node->up_bound + "+1" + "\",";
+    }
         
     iter_json += "\"parent_iterator\" : ";
     if (node->parent == nullptr)
@@ -608,7 +612,7 @@ void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, 
     
     for (int i = 0; i < node->children.size(); ++i)
     {
-        if (node->children[i]->get_extent() == "0-0+1")
+        if (node->children[i]->name.compare("dummy_iter")!=0)
             continue;
             
         iter_json += "\"" + node->children[i]->name + "\",";
@@ -631,7 +635,7 @@ void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, 
     
     for (int i = 0; i < node->children.size(); ++i)
     {
-        if (node->children[i]->get_extent() != "0-0+1")
+        if (node->children[i]->name.compare("dummy_iter")!=0)
             continue;
             
         ast_node *dummy_child = node->children[i];

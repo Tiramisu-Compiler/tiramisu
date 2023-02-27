@@ -7,10 +7,10 @@
 namespace tiramisu::auto_scheduler
 {
 
-auto_scheduler::auto_scheduler(search_method *searcher, evaluation_function *eval_func, 
-                               tiramisu::function *fct)
+auto_scheduler::auto_scheduler(search_method *searcher, evaluation_function *eval_func, std::vector<optimization_info> transformations, 
+                               tiramisu::function *fct )
                                
-    : fct(fct), ast(fct), searcher(searcher), eval_func(eval_func)
+    : fct(fct), ast(fct, transformations), searcher(searcher), eval_func(eval_func)
 {
     searcher->set_eval_func(eval_func);
 }
@@ -28,9 +28,6 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     }else{
         // If we're exploring using the model, the speed up for the original schedule is 1.
         initial_measurements = {1};
-        // If we don't execute the initial schedule now we will have to reinitialize the computation graph using the reset schedules function.
-        // The computation graph is modified when instanciating the autoscheduler.
-        fct->reset_schedules();
     }
     initial_exec_time = min_eval(initial_measurements);
     if (std::isinf(initial_exec_time)){

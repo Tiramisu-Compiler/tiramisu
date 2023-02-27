@@ -4354,7 +4354,7 @@ public:
 
       * and apply
 
-      \code
+      \codes
         a.skew(i, j, 1, 1, ni, nj);
       \endcode
 

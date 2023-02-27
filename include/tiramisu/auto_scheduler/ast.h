@@ -651,9 +651,9 @@ public:
     syntax_tree() {}
     
     /**
-     * Create an AST from the given function.
+     * Create an AST from the given function, and a list of initial transformations.
      */
-    syntax_tree(tiramisu::function *fct);
+    syntax_tree(tiramisu::function *fct, std::vector<optimization_info> transformations);
     
     ~syntax_tree()
     {
@@ -674,13 +674,22 @@ public:
      * Transform the AST by applying the given optimization.
      */
     void transform_ast(optimization_info const& opt);
+    /**
+     * Transform the initial AST by applying all of previous_optims.
+     */
+    void transform_initial_ast();
+
+    /**
+     * Transform the initial AST by applying the given optimization.
+     */
+    void transform_initial_ast(optimization_info const& opt);
 
     /**
      * These methods are used to transform the AST given a specific type of optimization.
      */
     void transform_ast_by_fusion(optimization_info const& opt);
     void transform_ast_by_unfuse(optimization_info const& opt);
-    void transform_ast_by_tiling(optimization_info const& opt);
+    void transform_ast_by_tiling(optimization_info const& opt, bool change_isl_states);
     void transform_ast_by_interchange(optimization_info const& opt);
     void transform_ast_by_unrolling(optimization_info const& opt);
     void transform_ast_by_vectorization(const optimization_info &opt);
@@ -688,8 +697,8 @@ public:
     void transform_ast_by_skewing(const optimization_info &opt);
     void transform_ast_by_skewing_positive(const optimization_info &opt);
     void transform_ast_by_reversal(const optimization_info &opt);
-    void transform_ast_by_shifting(const optimization_info &opt);
-    void transform_ast_by_matrix(const optimization_info &opt);
+    void transform_ast_by_shifting(const optimization_info &opt, bool change_isl_states);
+    void transform_ast_by_matrix(const optimization_info &opt, bool change_isl_states);
 
     
     /**

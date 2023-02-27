@@ -25,7 +25,7 @@ inline bool check_if_number(const std::string s)
 inline bool can_split_iterator(std::string up_bound, std::string low_bound, int split_fact, optimization_type opt=optimization_type::TILING)
 {
     if(check_if_number(up_bound) && check_if_number(low_bound)){
-        int it_extent = stoi(up_bound) - stoi(low_bound);
+        int it_extent = stoi(up_bound) - stoi(low_bound)+1;
         return it_extent > split_fact && it_extent % split_fact == 0;
     }else{
         // in the case where one of the bounds is not a constant, we can't apply unrolling.
@@ -42,7 +42,7 @@ inline bool can_split_iterator(std::string up_bound, std::string low_bound, int 
 inline bool can_split_iterator_sup(std::string up_bound, std::string low_bound,  int split_fact)
 {
     if(check_if_number(up_bound) && check_if_number(low_bound)){
-        int it_extent = stoi(up_bound) - stoi(low_bound);
+        int it_extent = stoi(up_bound) - stoi(low_bound)+1;
         return it_extent > split_fact;
     }else{
         return true;

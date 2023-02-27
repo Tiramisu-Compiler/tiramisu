@@ -191,8 +191,7 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
                 }
                 delete child;
                 iterator = children.erase(iterator);
-            }
-            else {
+            }else{
                 // hash the legal schedule
                 std::size_t hash=hasher(child->get_schedule_str());
                 
@@ -300,7 +299,6 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
 }
 std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
 {
-    
     std::vector<syntax_tree*> children;
     std::vector<optimization_type> transformations_to_explore;
     if(ast.ast_search_phase == search_phase::FUSION){

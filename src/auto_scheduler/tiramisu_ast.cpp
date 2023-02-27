@@ -102,11 +102,15 @@ void computation_info::set_accesses_changes_with_skewing(int first_node_depth,in
 
 // ---------------------------------------------------------------------------- //
 
-syntax_tree::syntax_tree(tiramisu::function *fct)
+syntax_tree::syntax_tree(tiramisu::function *fct, std::vector<optimization_info> transformations)
     : fct(fct)
 {
     local_sched_graph =  std::make_shared<std::unordered_map<tiramisu::computation *,
     std::unordered_map<tiramisu::computation *, int>>>(fct->sched_graph);
+
+    // In case the user specified any initial transformations.
+    previous_optims = transformations;
+
     const std::vector<computation*> computations = fct->get_computations();
     
     for (tiramisu::computation *comp : computations) 
@@ -148,6 +152,9 @@ syntax_tree::syntax_tree(tiramisu::function *fct)
     
     // Get the JSON representation of this tree
     tree_structure_json = evaluate_by_learning_model::get_tree_structure_json(*this);
+    
+    // Apply the initial transformations if any.
+    transform_initial_ast();
 }
 
 int get_number_of_iterators_from_set(isl_set *set){
@@ -440,25 +447,26 @@ void syntax_tree::transform_ast()
         
     transform_ast(new_optims.back());
 }
-
-void syntax_tree::transform_ast(optimization_info const& opt)
+void syntax_tree::transform_initial_ast()
 {
-    //TODOF why is transform ast by fusion desactivated
+    for (auto optim : previous_optims){
+        assert(optim.comps.size()>0 && "No computations specified for this optimization");
+        optim.node = find_node_by_level(optim.comps.at(0), optim.l0);
+        transform_initial_ast(optim);
+    }    
+}
+void syntax_tree::transform_initial_ast(optimization_info const& opt)
+{
+    // We don't need to check the legality for the tranformations initially set by the user
+    // So, we don't change the ISL states for the computations.
+    // We only modify the AST structure to accuretly represent the input program.
     switch(opt.type)
     {
-        /*case optimization_type::FUSION:
-            transform_ast_by_fusion(opt);
-            break;
-            
-        case optimization_type::UNFUSE:
-            transform_ast_by_unfuse(opt);
-            break;
-            */
         case optimization_type::MATRIX:
-            transform_ast_by_matrix(opt);
+            transform_ast_by_matrix(opt, false);
             break;
         case optimization_type::TILING:
-            transform_ast_by_tiling(opt);
+            transform_ast_by_tiling(opt, false);
             break;
             
         case optimization_type::INTERCHANGE:
@@ -478,7 +486,51 @@ void syntax_tree::transform_ast(optimization_info const& opt)
             break;
 
         case optimization_type::SHIFTING:
-            transform_ast_by_shifting(opt);
+            transform_ast_by_shifting(opt, false);
+            break;
+
+        default:
+            break;
+    }
+    recompute_computations_mapping();
+}
+void syntax_tree::transform_ast(optimization_info const& opt)
+{
+    switch(opt.type)
+    {
+        /*case optimization_type::FUSION:
+            transform_ast_by_fusion(opt);
+            break;
+            
+        case optimization_type::UNFUSE:
+            transform_ast_by_unfuse(opt);
+            break;
+            */
+        case optimization_type::MATRIX:
+            transform_ast_by_matrix(opt, true);
+            break;
+        case optimization_type::TILING:
+            transform_ast_by_tiling(opt, true);
+            break;
+            
+        case optimization_type::INTERCHANGE:
+            transform_ast_by_interchange(opt);
+            break;
+            
+        case optimization_type::UNROLLING:
+            transform_ast_by_unrolling(opt);
+            break;
+
+        case optimization_type::PARALLELIZE:
+            transform_ast_by_parallelism(opt);
+            break;
+
+        case optimization_type::SKEWING:
+            transform_ast_by_skewing(opt);
+            break;
+
+        case optimization_type::SHIFTING:
+            transform_ast_by_shifting(opt, true);
             break;
 
         default:
@@ -590,20 +642,25 @@ void update_node(std::vector<ast_node *> shared_nodes, std::vector<std::vector<i
     }
     
 }
-void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
+void syntax_tree::transform_ast_by_matrix(const optimization_info &opt, bool change_isl_states)
 {
-    stage_isl_states(); 
-    std::vector<tiramisu::computation *> all_data;
-    std::vector<ast_node *> all_nodes;
-    opt.node->get_all_nodes(all_nodes);
-             
-    for(ast_node* node1 : all_nodes ){
-        for(computation_info info : node1->computations)
-        {   
-            info.comp_ptr->matrix_transform(opt.matrix);    
+
+    if(change_isl_states){
+        // Transform the computations schedule to check the legality of the transformations
+        stage_isl_states(); 
+        std::vector<ast_node *> all_nodes;
+        opt.node->get_all_nodes(all_nodes);
+                
+        for(ast_node* node1 : all_nodes ){
+            for(computation_info info : node1->computations)
+            {   
+                info.comp_ptr->matrix_transform(opt.matrix);    
+            }
         }
+        recover_isl_states();
     } 
-    recover_isl_states();
+    
+    // Transform the Abstract Syntax Tree
     if(opt.unimodular_transformation_type == 1){
         this->transform_ast_by_interchange(opt);
     }
@@ -614,11 +671,10 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
     {
         this->transform_ast_by_skewing(opt);
     }
-    // TODOF: add trasnform_ast_by_reversal. Would only used for better vizualization?
     
 }
 
-void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
+void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool change_isl_states)
 {
     ast_node *node = opt.node;
 
@@ -696,35 +752,38 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
         /**
          * Applying tiling to the nodes schedule and states
         */
-        std::vector<computation_info*> all_data;
-        
-        //collect computations to tile
-        j_inner->collect_all_computation(all_data);
-
-        for(computation_info* info:all_data)
-        {
-            std::vector<std::string> loop_names = info->comp_ptr->get_loop_level_names();
+        if(change_isl_states){
+            // Transform the computations schedule to check the legality of the transformations
+            std::vector<computation_info*> all_data;
             
-            std::string outer_name = loop_names[i_outer->depth];
-            std::string inner_name = loop_names[i_outer->depth+1];
+            //collect computations to tile
+            j_inner->collect_all_computation(all_data);
 
-            std::string ii_outer = outer_name+"_outer";
-            std::string jj_outer = inner_name+"_outer";
-            std::string ii_inner = outer_name+"_inner";
-            std::string jj_inner = inner_name+"_inner";
-
-            std::string f = "";
-            for(auto& str:loop_names)
+            for(computation_info* info:all_data)
             {
-                f+=str+" ";
+                std::vector<std::string> loop_names = info->comp_ptr->get_loop_level_names();
+                
+                std::string outer_name = loop_names[i_outer->depth];
+                std::string inner_name = loop_names[i_outer->depth+1];
+
+                std::string ii_outer = outer_name+"_outer";
+                std::string jj_outer = inner_name+"_outer";
+                std::string ii_inner = outer_name+"_inner";
+                std::string jj_inner = inner_name+"_inner";
+
+                std::string f = "";
+                for(auto& str:loop_names)
+                {
+                    f+=str+" ";
+                }
+                
+                
+                info->comp_ptr->tile(var(outer_name),var(inner_name)
+                                    ,opt.l0_fact,opt.l1_fact,
+                                    var(ii_outer),var(jj_outer),var(ii_inner),var(jj_inner));
+            
+            
             }
-            
-            
-            info->comp_ptr->tile(var(outer_name),var(inner_name)
-                                ,opt.l0_fact,opt.l1_fact,
-                                var(ii_outer),var(jj_outer),var(ii_inner),var(jj_inner));
-           
-           
         }
 
 
@@ -818,34 +877,37 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
         /**
          * Applying to staging
         */
-        std::vector<computation_info*> all_data;
-        
-        //collect computations to tile
-        j_inner->collect_all_computation(all_data);
-
-        for(computation_info* info:all_data)
-        {
-            std::vector<std::string> loop_names = info->comp_ptr->get_loop_level_names();
+        if(change_isl_states){
+            // Transform the computations schedule to check the legality of the transformations
+            std::vector<computation_info*> all_data;
             
-            std::string outer_name_1 = loop_names[i_outer->depth];
-            std::string outer_name_2 = loop_names[i_outer->depth+1];
-            std::string inner_name_3 = loop_names[i_outer->depth+2];
+            //collect computations to tile
+            j_inner->collect_all_computation(all_data);
 
-            std::string ii_outer = outer_name_1+"_outer";
-            std::string jj_outer = outer_name_2+"_outer";
-            std::string kk_outer = inner_name_3+"_outer";
-            std::string ii_inner = outer_name_1+"_inner";
-            std::string jj_inner = outer_name_2+"_inner";
-            std::string kk_inner = inner_name_3+"_inner";
-            
-            info->comp_ptr->tile(var(outer_name_1),var(outer_name_2),var(inner_name_3)
-                                ,opt.l0_fact,opt.l1_fact,opt.l2_fact,
-                                var(ii_outer),var(jj_outer),var(kk_outer),var(ii_inner),var(jj_inner),var(kk_inner));
-           
-            std::string f = "";
-            for(auto& str:loop_names)
+            for(computation_info* info:all_data)
             {
-                f+=str+" ";
+                std::vector<std::string> loop_names = info->comp_ptr->get_loop_level_names();
+                
+                std::string outer_name_1 = loop_names[i_outer->depth];
+                std::string outer_name_2 = loop_names[i_outer->depth+1];
+                std::string inner_name_3 = loop_names[i_outer->depth+2];
+
+                std::string ii_outer = outer_name_1+"_outer";
+                std::string jj_outer = outer_name_2+"_outer";
+                std::string kk_outer = inner_name_3+"_outer";
+                std::string ii_inner = outer_name_1+"_inner";
+                std::string jj_inner = outer_name_2+"_inner";
+                std::string kk_inner = inner_name_3+"_inner";
+                
+                info->comp_ptr->tile(var(outer_name_1),var(outer_name_2),var(inner_name_3)
+                                    ,opt.l0_fact,opt.l1_fact,opt.l2_fact,
+                                    var(ii_outer),var(jj_outer),var(kk_outer),var(ii_inner),var(jj_inner),var(kk_inner));
+            
+                std::string f = "";
+                for(auto& str:loop_names)
+                {
+                    f+=str+" ";
+                }
             }
         }
 
@@ -1061,14 +1123,24 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
     recover_isl_states();
 }
 
-void syntax_tree::transform_ast_by_shifting(const optimization_info &info){
-    stage_isl_states();
+void syntax_tree::transform_ast_by_shifting(const optimization_info &info, bool change_isl_states){
 
     ast_node *node_1 = info.node;
     node_1->shifted = true;
-    info.comps[0]->shift(info.l0,info.l0_fact);
-
-    recover_isl_states();
+    if(change_isl_states){
+        // Transform the computations schedule to check the legality of the transformations
+        stage_isl_states(); 
+        std::vector<ast_node *> all_nodes;
+        info.node->get_all_nodes(all_nodes);
+                
+        for(ast_node* node1 : all_nodes ){
+            for(computation_info comp : node1->computations)
+            {   
+                comp.comp_ptr->shift(info.l0, info.l0_fact);
+            }
+        }
+        recover_isl_states();
+    }
 }
 
 
@@ -1531,7 +1603,7 @@ void syntax_tree::print_previous_optims() const
 
 void ast_node::print_node() const
 {
-    if (name != "dummy_iter")//get_extent() > 1
+    if (name.compare("dummy_iter")!=0) // Avoid printing dummy iterators.
     {
         for (int i = 0; i < depth; ++i)
             std::cout << "\t";
@@ -1808,8 +1880,8 @@ bool ast_node::have_similar_itr_domain(ast_node * other)
     
     // check whether both bounds are ints to be able to compare. If that's not the case return true, generate fusion and leave the decision to the legality check
     if(is_number(this->low_bound) && is_number(this->up_bound) && is_number(other->low_bound) && is_number(other->up_bound)){
-        int nb_itr1 = stoi(this->up_bound) - stoi(this->low_bound);
-        int nb_itr2 = stoi(other->up_bound) - stoi(other->low_bound);
+        int nb_itr1 = stoi(this->up_bound) - stoi(this->low_bound) + 1;
+        int nb_itr2 = stoi(other->up_bound) - stoi(other->low_bound) + 1;
 
         if((nb_itr1 != 0) && (nb_itr2 != 0))
         {
