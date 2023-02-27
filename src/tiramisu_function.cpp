@@ -1242,6 +1242,78 @@ bool tiramisu::function::needs_rank_call() const
     return _needs_rank_call;
 }
 
+
+void tiramisu::function::append_clustered_statements(const std::vector<tiramisu::computation *> &statements)
+{
+    this->clustered_statements.push_back(statements);
+}
+
+bool tiramisu::function::check_clustered_statements_are_innermost()
+{   DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    const std::string empty_name = "";
+    std::vector<isl_map *> schedules_cmp;
+    bool global_inner_most = true;
+
+    for(auto const& cluster: this->clustered_statements)
+    {
+        DEBUG(10, tiramisu::str_dump("Checking the validity of the cluster :"));
+        for (auto const& comp: cluster)
+        {
+            isl_map * schedule_copy = isl_map_copy(comp->get_schedule());
+            schedule_copy = isl_map_set_tuple_name(schedule_copy, isl_dim_out, empty_name.c_str());
+            schedule_copy = isl_map_set_tuple_name(schedule_copy, isl_dim_in, empty_name.c_str());
+            DEBUG(10, tiramisu::str_dump("the computation :" + comp->get_name() + " schedule is " 
+                    + std::string(isl_map_to_str(schedule_copy))));
+            
+            // remove last dim
+            schedule_copy = isl_map_project_out(schedule_copy, isl_dim_out, 
+                    isl_map_dim(schedule_copy, isl_dim_out) - 1, 1);
+
+            DEBUG(10, tiramisu::str_dump("Schedule without last beta dimension : " 
+                    + std::string(isl_map_to_str(schedule_copy))));
+            schedules_cmp.push_back(schedule_copy);
+        }
+                // append a new vector of maps
+        // compare them 0 -> n-1
+        bool innermost = true;
+        for (int i = 0; i < schedules_cmp.size() - 1; i++)
+        {
+            if (isl_map_is_equal(schedules_cmp[i], schedules_cmp[i + 1]) != isl_bool_true)
+            {
+                innermost = false;
+                break;
+            }
+        }
+        if (innermost)
+        {
+            DEBUG(10, tiramisu::str_dump("-> This cluster is valid"));
+        }
+        else
+        {
+            DEBUG(10, tiramisu::str_dump("-> This cluster is invalid !! check stopping here"));
+        }
+
+        global_inner_most = global_inner_most && innermost;
+        //clean up
+        for (auto const& comp: schedules_cmp)
+        {
+            isl_map_free(comp);
+        }
+        schedules_cmp.clear();
+
+        if(global_inner_most == false)
+        {
+            // stop checking the following clusters
+            break;
+        }
+    }
+
+    DEBUG_INDENT(-4);
+    return global_inner_most;
+}
+
 void function::set_context_set(isl_set *context)
 {
     assert((context != NULL) && "Context is NULL");
