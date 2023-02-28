@@ -4971,7 +4971,7 @@ std::tuple<
             {
                 auto identity_vector = std::get<2>(result_tmp);
                 if (identity_vector.size() == 0){
-                    DEBUG(10, tiramisu::str_dump(" unable to find 3d skewing solution "));  
+                    DEBUG(10, tiramisu::str_dump(" unable to find 3d skewing solution ")); 
                     solvable_solutions = false;
                     break;
                 }
@@ -4997,7 +4997,7 @@ std::tuple<
 
                 DEBUG(10, tiramisu::str_dump(" Current corresponding transformation :", isl_basic_map_to_str(transformation)));
                 parameters_map = isl_basic_map_apply_range(parameters_map, transformation);
-                DEBUG(10, tiramisu::str_dump(" Current overall transformation :", isl_basic_map_to_str(parameters_map)));           
+                DEBUG(10, tiramisu::str_dump(" Current overall transformation :", isl_basic_map_to_str(parameters_map)));
 
                 // apply the skewing and rename the variables
 
@@ -5012,22 +5012,20 @@ std::tuple<
                         std::get<2>(identity_values),
                         std::get<3>(identity_values),
                         var1, var2);
-                    target_variables[i_outer] = var1;
-                    target_variables[j_inner] = var2;
                 }
-
+            target_variables[i_outer] = var1;
+            target_variables[j_inner] = var2;
             }
-        
         }
     }
 
-    // restaure all computations
+    // Restore all computation schedules
     assert(fused_computations.size() == schedules_backups.size());
     int index = 0;
     for(auto const& computation : fused_computations)
     {   
         isl_map_free(computation->get_schedule());
-        computation->set_schedule(schedules_backups[0]);
+        computation->set_schedule(schedules_backups[index]);
         index ++;
     }
 
