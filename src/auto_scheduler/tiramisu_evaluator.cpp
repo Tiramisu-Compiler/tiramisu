@@ -57,9 +57,9 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
                                              
     m.compile(Halide::Outputs().object(obj_filename));
 
-    char *gpp_command = read_env_var("GXX");
+    std::string gpp_command = read_env_var("GXX");
 
-    if ((gpp_command != NULL) && (gpp_command[0] == '\0'))
+    if (gpp_command.empty())
     {
        gpp_command = "g++";
     }
@@ -99,9 +99,9 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
 
     m.compile(Halide::Outputs().object(obj_filename));
 
-    char *gpp_command = read_env_var("GXX");
+    std::string gpp_command = read_env_var("GXX");
 
-    if ((gpp_command != NULL) && (gpp_command[0] == '\0'))
+    if (gpp_command.empty())
     {
        gpp_command = "g++";
     }
