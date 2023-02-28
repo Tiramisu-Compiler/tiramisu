@@ -56,9 +56,16 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
                                              fct->get_halide_stmt());
                                              
     m.compile(Halide::Outputs().object(obj_filename));
-    
+
+    std::string gpp_command = read_env_var("GXX");
+
+    if (gpp_command.empty())
+    {
+       gpp_command = "g++";
+    }
+
     // Turn the object file to a shared library
-    std::string gcc_cmd = "g++ -shared -o " + obj_filename + ".so " + obj_filename;
+    std::string gcc_cmd = gpp_command + " -shared -o " + obj_filename + ".so " + obj_filename;
     // run the command and retrieve the execution status
     int status = system(gcc_cmd.c_str());
     assert(status != 139 && "Segmentation Fault when trying to execute schedule");
@@ -91,9 +98,16 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
                                              fct->get_halide_stmt());
 
     m.compile(Halide::Outputs().object(obj_filename));
-    
+
+    std::string gpp_command = read_env_var("GXX");
+
+    if (gpp_command.empty())
+    {
+       gpp_command = "g++";
+    }
+
     // Turn the object file to a shared library
-    std::string gcc_cmd = "g++ -shared -o " + obj_filename + ".so " + obj_filename;
+    std::string gcc_cmd = gpp_command + " -shared -o " + obj_filename + ".so " + obj_filename;
     int status = system(gcc_cmd.c_str());
     assert(status != 139 && "Segmentation Fault when trying to execute schedule");
     // define the execution command of the wrapper

@@ -178,13 +178,19 @@ void prepare_schedules_for_legality_checks(bool reset_static_dimesion = false);
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
   */
+  //@{
   bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
 
+  bool loop_parallelization_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
+  //@}
   /**
   * Checks if the given fuzed computations could legally have their loop level \p i unrolled.
   */
+  //@{
   bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
 
+  bool loop_unrolling_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
+  //@}
   /**
   * Checks if the given fuzed computations could legally have their loop level \p i vectorized.
   */
@@ -193,9 +199,9 @@ void prepare_schedules_for_legality_checks(bool reset_static_dimesion = false);
 //*******************************************************
 
 /**
-  * A class to represent functions in Tiramisu. A function in Tiramisu is composed of
-  * a set of computations (tiramisu::computation).
-  */
+ * A class to represent functions in Tiramisu. A function in Tiramisu is composed of
+ * a set of computations (tiramisu::computation).
+ */
 class function
 {
     // Friend classes.  They can access the private members of the "function" class.
@@ -1311,7 +1317,10 @@ public:
     /**
      * Checks if the given fuzed computations could legally have their loop level \p i unrolled.
     */
+    // @{
     bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+    bool loop_unrolling_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
+    // @}
 
     /**
     * Checks if the given fuzed computations could legally have the loop levels \p i and \p j interchanged.
@@ -1378,11 +1387,18 @@ public:
      * the second vector size's should be equal to twice the value of nb_parallel in the regular case.
      * for nb_parallel=1 it only returns the smallest skewing (best) possible for this use case.
     */
+   //@{
     std::tuple<
       std::vector<std::pair<int,int>>,
       std::vector<std::pair<int,int>>,
       std::vector<std::pair<int,int>>> skewing_local_solver(std::vector<tiramisu::computation *> fused_computations,
                                                             tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel);
+    std::tuple<
+        std::vector<std::pair<int, int>>,
+        std::vector<std::pair<int, int>>,
+        std::vector<std::pair<int, int>>> skewing_local_solver(std::vector<tiramisu::computation *> fused_computations,
+                         int outer_level, int inner_level, int nb_parallel);
+    // @}
 
     /**
      * Computes the best legal skewing parameters for 3 use cases (outer parallelism, innermost parallelism and identity).
