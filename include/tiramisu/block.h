@@ -59,6 +59,7 @@ public:
                   var L0_outer, var L1_outer, var L2_outer,
                   var L0_inner, var L1_inner, var L2_inner) override;
     void interchange(var L0, var L1) override;
+    void matrix_transform(std::vector<std::vector<int>> matrix);
     void interchange(int L0, int L1) override;
     void parallelize(var L) override;
     void shift(var L0, int n) override;

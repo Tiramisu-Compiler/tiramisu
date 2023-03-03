@@ -26,6 +26,7 @@ public:
      * its evaluation.
      */
     virtual float evaluate(syntax_tree& ast) =0;
+    virtual float evaluate(syntax_tree& ast, std::string no_sched_json)=0;
 };
 
 /**
@@ -50,10 +51,7 @@ protected:
     Halide::Target halide_target;
     std::vector<Halide::Argument> halide_arguments;
 
-    /**
-     * The program to compile and to execute.
-     */
-	tiramisu::function *fct;
+    
 	
 	/**
 	 * The name of the ".o" to generate (it will contain the compiled Tiramisu program).
@@ -66,6 +64,10 @@ protected:
     std::string wrapper_cmd;
 
 public:
+/**
+     * The program to compile and to execute.
+     */
+	tiramisu::function *fct;
     /**
      * arguments : the input and output buffers of the program.
      */
@@ -78,6 +80,7 @@ public:
 	 * Apply the specified optimizations, compile the program and execute it.
 	 */
     virtual float evaluate(syntax_tree& ast);
+    virtual float evaluate(syntax_tree& ast, std::string no_sched_json);
 
     /**
      * Apply the specified optimizations, compile the program and execute it.
@@ -118,8 +121,11 @@ public:
 	/**
 	 * Call the model and return its evaluation.
 	 */
+    virtual float evaluate(syntax_tree& ast, std::string no_sched_json);
+    /**
+	 * Call the model and return its evaluation.
+	 */
     virtual float evaluate(syntax_tree& ast);
-    
     /**
      * Return a JSON representation of the program represented by the AST.
      * Uses the function : represent_computations_from_nodes. 
@@ -134,7 +140,7 @@ public:
     /**
      * Return a JSON representation of the schedule of the given AST.
      */
-    static std::string get_schedule_json(syntax_tree const& ast);
+    static std::string get_schedule_json(syntax_tree & ast);
     
     // --------------------------------------------------------------------------------- //
     

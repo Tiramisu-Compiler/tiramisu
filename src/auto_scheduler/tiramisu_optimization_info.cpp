@@ -27,14 +27,20 @@ void unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_li
 void apply_optimizations(syntax_tree const& ast)
 {
     // Check ast.h for the difference between ast.previous_optims and ast.new_optims
-    for (optimization_info const& optim_info : ast.previous_optims)
+    for (optimization_info const& optim_info : ast.previous_optims){
         apply_optimizations(optim_info);
+    }
         
-    for (optimization_info const& optim_info : ast.new_optims)
-        apply_optimizations(optim_info);
+        
+    for (optimization_info const& optim_info : ast.new_optims){
+            apply_optimizations(optim_info);
+    }
+        
 
     // Fusion is a particular case, and we use apply_fusions() to apply it.
     // apply_fusions() uses the structure of the AST to correctly order the computations.
+    // The structure of the program is only represented abstractly even when fusion is not applied.
+    // We need to call apply_fusion on all ASTs to go from the abstract representation of the structure to changing the actual order of computations using the .after command
     apply_fusions(ast);
 
     // Parallelization needs to be applied after the other transformations in order to have the accurate loop depth of
@@ -46,7 +52,7 @@ void apply_optimizations(optimization_info const& optim_info)
 {
     // tiramisu::block can be used to apply the same optimization to a set of computations
     tiramisu::block block(optim_info.comps);
-        
+                                
     switch (optim_info.type)
     {
         case optimization_type::TILING:
@@ -73,8 +79,31 @@ void apply_optimizations(optimization_info const& optim_info)
                 unroll_innermost_levels(optim_info.comps, optim_info.l0_fact);
             break;
 
+        case optimization_type::VECTORIZATION:
+            // Apply unrolling on the level indicated by l0
+            
+            for(auto const& computation: optim_info.comps)
+            {
+                computation->vectorize(optim_info.l0, optim_info.l0_fact);
+                
+            }
+            break;
+
         case optimization_type::SKEWING:
             block.skew(optim_info.l0, optim_info.l1, optim_info.l0_fact, optim_info.l1_fact);
+            if(optim_info.l2_fact == -1)
+                for(auto const& computation: optim_info.comps)
+                    computation->loop_reversal(optim_info.l1);
+            break;
+        case optimization_type::MATRIX:
+            block.matrix_transform(optim_info.matrix);
+            break;
+        case optimization_type::SHIFTING:
+            for(auto const& computation: optim_info.comps)
+            {
+                computation->shift(optim_info.l0,optim_info.l0_fact);   
+            }
+            
             break;
         
         case optimization_type::SKEWING_POSITIVE:
@@ -87,47 +116,37 @@ void apply_optimizations(optimization_info const& optim_info)
     }
 }
 
-void apply_fusions(syntax_tree const& ast)
-{
-    tiramisu::computation *next_comp = nullptr;
-    
-    // Use the "after" scheduling command to replicate the structure of the AST
-    // on the computations order.
-    for (ast_node *root : ast.roots)
-        next_comp = apply_fusions(root, next_comp, tiramisu::computation::root_dimension);
-}
-
-tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, int dimension)
-{
-    tiramisu::computation *next_comp;
-    
-    if (node->computations.size() > 0)
+    void apply_fusions(syntax_tree const& ast)
     {
-        next_comp = node->computations[0].comp_ptr;
-        
-        if (last_comp != nullptr)
-            next_comp->after(*last_comp, dimension);
-            
-        last_comp = next_comp;
-        for (int i = 1; i < node->computations.size(); ++i)
+        // Use the "after" scheduling command to replicate the structure of the AST
+        // on the computations order.
+
+        tiramisu::computation *previous_comp = nullptr;
+
+        for (tiramisu::computation* current_comp : ast.computations_list) // iterate over the ordered computations list
         {
-            next_comp = node->computations[i].comp_ptr;
-            next_comp->after(*last_comp, node->depth);
+            if (previous_comp == nullptr) // if current comp is the first computation
+            {
+                previous_comp = current_comp;
+                continue;
+            }
+
+            ast_node *current_comp_node = ast.computations_mapping.at(current_comp);
+            ast_node *previous_comp_node = ast.computations_mapping.at(previous_comp);
+            ast_node *last_shared_parent = ast.get_last_shared_parent(current_comp_node, previous_comp_node);
+
+            int fusion_level;
+            if (last_shared_parent != nullptr){
+                fusion_level = last_shared_parent->depth;
+            }else
+                fusion_level = tiramisu::computation::root_dimension;
+
+            current_comp->after(*previous_comp, fusion_level);
+            previous_comp = current_comp;
+
         }
+
     }
-    
-    else
-        next_comp = last_comp;
-    
-    int new_dimension = dimension;
-    if (node->children.size() >= 2 || node->computations.size() >= 1)
-        new_dimension = node->depth;
-    
-    for (ast_node *child : node->children)
-        next_comp = apply_fusions(child, next_comp, new_dimension);
-    
-    return next_comp;
-}
 
 void apply_parallelization(syntax_tree const& ast)
 {
@@ -154,34 +173,74 @@ void print_optim(optimization_info optim)
 {
     switch(optim.type) {
         case optimization_type::FUSION:
-            std::cout << "Fusion" << " L" << optim.l0 << " " << " L" << optim.l1 << std::endl;
+            std::cout << "Fusion" << " L" << optim.l0 << " " << optim.comps[0]->get_name() << " then "<< optim.comps[1]->get_name() <<std::endl;
             break;
 
-        case optimization_type::UNFUSE:
-            std::cout << "Fusion" << " L" << optim.l0 << " " << " L" << optim.l1 << std::endl;
+        case optimization_type::SHIFTING:
+            std::cout << "SHIFTING"
+                      << " L" << optim.l0 << " +"<<optim.l0_fact<<" " << optim.comps[0]->get_name() <<std::endl;
+            break;
+
+        case optimization_type::MATRIX:
+            std::cout << "Matrix Transform " << std::to_string(optim.matrix.size()) << "x" << std::to_string(optim.matrix.size())<< " {";
+            for (auto comp:optim.comps)
+                std::cout<< comp->get_name() <<", ";
+            std::cout<< "} [";
+            for(int i = 0; i < optim.matrix.size(); i++){
+                for(int j = 0; j< optim.matrix.size(); j++){
+                    std::cout << std::to_string(optim.matrix.at(i).at(j));
+                    if(!(i==optim.matrix.size()-1 && j==optim.matrix.size()-1)) std::cout << ", ";
+                }
+            }
+            std::cout << "]" << std::endl;
             break;
 
         case optimization_type::INTERCHANGE:
-            std::cout << "Interchange" << " L" << optim.l0 << " " << " L" << optim.l1  << std::endl;
+            std::cout << "Interchange" << " L" << optim.l0 << " " << " L" << optim.l1 <<" { " ;
+            for (auto comp:optim.comps)
+                std::cout<< comp->get_name() <<", ";
+            std::cout<<"}"<< std::endl;
             break;
 
         case optimization_type::TILING:
             std::cout << "Tiling" << " L" << optim.l0 << " " << optim.l0_fact << " L" << optim.l1 << " " << optim.l1_fact;
             if (optim.nb_l == 3)
                 std::cout << " L" << optim.l2 << " " << optim.l2_fact;
-            std::cout << std::endl;
+            std::cout<<" { ";
+            for (auto comp:optim.comps)
+                std::cout<< comp->get_name() <<", ";
+            std::cout<<"}"<< std::endl;
             break;
 
         case optimization_type::UNROLLING:
-            std::cout << "Unrolling" << " L" << optim.l0 << " " << optim.l0_fact << std::endl;
+            std::cout << "Unrolling" << " L" << optim.l0 << " " << optim.l0_fact ;
+            std::cout<<" { ";
+            for (auto comp:optim.comps)
+                std::cout<< comp->get_name() <<", ";
+            std::cout<<"}"<< std::endl;
             break;
 
         case optimization_type::PARALLELIZE:
-            std::cout << "Parallelize" << " L" << optim.l0 << std::endl;
+            std::cout << "Parallelize" << " L" << optim.l0;
+            std::cout<<" { ";
+            for (auto comp:optim.comps)
+                std::cout<< comp->get_name() <<", ";
+            std::cout<<"}"<< std::endl;
             break;
 
         case optimization_type::SKEWING:
-            std::cout << "Skewing" << " L" << optim.l0 << " " << optim.l0_fact << " L" << optim.l1 << " " << optim.l1_fact << std::endl;
+            std::cout << "Skewing" << " L" << optim.l0 << " " << optim.l0_fact << " L" << optim.l1 << " " << optim.l1_fact;
+            std::cout<<" { ";
+            for (auto comp:optim.comps)
+                std::cout<< comp->get_name() <<", ";
+            std::cout<<"}"<< std::endl;
+            break;
+        case optimization_type::VECTORIZATION:
+            std::cout << "VECTORIZATION" << " L" << optim.l0 << " " << optim.l0_fact;
+            std::cout<<" { ";
+            for (auto comp:optim.comps)
+                std::cout<< comp->get_name() <<", ";
+            std::cout<<"}"<< std::endl;
             break;
         case optimization_type::SKEWING_POSITIVE:
             std::cout << "Skewing" << " L" << optim.l0 << " L" << optim.l1 << " "

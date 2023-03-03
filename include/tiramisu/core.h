@@ -97,7 +97,17 @@ enum xfer_attr {
     GPU2CPU,
     GPU2GPU
 };
-
+/**
+ * Extraction of the bounds of a node that is either not a for loop, or the case where the set contains elements like the following:
+ * [{NN]->{A_diag[i,l,m]: 0<=i<NN and l=i and 0<=m<i} 
+ * This causes an error when trying to recover the bounds of l
+ */
+struct NonForLoopBoundExtractionException : public std::exception {
+        const char * what () const throw ()
+            {
+                return "Trying to extract bounds from a node that is not a for loop.";
+            }
+    };
 struct xfer {
     tiramisu::send *s;
     tiramisu::recv *r;
@@ -168,24 +178,30 @@ void prepare_schedules_for_legality_checks(bool reset_static_dimesion = false);
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
   */
-  bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
+//@{
+bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
-  /**
-  * Checks if the given fused computations could legally have their loop level \p i unrolled.
-  */
-  bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
+bool loop_parallelization_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
+//@}
+/**
+ * Checks if the given fused computations could legally have their loop level \p i unrolled.
+ */
+//@{
+bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
-  /**
-  * Checks if the given fused computations could legally have their loop level \p i vectorized.
-  */
-  bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
+bool loop_unrolling_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
+//@}
+/**
+ * Checks if the given fused computations could legally have their loop level \p i vectorized.
+ */
+bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
 //*******************************************************
 
 /**
-  * A class to represent functions in Tiramisu. A function in Tiramisu is composed of
-  * a set of computations (tiramisu::computation).
-  */
+ * A class to represent functions in Tiramisu. A function in Tiramisu is composed of
+ * a set of computations (tiramisu::computation).
+ */
 class function
 {
     // Friend classes.  They can access the private members of the "function" class.
@@ -355,7 +371,13 @@ private:
       * factor of 8.
       */
     std::vector<std::tuple<std::string, int, int>> unroll_dimensions;
-
+    /**
+      * Original number of computations.
+      * Added to be able to reset the computations in the case where some transformations
+      * add additional computations to the function.
+      * This is the case in some explored unrollings
+      */
+    int original_number_of_computations;
     /**
       * Body of the function (a vector of computations).
       * The order of the computations in the vector does not have any
@@ -761,7 +783,8 @@ protected:
      * at the loop level \p lev.
      */
     int get_vector_length(const std::string &comp, int lev) const;
-
+    
+    
     /**
      * If the computation \p comp is unrolled at the loop level \p lev,
      * return its unrolling factor.
@@ -970,9 +993,14 @@ public:
       * or gen_time_processor_domain() are called.
       */
     void align_schedules();
-    
+
     /**
-     * \brief Remove, for every computation, every schedule.
+     * \brief Remove computations added by unrolling and reset the computation names.
+     */
+    void reset_computations();
+
+    /**
+     * \brief Remove, for every Fputation, every schedule.
      */
     void reset_schedules();
 
@@ -1208,6 +1236,11 @@ public:
       */
     void set_arguments(const std::vector<tiramisu::buffer *> &buffer_vec);
 
+    
+    /**
+     * Set the number of computations for the original ast.
+     */
+    void set_original_number_of_computations();
     /**
      * Wrapper for all the functions required to run code generation of a
      * tiramisu program.
@@ -1287,7 +1320,16 @@ public:
     /**
      * Checks if the given fused computations could legally have their loop level \p i unrolled.
     */
+    // @{
     bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
+    bool loop_unrolling_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
+    // @}
+
+    /**
+    * Checks if the given fuzed computations could legally have the loop levels \p i and \p j interchanged.
+    * This function checks the control dependencies for the two loops.
+    */
+    bool loop_interchnage_is_legal(int i, int j, std::vector<tiramisu::computation *> fused_computations);
 
     /**
      * Checks if the given fused computations could legally have their loop level \p i vectorized.
@@ -1348,11 +1390,18 @@ public:
      * the second vector size's should be equal to twice the value of nb_parallel in the regular case.
      * for nb_parallel=1 it only returns the smallest skewing (best) possible for this use case.
     */
+   //@{
     std::tuple<
       std::vector<std::pair<int,int>>,
       std::vector<std::pair<int,int>>,
       std::vector<std::pair<int,int>>> skewing_local_solver(std::vector<tiramisu::computation *> fused_computations,
                                                             tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel);
+    std::tuple<
+        std::vector<std::pair<int, int>>,
+        std::vector<std::pair<int, int>>,
+        std::vector<std::pair<int, int>>> skewing_local_solver(std::vector<tiramisu::computation *> fused_computations,
+                         int outer_level, int inner_level, int nb_parallel);
+    // @}
 
     /**
      * Computes the best legal skewing parameters for 3 use cases (outer parallelism, innermost parallelism and identity).
@@ -1411,6 +1460,10 @@ public:
 
     std::tuple<int,int,int,int,int,int,int,int,int> extract_3d_skewing_params(isl_basic_map * transformation);
 
+    /**
+     * for each computation, it computes potentiel canidate for vectorization, then it regroups it in result vector. 
+    */
+    std::vector<int> get_potentiel_vectorizable_loop_level(std::vector<tiramisu::computation *> involved_computations);
 };
 
 
@@ -2693,6 +2746,7 @@ private:
       * the static dimension names are set to default names.
       */
     void set_loop_level_names(std::vector<std::string> names);
+    void set_loop_level_names_matrix(std::vector<std::string> names);
 
     /**
       * Set the names of the dimensions of the schedule domain.
@@ -2730,11 +2784,7 @@ private:
      */
     void set_iterators_map(std::map<std::string, isl_ast_expr *> map);
 
-    /**
-      * Identical to
-      *      void shift(tiramisu::var L0, int n);
-      */
-    void shift(int L0, int n);
+    
 
     /**
       * Simplify \p set using the context and by calling
@@ -4112,6 +4162,7 @@ public:
       */
     buffer *get_automatically_allocated_buffer();
 
+    virtual void matrix_transform(std::vector<std::vector<int>> matrix);
     /**
       * Interchange (swap) the two loop levels \p L0 and \p L1.
       */
@@ -4316,6 +4367,12 @@ public:
       * a negative value would mean a shift backward.
       */
     virtual void shift(var L0, int n);
+
+    /**
+      * Identical to
+      *      void shift(tiramisu::var L0, int n);
+      */
+    virtual void shift(int L0, int n);
     
 
     /*
@@ -4397,7 +4454,7 @@ public:
 
       * and apply
 
-      \code
+      \codes
         a.skew(i, j, 1, 1, ni, nj);
       \endcode
 
@@ -4430,13 +4487,10 @@ public:
         for (int j = 1; j < M; j++)
           a[i][j] = a[i - 1][j] + a[i][j - 1];
        \endcode
-
       * and apply
-
       \code
         a.skew(i, j, 1, 1, 0, 1, ni, nj);
       \endcode
-
       * you would get
       *
       \code
@@ -4802,9 +4856,17 @@ public:
       * assigned.
       */
     // @{
+    virtual void vectorize(int L,int v);
     virtual void vectorize(var L, int v);
     virtual void vectorize(var L, int v, var L_outer, var L_inner);
     // @}
+
+    /**
+     * Finds the loop level that should be vectorized to improve performance using the access relation.
+     * if level is -1 it means that there is potentiel loop level selected
+    */
+
+    int get_potentiel_vectorizable_loop_level();
 
     /**
       * \brief Generate communication code for this computation
@@ -5522,7 +5584,15 @@ public:
      * the upper bound and false to extract the lower bound.
      */
      static expr extract_bound_expression(isl_ast_node *ast, int dim, bool upper);
-
+     /**
+      * Return single iterator bound
+      *
+      */
+     static int get_single_iterator_bound(isl_set *set, int dim);
+    /**
+      * get constraints map
+      */
+     static std::unordered_map<std::string, bool> get_constraints_map(isl_set *set);
     /**
      * Return a tiramisu::expr representing the bound of
      * the dimension \p dim in \p set.  If \p upper is true
