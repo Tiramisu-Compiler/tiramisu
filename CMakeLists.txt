@@ -439,4 +439,4 @@ endforeach()
 # Individual benchmarks are moved to benchmarks/CMakeLists.txt to reduce clutter
 add_subdirectory(benchmarks)
 
-add_subdirectory(tutorials/tutorial_autoscheduler)
+# add_subdirectory(tutorials/tutorial_autoscheduler)
