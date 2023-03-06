@@ -8,7 +8,7 @@ option(USE_MPI "Build with MPI support" OFF)
 
 option(WITH_PYTHON_BINDINGS "Build Python bindings" ON)
 
-option(USE_AUTO_SCHEDULER "Build the Tiramisu auto-scheduler" FALSE)
+option(USE_AUTO_SCHEDULER "Build the Tiramisu auto-scheduler" ON)
 
 option(WITH_TUTORIALS "Build Tutorials" OFF)
 

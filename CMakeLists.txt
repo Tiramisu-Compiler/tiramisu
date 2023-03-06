@@ -72,6 +72,10 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_CXX_STANDARD 17)  # or newer
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)
+include_directories("include"
+        "${ISL_INCLUDE_DIRECTORY}"
+        "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
+        "build")
 
 find_package(Halide 14 REQUIRED)
 find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
@@ -120,6 +124,7 @@ PUBLIC_HEADER DESTINATION include/tiramisu
 )
 
 if (USE_AUTO_SCHEDULER)
+   message(STATUS "Building AUTO SCHEDULER")
    install(TARGETS tiramisu_auto_scheduler
    EXPORT tiramisu_Targets
    LIBRARY DESTINATION lib

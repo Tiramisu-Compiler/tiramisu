@@ -19,7 +19,8 @@ namespace tiramisu::auto_scheduler
         SKEWING,
         MATRIX,
         VECTORIZATION,
-        SHIFTING_POSITIVE // a specialisation of SKEWING optimization
+        SHIFTING,
+        SKEWING_POSITIVE // a specialisation of SKEWING optimization
     };
 
     /**

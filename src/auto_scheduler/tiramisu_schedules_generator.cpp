@@ -612,7 +612,7 @@ namespace tiramisu::auto_scheduler
 
                 nb_try++;
 
-                if (nb_try == this->parallelism_search_deapth)
+                if (nb_try == this->parallelism_search_depth)
                 {
                     break;
                 }

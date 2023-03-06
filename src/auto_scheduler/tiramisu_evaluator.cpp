@@ -26,12 +26,13 @@ evaluate_by_execution::evaluate_by_execution(std::vector<tiramisu::buffer*> cons
     for (auto const& buf : arguments)
     {
         Halide::Argument buffer_arg(
-                buf->get_name(),
-                halide_argtype_from_tiramisu_argtype(buf->get_argument_type()),
-                halide_type_from_tiramisu_type(buf->get_elements_type()),
-                buf->get_n_dims());
-                
-       halide_arguments.push_back(buffer_arg);
+            buf->get_name(),
+            halide_argtype_from_tiramisu_argtype(buf->get_argument_type()),
+            halide_type_from_tiramisu_type(buf->get_elements_type()),
+            buf->get_n_dims(),
+            Halide::ArgumentEstimates{});
+
+        halide_arguments.push_back(buffer_arg);
     }
 }
 //TODO remove this function and change the whole structure of the evaluator classes
@@ -52,10 +53,15 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
     fct->gen_halide_stmt();
     
     Halide::Module m = lower_halide_pipeline(fct->get_name(), halide_target, halide_arguments,
-                                             Halide::Internal::LoweredFunc::External,
+                                             Halide::LinkageType::External,
                                              fct->get_halide_stmt());
                                              
-    m.compile(Halide::Outputs().object(obj_filename));
+    // m.compile(Halide::Outputs().object(obj_filename));
+    std::map<Halide::OutputFileType, std::string> omap = {
+        {Halide::OutputFileType::object, obj_filename}
+    };
+
+    m.compile(omap);
 
     std::string gpp_command = read_env_var("GXX");
 
@@ -94,10 +100,15 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
     fct->gen_halide_stmt();
 
     Halide::Module m = lower_halide_pipeline(fct->get_name(), halide_target, halide_arguments,
-                                             Halide::Internal::LoweredFunc::External,
+                                             Halide::LinkageType::External,
                                              fct->get_halide_stmt());
 
-    m.compile(Halide::Outputs().object(obj_filename));
+    // m.compile(Halide::Outputs().object(obj_filename));
+    std::map<Halide::OutputFileType, std::string> omap = {
+        {Halide::OutputFileType::object, obj_filename}
+    };
+
+    m.compile(omap);
 
     std::string gpp_command = read_env_var("GXX");
 

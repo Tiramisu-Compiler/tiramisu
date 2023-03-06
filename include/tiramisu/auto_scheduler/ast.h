@@ -423,9 +423,7 @@ namespace tiramisu::auto_scheduler
         /**
          * Changes the access within computation_info after applying the skewing optimization
          */
-        void transform_accesses_with_skwing(int a, int b);
-
-        void transform_accesses_with_skewing_positive(int a, int b, int c, int d);
+        void transform_accesses_with_skewing(int a, int b);
 
         void transform_accesses_with_skewing_positive(int a, int b, int c, int d);
 

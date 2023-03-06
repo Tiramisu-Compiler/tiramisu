@@ -154,13 +154,6 @@ namespace tiramisu
             child->skew(i, j, a, b);
         }
     }
-    void block::skew(var i, var j, int a, int b, int c, int d, var ni, var nj)
-    {
-        for (auto &child : this->children)
-        {
-            child->skew(i, j, a, b, c, d, ni, nj);
-        }
-    }
 
     void block::skew(var i, var j, int a, int b, int c, int d, var ni, var nj)
     {
