@@ -39,13 +39,14 @@ inline bool can_split_iterator(std::string up_bound, std::string low_bound, int 
  * Returns true if the extent is bigger than split factor,
  * (.i.e more than one iteration would be produced after splitting) 
 */
-inline bool can_split_iterator_sup(std::string up_bound, std::string low_bound,  int split_fact)
+inline bool can_split_iterator_sup(std::string up_bound, std::string low_bound,  int split_fact, optimization_type opt=optimization_type::TILING)
 {
     if(check_if_number(up_bound) && check_if_number(low_bound)){
         int it_extent = stoi(up_bound) - stoi(low_bound)+1;
         return it_extent > split_fact;
-    }else{
-        return true;
+    }else{// in the case where one of the bounds is not a constant, we can't apply unrolling.
+        if (opt == optimization_type::UNROLLING)
+            return false;
     }
     
 }

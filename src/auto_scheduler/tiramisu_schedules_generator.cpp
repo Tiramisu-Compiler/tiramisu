@@ -532,7 +532,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                 ast.recover_isl_states();
 
                 for (int unrolling_fact: unrolling_factors_list) {
-                    if (can_split_iterator(inner_most_node->up_bound, inner_most_node->low_bound, unrolling_fact, optimization_type::UNROLLING)) {
+                    if (can_split_iterator_sup(inner_most_node->up_bound, inner_most_node->low_bound, unrolling_fact, optimization_type::UNROLLING)) {
                         // Copy the AST and add unrolling to the list of optimizations
                         syntax_tree *new_ast = new syntax_tree();
                         ast_node *new_node = ast.copy_and_return_node(*new_ast, inner_most_node);
