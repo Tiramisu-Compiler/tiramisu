@@ -20,3 +20,5 @@ __pycache__
 .ipynb_checkpoints
 cmake-build-debug/
 
+/cmake-build-debug/
+/cmake-build-autoscheduler/
