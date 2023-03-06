@@ -49,7 +49,23 @@ class NbAccessException(Exception):
 class LoopsDepthException(Exception):
     pass
 
+def seperate_vector(
+    X: torch.Tensor, num_transformations: int = 4, pad: bool = True, pad_amount: int = 5
+) -> torch.Tensor:
+    batch_size, _ = X.shape
+    first_part = X[:, :33]
+    second_part = X[:, 33 : 33 + MAX_TAGS * num_transformations]
+    third_part = X[:, 33 + MAX_TAGS * num_transformations :]
+    vectors = []
+    for i in range(num_transformations):
+        vector = second_part[:, MAX_TAGS * i : MAX_TAGS * (i + 1)].reshape(batch_size, 1, -1)
+        vectors.append(vector)
 
+    if pad:
+        for i in range(pad_amount):
+            vector = torch.zeros_like(vector)
+            vectors.append(vector)
+    return (first_part, torch.cat(vectors[0:], dim=1), third_part)
 
 global_dioph_sols_dict = dict()
 MAX_MATRICES = 5
@@ -59,12 +75,13 @@ def get_representation_template(program_json, no_sched_json, max_depth, train_de
     # Set the max and min number of accesses allowed 
     max_accesses = 15
     min_accesses = 0
+
     comps_repr_templates_list = []
     comps_expr_repr_templates_list = []
     comps_indices_dict = dict()
     comps_placeholders_indices_dict = dict()
 
-    
+
     # Get the computations (program statements) dictionary and order them according to the absolute_order attribute
     computations_dict = program_json["computations"]
     ordered_comp_list = sorted(
@@ -73,17 +90,17 @@ def get_representation_template(program_json, no_sched_json, max_depth, train_de
     )
 
     for comp_index, comp_name in enumerate(ordered_comp_list):
-        
+
         comp_dict = computations_dict[comp_name]
         expr_dict = comp_dict["expression_representation"]
         comp_type = comp_dict["data_type"]
         comps_expr_repr_templates_list.append(get_tree_expr_repr(expr_dict, comp_type))
         if len(comp_dict["accesses"]) > max_accesses:
             raise NbAccessException
-        
+
         if len(comp_dict["accesses"]) < min_accesses:
             raise NbAccessException
-        
+
         if len(comp_dict["iterators"]) > max_depth:
             raise LoopsDepthException
 
@@ -99,7 +116,7 @@ def get_representation_template(program_json, no_sched_json, max_depth, train_de
             # Create a unique code for each loop
             c_code = "C" + str(comp_index)
             l_code = c_code + "-L" + str(iter_i)
-            
+
             # Add a placeholder for transformations applied to this loop
             iterators_repr.extend(
                 [
@@ -111,14 +128,14 @@ def get_representation_template(program_json, no_sched_json, max_depth, train_de
                     l_code + "ShiftFactor",
                 ]
             )
-        
+
         iterator_repr_size = int(len(iterators_repr) / len(comp_dict["iterators"]))
-        
+
         # Add padding incase the number of loops is lower than the max
         iterators_repr.extend(
             [0] * iterator_repr_size * (max_depth - len(comp_dict["iterators"]))
         )
-        
+
         # Add two tags for whether unrolling was applied and the unrolling factor
         iterators_repr.extend([c_code + "-Unrolled", c_code + "-UnrollFactor"])
 
@@ -126,67 +143,63 @@ def get_representation_template(program_json, no_sched_json, max_depth, train_de
         iterators_repr.append(c_code + "-TransformationTagsStart")
         iterators_repr.extend(["M"] * (MAX_TAGS * MAX_NUM_TRANSFORMATIONS - 2))
         iterators_repr.append(c_code + "-TransformationTagsEnd")
-        
+
         # Adding initial constraint matrix
-        iterators_repr.append(c_code+'-OgConstraintMatrixStart')
-        iterators_repr.extend(['C']*((max_depth+1)*((max_depth+1)*2)-2))
-        iterators_repr.append(c_code+'-OgConstraintMatrixEnd')
-        
-        # Adding initial constraint matrix
-        iterators_repr.append(c_code+'-OgConstraintVectorStart')
-        iterators_repr.extend(['V']*(max_depth*2-2))
-        iterators_repr.append(c_code+'-OgConstraintVectorEnd')
-        
+        # Remove the 1 mask from constraint matrix. Not necessary.
+        iterators_repr.append(c_code + '-OgConstraintMatrixStart')
+        iterators_repr.extend(['OgC'] * ((max_depth * max_depth * 2) - 2))
+        iterators_repr.append(c_code + '-OgConstraintMatrixEnd')
+
+        # Adding initial constraint vector
+        iterators_repr.append(c_code + '-OgConstraintVectorStart')
+        iterators_repr.extend(['V'] * (max_depth * 2 - 2))
+        iterators_repr.append(c_code + '-OgConstraintVectorEnd')
+
         # Adding transformed constraint matrix
-        iterators_repr.append(c_code+'-ConstraintMatrixStart')
-        iterators_repr.extend(['C']*((max_depth+1)*((max_depth+1)*2)-2))
-        iterators_repr.append(c_code+'-ConstraintMatrixEnd')
-                              
-        # Add the loop representation to the computation vector 
+        iterators_repr.append(c_code + '-ConstraintMatrixStart')
+        iterators_repr.extend(['C'] * ((max_depth * max_depth * 2) - 2))
+        iterators_repr.append(c_code + '-ConstraintMatrixEnd')
+
+        # Add the loop representation to the computation vector
         comp_repr_template.extend(iterators_repr)
-        
+
         # Pad the write access matrix and add it to the representation
         padded_write_matrix = pad_access_matrix(
             isl_to_write_matrix(comp_dict["write_access_relation"]), max_depth
         )
         write_access_repr = [
-            comp_dict["write_buffer_id"] + 1
-        ] + padded_write_matrix.flatten().tolist()
-
+                                comp_dict["write_buffer_id"] + 1
+                            ] + padded_write_matrix.flatten().tolist()
         comp_repr_template.extend(write_access_repr)
 
         # Pad the read access matrix and add it to the representation
-        # Todo add details about the read accesses 
+        # Todo add details about the read accesses
         read_accesses_repr = []
         for read_access_dict in comp_dict["accesses"]:
             read_access_matrix = pad_access_matrix(
                 read_access_dict["access_matrix"], max_depth
             )
             read_access_repr = (
-                [+read_access_dict["access_is_reduction"]]
-                + [read_access_dict["buffer_id"] + 1]
-                + read_access_matrix.flatten().tolist()
+                    [+read_access_dict["access_is_reduction"]]
+                    + [read_access_dict["buffer_id"] + 1]
+                    + read_access_matrix.flatten().tolist()
             )
             read_accesses_repr.extend(read_access_repr)
 
-        
         access_repr_len = (max_depth + 1) * (max_depth + 2) + 1 + 1
-        
+
         read_accesses_repr.extend(
             [0] * access_repr_len * (max_accesses - len(comp_dict["accesses"]))
         )
-
         comp_repr_template.extend(read_accesses_repr)
 
         comps_repr_templates_list.append(comp_repr_template)
-        
         # Create a mapping between the features and their position in the representation
         comps_indices_dict[comp_name] = comp_index
         for j, element in enumerate(comp_repr_template):
             if isinstance(element, str):
                 comps_placeholders_indices_dict[element] = (comp_index, j)
-            
-        
+
     # Create a representation of the loops independantly from the computations
     loops_repr_templates_list = []
     loops_indices_dict = dict()
@@ -196,7 +209,7 @@ def get_representation_template(program_json, no_sched_json, max_depth, train_de
         # Create a unique code for each loop
         loop_repr_template = []
         l_code = "L" + loop_name
-        
+
         # Add a placeholder for transformations applied to this loop
         loop_repr_template.extend(
             [
@@ -210,7 +223,7 @@ def get_representation_template(program_json, no_sched_json, max_depth, train_de
                 l_code + "ShiftFactor",
             ]
         )
-        
+
         # Create a mapping between the features and their position in the representation
         loops_repr_templates_list.append(loop_repr_template)
         loops_indices_dict[loop_name] = loop_index
@@ -218,15 +231,15 @@ def get_representation_template(program_json, no_sched_json, max_depth, train_de
         for j, element in enumerate(loop_repr_template):
             if isinstance(element, str):
                 loops_placeholders_indices_dict[element] = (loop_index, j)
-    
-    
-    # Make sure no fusion was applied on this version and get the original tree structure 
+
+    # Make sure no fusion was applied on this version and get the original tree structure
     assert "fusions" not in no_sched_json or no_sched_json["fusions"] == None
 
     orig_tree_structure = no_sched_json["tree_structure"]
     tree_annotation = copy.deepcopy(orig_tree_structure)
 
-    prog_tree = update_tree_atributes(tree_annotation, loops_indices_dict, comps_indices_dict, train_device=train_device)
+    prog_tree = update_tree_atributes(tree_annotation, loops_indices_dict, comps_indices_dict,
+                                      train_device=train_device)
     
     # adding padding to the expressions to get same size expressions
     max_exprs = 0
@@ -491,53 +504,75 @@ def format_bound(iterator_name, bound, iterators_list, is_lower):
         else:
             output.append(0)
     return output
+
+
 def get_padded_initial_constrain_matrix(program_json, schedule_json, comp_name, max_depth):
     iterators_list = program_json["computations"][comp_name]["iterators"]
-    transformation_matrix = get_transformation_matrix(program_json, schedule_json, comp_name, max_depth)
     result = []
     for i in iterators_list:
         for j in range(2):
-            if j == 0 :
+            if j == 0:
                 result.append(format_bound(i, program_json["iterators"][i]["lower_bound"], iterators_list, True))
             else:
                 result.append(format_bound(i, program_json["iterators"][i]["upper_bound"], iterators_list, False))
-                
-    result = np.c_[np.ones(len(result)), result]
-    result = np.r_[[np.ones(len(result[0]))], result]
+    result = np.array(result)
     result = np.pad(
         result,
         [
-            (0, (max_depth + 1)*2 - result.shape[0]),
-            (0, max_depth + 1 - result.shape[1]),
+            (0, (max_depth) * 2 - result.shape[0]),
+            (0, max_depth - result.shape[1]),
         ],
         mode="constant",
         constant_values=0,
     )
     return result
+# check whether the string contains an integer and return true if so
+def is_int(s):
+    if s[0] in ('-', '+'):
+        return s[1:].isdigit()
+    return s.isdigit()
+
+# returns a vector that represents the right hand sise of teh constraint matrix inequalities
+# returns b where: Ax <= b and A being the constarint matrix
+def get_padded_second_side_of_the_constraint_equations_original(program_json, schedule_json, comp_name, max_depth):
+    iterators_list = program_json["computations"][comp_name]["iterators"]
+    result = []
+    for it in iterators_list:
+        if(is_int(program_json["iterators"][it]["lower_bound"])):
+            result.append(int(program_json["iterators"][it]["lower_bound"]))
+        else:
+            result.append(0)
+        if(is_int(program_json["iterators"][it]["upper_bound"])):
+            result.append(int(program_json["iterators"][it]["upper_bound"]))
+        else:
+            result.append(0)
+    result = result + [0]*(max_depth*2-len(result))
+    return result
+
+
 def get_padded_transformed_constrain_matrix(program_json, schedule_json, comp_name, max_depth):
     iterators_list = program_json["computations"][comp_name]["iterators"]
     transformation_matrix = get_transformation_matrix(program_json, schedule_json, comp_name, max_depth)
     result = []
     for i in iterators_list:
         for j in range(2):
-            if j == 0 :
+            if j == 0:
                 result.append(format_bound(i, program_json["iterators"][i]["lower_bound"], iterators_list, True))
             else:
                 result.append(format_bound(i, program_json["iterators"][i]["upper_bound"], iterators_list, False))
     inverse = np.linalg.inv(transformation_matrix)
     result = np.matmul(result, inverse)
-    
-    result = np.c_[np.ones(len(result)), result]
-    result = np.r_[[np.ones(len(result[0]))], result]
+    result = np.array(result)
     result = np.pad(
         result,
         [
-            (0, (max_depth + 1)*2 - result.shape[0]),
-            (0, max_depth + 1 - result.shape[1]),
+            (0, (max_depth) * 2 - result.shape[0]),
+            (0, max_depth - result.shape[1]),
         ],
         mode="constant",
         constant_values=0,
     )
+
     return result
 def get_trasnformation_matrix_from_vector(transformation, matrix_size):
     matrix = np.identity(matrix_size)
@@ -581,24 +616,22 @@ def get_schedule_representation(
     loops_placeholders_indices_dict,
     max_depth,
 ):
-# Create a copy of the templates to avoid modifying the values for other schedules
+    # Create a copy of the templates to avoid modifying the values for other schedules
     comps_repr = copy.deepcopy(comps_repr_templates_list)
     loops_repr = copy.deepcopy(loops_repr_templates_list)
 
-    
     computations_dict = program_json["computations"]
     ordered_comp_list = sorted(
         list(computations_dict.keys()),
         key=lambda x: computations_dict[x]["absolute_order"],
     )
-    
-    
+
     for comp_index, comp_name in enumerate(ordered_comp_list):
         comp_dict = program_json["computations"][comp_name]
         comp_schedule_dict = schedule_json[comp_name]
-    
+
         fused_levels = []
-        
+
         # If fusion was applied, save which two loops were fused together
         if "fusions" in schedule_json and schedule_json["fusions"]:
             for fusion in schedule_json["fusions"]:
@@ -606,25 +639,24 @@ def get_schedule_representation(
                 if comp_name in fusion:
                     fused_levels.append(fusion[2])
 
-        
         c_code = "C" + str(comp_index)
         # Loop representation for this computation
         for iter_i, iterator_name in enumerate(comp_dict["iterators"]):
 
             l_code = c_code + "-L" + str(iter_i)
-            
+
             # Check whether parallelization was applied and put the tag in its corresponding position in the computation representation
             parallelized = 0
             if iterator_name == comp_schedule_dict["parallelized_dim"]:
                 parallelized = 1
             p_index = comps_placeholders_indices_dict[l_code + "Parallelized"]
             comps_repr[p_index[0]][p_index[1]] = parallelized
-            
+
             # Check whether tiling was applied and put the tags in their corresponding position in the computation representation
             tiled = 0
             tile_factor = 0
             if comp_schedule_dict["tiling"] and (
-                iterator_name in comp_schedule_dict["tiling"]["tiling_dims"]
+                    iterator_name in comp_schedule_dict["tiling"]["tiling_dims"]
             ):
                 tiled = 1
                 tile_factor_index = comp_schedule_dict["tiling"]["tiling_dims"].index(
@@ -644,13 +676,13 @@ def get_schedule_representation(
                 fused = 1
             p_index = comps_placeholders_indices_dict[l_code + "Fused"]
             comps_repr[p_index[0]][p_index[1]] = fused
-            
+
             shifted = 0
             shifting_factor = 0
             if comp_schedule_dict['shiftings']:
-                for shifting in comp_schedule_dict['shiftings']: 
-                    if iterator_name.startswith(shifting[0]): # loof if the current loop is being shifted
-                        shifted=1
+                for shifting in comp_schedule_dict['shiftings']:
+                    if iterator_name.startswith(shifting[0]):  # loof if the current loop is being shifted
+                        shifted = 1
                         shifting_factor = shifting[1]
                         break
             p_index = comps_placeholders_indices_dict[l_code + "Shifted"]
@@ -663,56 +695,65 @@ def get_schedule_representation(
         if comp_schedule_dict["unrolling_factor"]:
             unrolled = 1
             unroll_factor = int(comp_schedule_dict["unrolling_factor"])
-            
+
         p_index = comps_placeholders_indices_dict[c_code + "-Unrolled"]
         comps_repr[p_index[0]][p_index[1]] = unrolled
-        
+
         p_index = comps_placeholders_indices_dict[c_code + "-UnrollFactor"]
         comps_repr[p_index[0]][p_index[1]] = unroll_factor
-        
+
         # Check which transformations (interchange, reversal and skweing) were applied and add the padded vector representation to their corresponding position
         padded_tags = get_padded_transformation_tags(
             program_json, schedule_json, comp_name, max_depth
         )
-        
-        tags_start = comps_placeholders_indices_dict[ c_code + "-TransformationTagsStart" ]
-        
+
+        tags_start = comps_placeholders_indices_dict[c_code + "-TransformationTagsStart"]
+
         tags_end = comps_placeholders_indices_dict[c_code + "-TransformationTagsEnd"]
-        
+
         nb_tags_elements = tags_end[1] - tags_start[1] + 1
-        
+
         assert len(padded_tags) == nb_tags_elements
-        
-        comps_repr[tags_start[0]][tags_start[1] : tags_end[1] + 1] = padded_tags
-        
-        ogc_start = comps_placeholders_indices_dict[c_code+'-OgConstraintMatrixStart']
-        
-        ogc_end = comps_placeholders_indices_dict[c_code+'-OgConstraintMatrixEnd']
-        
+
+        comps_repr[tags_start[0]][tags_start[1]: tags_end[1] + 1] = padded_tags
+
+        ogc_start = comps_placeholders_indices_dict[c_code + '-OgConstraintMatrixStart']
+
+        ogc_end = comps_placeholders_indices_dict[c_code + '-OgConstraintMatrixEnd']
+
         nb_mat_elements = ogc_end[1] - ogc_start[1] + 1
-        
-        max_depth_it = int(np.sqrt(nb_mat_elements / 2)) - 1
-        
-        comps_repr[ogc_start[0]][ogc_start[1] : ogc_end[1] + 1 ] = get_padded_initial_constrain_matrix(program_json, schedule_json, comp_name, max_depth_it).flatten().tolist()
-                              
-        ogv_start = comps_placeholders_indices_dict[c_code+'-OgConstraintVectorStart']
-        
-        ogv_end = comps_placeholders_indices_dict[c_code+'-OgConstraintVectorEnd']
-        
+
+        assert (max_depth * max_depth * 2 == nb_mat_elements)
+
+        comps_repr[ogc_start[0]][ogc_start[1]: ogc_end[1] + 1] = get_padded_initial_constrain_matrix(program_json,
+                                                                                                     schedule_json,
+                                                                                                     comp_name,
+                                                                                                     max_depth).flatten().tolist()
+
+        ogv_start = comps_placeholders_indices_dict[c_code + '-OgConstraintVectorStart']
+
+        ogv_end = comps_placeholders_indices_dict[c_code + '-OgConstraintVectorEnd']
+
         nb_mat_elements = ogv_end[1] - ogv_start[1] + 1
-        
-        comps_repr[ogv_start[0]][ogv_start[1] : ogv_end[1] + 1 ] = get_padded_second_side_of_the_constraint_equations_original(program_json, schedule_json, comp_name, max_depth)
-        
-        c_start = comps_placeholders_indices_dict[c_code+'-ConstraintMatrixStart']
-        
-        c_end = comps_placeholders_indices_dict[c_code+'-ConstraintMatrixEnd']
-        
+
+        comps_repr[ogv_start[0]][
+        ogv_start[1]: ogv_end[1] + 1] = get_padded_second_side_of_the_constraint_equations_original(program_json,
+                                                                                                    schedule_json,
+                                                                                                    comp_name,
+                                                                                                    max_depth)
+
+        c_start = comps_placeholders_indices_dict[c_code + '-ConstraintMatrixStart']
+
+        c_end = comps_placeholders_indices_dict[c_code + '-ConstraintMatrixEnd']
+
         nb_mat_elements = c_end[1] - c_start[1] + 1
-        
-        max_depth_it = int(np.sqrt(nb_mat_elements / 2)) - 1
-        
-        comps_repr[c_start[0]][ c_start[1] : c_end[1] + 1 ] = get_padded_transformed_constrain_matrix(program_json, schedule_json, comp_name, max_depth_it).flatten().tolist()
-        
+
+        assert (max_depth * max_depth * 2 == nb_mat_elements)
+
+        comps_repr[c_start[0]][c_start[1]: c_end[1] + 1] = get_padded_transformed_constrain_matrix(program_json,
+                                                                                                   schedule_json,
+                                                                                                   comp_name,
+                                                                                                   max_depth).flatten().tolist()
 
     # Fill the loop representation
     # Initialization
@@ -730,48 +771,50 @@ def get_schedule_representation(
 
     for comp_index, comp_name in enumerate(ordered_comp_list):
         comp_schedule_dict = schedule_json[comp_name]
-        
-        # Check whether tiling was applied 
+
+        # Check whether tiling was applied
         if comp_schedule_dict["tiling"]:
             for tiled_loop_index, tiled_loop in enumerate(
-                comp_schedule_dict["tiling"]["tiling_dims"]
+                    comp_schedule_dict["tiling"]["tiling_dims"]
             ):
                 loop_schedules_dict[tiled_loop]["tiled"] = 1
-                assert (loop_schedules_dict[tiled_loop]["tile_factor"] == 0 or loop_schedules_dict[tiled_loop]["tile_factor"] == int(
+                assert (loop_schedules_dict[tiled_loop]["tile_factor"] == 0 or loop_schedules_dict[tiled_loop][
+                    "tile_factor"] == int(
                     comp_schedule_dict["tiling"]["tiling_factors"][tiled_loop_index]
                 ))
                 loop_schedules_dict[tiled_loop]["tile_factor"] = int(
                     comp_schedule_dict["tiling"]["tiling_factors"][tiled_loop_index]
                 )
-                
-        # Check whether unrolling was applied 
+
+        # Check whether unrolling was applied
         if comp_schedule_dict["unrolling_factor"]:
             comp_innermost_loop = get_comp_iterators_from_tree_struct(schedule_json, comp_name)[-1]
-#             comp_innermost_loop = computations_dict[comp_name]["iterators"][-1]
+            #             comp_innermost_loop = computations_dict[comp_name]["iterators"][-1]
             loop_schedules_dict[comp_innermost_loop]["unrolled"] = 1
-                
-            assert (loop_schedules_dict[comp_innermost_loop]["unroll_factor"] == 0 or                                                                                           loop_schedules_dict[comp_innermost_loop]["unroll_factor"] == int(comp_schedule_dict["unrolling_factor"]))
-            
+
+            assert (loop_schedules_dict[comp_innermost_loop]["unroll_factor"] == 0 or
+                    loop_schedules_dict[comp_innermost_loop]["unroll_factor"] == int(
+                        comp_schedule_dict["unrolling_factor"]))
+
             loop_schedules_dict[comp_innermost_loop]["unroll_factor"] = int(comp_schedule_dict["unrolling_factor"])
-            
-        # Check whether parallelization was applied 
+
+        # Check whether parallelization was applied
         if comp_schedule_dict["parallelized_dim"]:
             loop_schedules_dict[comp_schedule_dict["parallelized_dim"]]["parallelized"] = 1
-        
-        
+
         if comp_schedule_dict['shiftings']:
-            for shifting in comp_schedule_dict['shiftings']: 
+            for shifting in comp_schedule_dict['shiftings']:
                 loop_schedules_dict[shifting[0]]["shifted"] = 1
                 loop_schedules_dict[shifting[0]]["shift_factor"] = shifting[1]
-        
-    # Check whether fusion was applied 
+
+    # Check whether fusion was applied
     if "fusions" in schedule_json and schedule_json["fusions"]:
         for fusion in schedule_json["fusions"]:
             fused_loop1 = computations_dict[fusion[0]]["iterators"][fusion[2]]
             fused_loop2 = computations_dict[fusion[1]]["iterators"][fusion[2]]
             loop_schedules_dict[fused_loop1]["fused"] = 1
             loop_schedules_dict[fused_loop2]["fused"] = 1
-            
+
     program_iterators = get_comp_iterators_from_tree_struct(schedule_json, comp_name)
     # Get the index of each feature in the loop representation and replace it with the the information obtained from the schedule
     for loop_name in program_json["iterators"]:
@@ -795,18 +838,18 @@ def get_schedule_representation(
         loops_repr[p_index[0]][p_index[1]] = loop_schedules_dict[loop_name][
             "unroll_factor"
         ]
-        
+
         p_index = loops_placeholders_indices_dict[l_code + "Shifted"]
         loops_repr[p_index[0]][p_index[1]] = loop_schedules_dict[loop_name]["shifted"]
         p_index = loops_placeholders_indices_dict[l_code + "ShiftFactor"]
         loops_repr[p_index[0]][p_index[1]] = loop_schedules_dict[loop_name][
             "shift_factor"
         ]
-        
+
         p_index = loops_placeholders_indices_dict[l_code + "Fused"]
         loops_repr[p_index[0]][p_index[1]] = loop_schedules_dict[loop_name]["fused"]
-        
-    if (len(program_json["iterators"])>len(program_iterators)):
+    # Check if any iterators were removed because of fusion
+    if (len(program_json["iterators"]) > len(program_iterators)):
         removed_iterators = list(set(program_json["iterators"]) - set(program_iterators))
         for loop_name in removed_iterators:
             l_code = "L" + loop_name
@@ -823,18 +866,18 @@ def get_schedule_representation(
             loops_repr[p_index[0]][p_index[1]] = 0
             p_index = loops_placeholders_indices_dict[l_code + "UnrollFactor"]
             loops_repr[p_index[0]][p_index[1]] = 0
-            
+
             p_index = loops_placeholders_indices_dict[l_code + "Shifted"]
             loops_repr[p_index[0]][p_index[1]] = 0
             p_index = loops_placeholders_indices_dict[l_code + "ShiftFactor"]
             loops_repr[p_index[0]][p_index[1]] = 0
-            
+
             p_index = loops_placeholders_indices_dict[l_code + "Fused"]
             loops_repr[p_index[0]][p_index[1]] = 0
 
-    
     loops_tensor = torch.unsqueeze(torch.FloatTensor(loops_repr), 0)
     computations_tensor = torch.unsqueeze(torch.FloatTensor(comps_repr), 0)
+
 
     return computations_tensor, loops_tensor
 

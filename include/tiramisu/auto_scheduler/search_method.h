@@ -8,8 +8,10 @@
 #include "schedules_generator.h"
 #include "evaluator.h"
 #include "utils.h"
-// max matrices to be explored per computation
-const int MAX_MAT_DEPTH = 4; 
+// Max matrices to be explored per computation
+const int MAX_MAT_DEPTH = 4;
+// Maximum desired speed up during the exploration of unimodular transformations
+const int THRESHOLD_SPEED_UP = 2;
 namespace tiramisu::auto_scheduler
 {
 
@@ -49,6 +51,11 @@ protected:
      * At the end of search, contains the evaluation of the best AST found.
      */
     float best_evaluation = FLT_MAX;
+    /**
+     * The evaluation of the first, unmodified schedule.
+     * Used to extract the speedup if needed.
+     */
+    float initial_evaluation = FLT_MAX;
     
     /**
      * The best AST so far.

@@ -13,7 +13,7 @@ class Model_Recursive_LSTM_v2(nn.Module):
         drops=[0.225, 0.225, 0.225, 0.225],
         output_size=1,
         lstm_embedding_size=100,
-        expr_embed_size=50,
+        expr_embed_size=100,
         loops_tensor_size=20,
         train_device="cpu",
         num_layers=1,

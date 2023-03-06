@@ -277,15 +277,30 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
     syntax_tree *ast_copy = ast.copy_ast();
     to_be_explored.push_back(ast_copy);
     parent_trace->add_child_path(ast_copy, parent_trace->get_candidate_id());
-    
+    // Decide whether to stop exploring unimodular transformation
+    bool reached_threshold = false;
+    if(std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1){
+        // If we are exploring by execution, we calculate the best reached speed-up so far
+        float speed_up = initial_evaluation/best_evaluation;
+        // If the speed-up surpasses the user-set threshold, we indicate that this step of the exploration should stop.
+        if (speed_up>THRESHOLD_SPEED_UP) {
+            reached_threshold = true;
+        }
+    }else{
+        // If we are exploring by cost model, we compare directly the best predicted speed-up with the user-set threshold
+        if ((-best_evaluation)>THRESHOLD_SPEED_UP) {
+            reached_threshold = true;
+        }
+    }
     // we explore MAX_MAT_DEPTH matrices per computations
     int nb_comps= ast.get_innermost_nodes().size();
     for (syntax_tree *child : to_be_explored)
     {
         // increment the search depth for the recursive call
         child->search_depth = child->search_depth + 1;
-        // if we are NOT under the maximum depth of matrices to explore then call search_move on to the next exploration phase
-        if (!(child->search_depth< MAX_MAT_DEPTH * nb_comps && child->search_depth-1 <= child->nb_explored_matrices)){
+        // If we are NOT under the maximum depth of matrices to explore OR we reached the speed-up threshold
+        // then call search_save on to the next exploration phase
+        if (!(child->search_depth< MAX_MAT_DEPTH * nb_comps && child->search_depth-1 <= child->nb_explored_matrices) || reached_threshold){
             child->initialize_search_space_optimizations(DEFAULT_OPTIMIZATIONS_ORDER);
             // if we surpassed the MAX_MAT_DEPTH amount of matrices to explore OR we detected the parent of this level through
             // the child->search_depth<=child->nb_explored_matrices condition which means that the search level is greater than the number of applied matrices
