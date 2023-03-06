@@ -83,10 +83,11 @@ if [ "${USE_LIBPNG}" = "0" ]; then
 fi
 echo_and_run_cmd "cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR=${PROJECT_SRC_DIR}/3rdParty/llvm/prefix/lib/cmake/llvm ${CXXFLAGS_JPEG} ${CXXFLAGS_PNG} -S . -B build"
 echo_and_run_cmd "cmake --build build -j ${CORES}"
+echo_and_run_cmd "cmake --install ./build --prefix ./install --config Release"
 
 cd ${PROJECT_SRC_DIR}
 echo "Done installing Halide"
 echo "Having installed all depends, we suggest you set your PATH and LD_LIBRARY_PATH as follows:"
-echo "export PATH=${PROJECT_SRC_DIR}/3rdParty/llvm/build/bin:$PATH"
-echo "export LD_LIBRARY_PATH=${PROJECT_SRC_DIR}/3rdParty/Halide/build/src:${PROJECT_SRC_DIR}/3rdParty/llvm/build/lib:$LD_LIBRARY_PATH"
-
+echo_and_run_cmd "export PATH=${PROJECT_SRC_DIR}/3rdParty/llvm/build/bin:$PATH"
+echo_and_run_cmd "export LD_LIBRARY_PATH=${PROJECT_SRC_DIR}/3rdParty/Halide/build/src:${PROJECT_SRC_DIR}/3rdParty/llvm/build/lib:$LD_LIBRARY_PATH"
+echo_and_run_cmd "export CMAKE_PREFIX_PATH=${PROJECT_SRC_DIR}/3rdParty/Halide/install/:$CMAKE_PREFIX_PATH"
