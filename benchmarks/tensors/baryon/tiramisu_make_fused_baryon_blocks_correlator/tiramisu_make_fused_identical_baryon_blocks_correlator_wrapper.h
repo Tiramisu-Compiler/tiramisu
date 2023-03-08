@@ -16,8 +16,6 @@
 #define Vsnk P_Vsnk
 #define Nsrc P_Nsrc
 #define Nsnk P_Nsnk
-//#define NsrcSC P_B1NsrcSC
-//#define NsnkSC P_B1NsnkSC
 #define NsrcSC P_B1Nweights
 #define NsnkSC P_B1Nweights
 #define NsrcHex P_NsrcHex
