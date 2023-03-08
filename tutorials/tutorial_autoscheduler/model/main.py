@@ -26,24 +26,6 @@ model_path = (
 
 MAX_DEPTH = 5
 
-def seperate_vector(
-    X: torch.Tensor, num_transformations: int = 4, pad: bool = True, pad_amount: int = 5
-) -> torch.Tensor:
-    batch_size, _ = X.shape
-    first_part = X[:, :33]
-    second_part = X[:, 33 : 33 + MAX_TAGS * num_transformations]
-    third_part = X[:, 33 + MAX_TAGS * num_transformations :]
-    vectors = []
-    for i in range(num_transformations):
-        vector = second_part[:, MAX_TAGS * i : MAX_TAGS * (i + 1)].reshape(batch_size, 1, -1)
-        vectors.append(vector)
-
-    if pad:
-        for i in range(pad_amount):
-            vector = torch.zeros_like(vector)
-            vectors.append(vector)
-    return (first_part, torch.cat(vectors[0:], dim=1), third_part)
-
 with torch.no_grad():
     device = "cpu"
     torch.device("cpu")

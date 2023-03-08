@@ -246,7 +246,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                 return states;
             }
 
-            // 2 computations's nodes that need to fuze together  
+            // 2 computations's nodes that need to fuze together
             auto node_computation = ast.get_current_optimization_target();
             auto previous_node_computation = ast.get_previous_optimization_target();
 
@@ -256,7 +256,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
             // adjusted nodes are the target nodes or their parents with same depth in the AST
             auto potentiel_fusion = current_node->get_possible_fusion_candidate(previous_node);
             ast_node * previous_node_adjusted = std::get<0>(potentiel_fusion);
-            
 
             auto involved_iterators = previous_node_adjusted->get_all_iterators();
 
@@ -1043,9 +1042,9 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     }
     
     
-    //  Add skweing 
+    //  Add skweing
     ast.stage_isl_states();
-  
+
     std::vector<tiramisu::computation *> involved_computations_skew;
     // for shared nodes the list of involved computations is always the same.
     // that's only the case when we compute test shared loop levels only (not always the case).
@@ -1061,7 +1060,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         ast.recover_isl_states();
         explre_solver_skew = false;
     }
-    
+
     if(explre_solver_skew){
         for (ast_node *commun_node : shared_nodes)
         {
@@ -1079,7 +1078,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     var(loop_name),var(loop_name_inner),
                     skewing_inner_parallelism_number
                     );
-            
+
             std::vector<std::tuple<int, int, int, int>> positive_param_vector = std::get<1>(positive_skewing);
 
             if(std::get<0>(positive_skewing).size() > 0){
@@ -1091,7 +1090,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
             // Explore the legacy skewing
             if (std::get<1>(result_skewing).size() > 0) // inner parallelism has solutions
             {
-                
+
                 ast.recover_isl_states();
                 for (auto &param : std::get<1>(result_skewing))
                 {
@@ -1102,14 +1101,14 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     optimization_info optim_info;
                     optim_info.type = optimization_type::MATRIX;
                     optim_info.node = new_node;
-                    
+
 
                     optim_info.nb_l = 2;
                     optim_info.l0 = new_node->depth;
                     optim_info.l1 = new_node->depth + 1;
                     optim_info.l0_fact = std::get<0>(param);
                     optim_info.l1_fact = std::get<1>(param);
-                    
+
                     std::vector <  std::vector<int> >  matrix(depth);
                     for(int l = 0; l<matrix.size(); l++){
                         matrix.at(l)= std::vector<int>(depth);
@@ -1122,13 +1121,13 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                         }
                     }
                     matrix.at(optim_info.l0).at(optim_info.l1) = optim_info.l1_fact;
-                    matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;   
-                    
+                    matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;
+
                     if(optim_info.l0_fact!=1){
                         // This skewing would cause the increment to be !=1 which is not supported by Tiramisu.
                         // We modify the skewing matrix so that we can still apply skewing.
                         std::vector<int> solutions=get_skew_params(optim_info.l0_fact, optim_info.l1_fact);
-                        
+
                         matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(1);
                         matrix.at(optim_info.l1).at(optim_info.l1-1) =  solutions.at(0);
                     }
@@ -1160,7 +1159,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     optim_info.l1 = new_node->depth + 1;
                     optim_info.l0_fact = std::get<0>(param);
                     optim_info.l1_fact = std::get<1>(param);
-                    
+
                     std::vector <  std::vector<int> >  matrix(depth);
                     for(int l = 0; l<matrix.size(); l++){
                         matrix.at(l)= std::vector<int>(depth);
@@ -1173,13 +1172,13 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                         }
                     }
                     matrix.at(optim_info.l0).at(optim_info.l1) = optim_info.l1_fact;
-                    matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;  
-                    
+                    matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;
+
                     if(optim_info.l0_fact!=1){
                         // This skewing would cause the increment to be !=1 which is not supported by Tiramisu.
                         // We modify the skewing matrix so that we can still apply skewing.
                         std::vector<int> solutions=get_skew_params(optim_info.l0_fact, optim_info.l1_fact);
-                        
+
                         matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(1);
                         matrix.at(optim_info.l1).at(optim_info.l1-1) =  solutions.at(0);
                     }
@@ -1227,8 +1226,8 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                         }
                     }
                     matrix.at(optim_info.l0).at(optim_info.l1) = optim_info.l1_fact;
-                    matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;     
-                    
+                    matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;
+
                     if(optim_info.l0_fact!=1){
                         // This skewing would cause the increment to be !=1 which is not supported by Tiramisu.
                         // We modify the skewing matrix so that we can still apply skewing.
@@ -1287,19 +1286,20 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     matrix.at(optim_info.l0).at(optim_info.l1) = optim_info.l1_fact;
                     matrix.at(optim_info.l1).at(optim_info.l0) = optim_info.l2_fact;
                     matrix.at(optim_info.l1).at(optim_info.l1) = optim_info.l3_fact;
-                    
+
                     optim_info.matrix = matrix;
                     optim_info.comps = involved_computations;
                     optim_info.unimodular_transformation_type = 3;
                     new_ast->new_optims.push_back(optim_info);
                     states.push_back(new_ast);
                 }
-                
+
             }
             ast.stage_isl_states();
         }
         ast.recover_isl_states();
     }
+    ast.stage_isl_states();
     bool explre_3d_solver_skew = true;
     if (shared_nodes.size() > 2)
     {
@@ -1375,7 +1375,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                             }
                         }
                     }
-                    
+
                     matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;
                     matrix.at(optim_info.l0).at(optim_info.l1) = optim_info.l1_fact;
                     matrix.at(optim_info.l0).at(optim_info.l2) = optim_info.l2_fact;

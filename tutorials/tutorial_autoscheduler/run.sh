@@ -1,4 +1,4 @@
-export BEAM_SIZE=1
+export BEAM_SIZE=10
 export DYNAMIC_RUNS=1
 export MAX_RUNS=1
 export NB_EXEC=1
@@ -13,10 +13,10 @@ export MIN_RUNS=1
 export TIRAMISU_ROOT=/data/kb4083/tiramisu/
 
 # Compile the autoscheduler
-cd -I${TIRAMISU_ROOT}/build
+cd ${TIRAMISU_ROOT}/build
 make -j tiramisu_auto_scheduler
 
-cd -I${TIRAMISU_ROOT}/tutorials/tutorial_autoscheduler
+cd ${TIRAMISU_ROOT}/tutorials/tutorial_autoscheduler
 # Cmpile and run a program
 mkdir build ; cd build
 export BUILD_TARGET="generator"

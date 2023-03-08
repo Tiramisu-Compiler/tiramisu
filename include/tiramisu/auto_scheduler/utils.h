@@ -48,7 +48,7 @@ inline bool can_split_iterator_sup(std::string up_bound, std::string low_bound, 
         if (opt == optimization_type::UNROLLING)
             return false;
     }
-    
+    return true;
 }
 
 /**

@@ -54,7 +54,23 @@ class LoopsDepthException(Exception):
 global_dioph_sols_dict = dict()
 MAX_MATRICES = 5
 
+def seperate_vector(
+    X: torch.Tensor, num_transformations: int = 4, pad: bool = True, pad_amount: int = 5
+) -> torch.Tensor:
+    batch_size, _ = X.shape
+    first_part = X[:, :33]
+    second_part = X[:, 33 : 33 + MAX_TAGS * num_transformations]
+    third_part = X[:, 33 + MAX_TAGS * num_transformations :]
+    vectors = []
+    for i in range(num_transformations):
+        vector = second_part[:, MAX_TAGS * i : MAX_TAGS * (i + 1)].reshape(batch_size, 1, -1)
+        vectors.append(vector)
 
+    if pad:
+        for i in range(pad_amount):
+            vector = torch.zeros_like(vector)
+            vectors.append(vector)
+    return (first_part, torch.cat(vectors[0:], dim=1), third_part)
 def get_representation_template(program_json, no_sched_json, max_depth, train_device="cpu"):
     # Set the max and min number of accesses allowed 
     max_accesses = 15
@@ -128,18 +144,19 @@ def get_representation_template(program_json, no_sched_json, max_depth, train_de
         iterators_repr.append(c_code + "-TransformationTagsEnd")
         
         # Adding initial constraint matrix
+        # Remove the 1 mask from constraint matrix. Not necessary.
         iterators_repr.append(c_code+'-OgConstraintMatrixStart')
-        iterators_repr.extend(['C']*((max_depth+1)*((max_depth+1)*2)-2))
+        iterators_repr.extend(['OgC']*((max_depth*max_depth*2)-2))
         iterators_repr.append(c_code+'-OgConstraintMatrixEnd')
         
-        # Adding initial constraint matrix
+        # Adding initial constraint vector
         iterators_repr.append(c_code+'-OgConstraintVectorStart')
         iterators_repr.extend(['V']*(max_depth*2-2))
         iterators_repr.append(c_code+'-OgConstraintVectorEnd')
         
         # Adding transformed constraint matrix
         iterators_repr.append(c_code+'-ConstraintMatrixStart')
-        iterators_repr.extend(['C']*((max_depth+1)*((max_depth+1)*2)-2))
+        iterators_repr.extend(['C']*((max_depth*max_depth*2)-2))
         iterators_repr.append(c_code+'-ConstraintMatrixEnd')
                               
         # Add the loop representation to the computation vector 
@@ -492,8 +509,8 @@ def format_bound(iterator_name, bound, iterators_list, is_lower):
             output.append(0)
     return output
 def get_padded_initial_constrain_matrix(program_json, schedule_json, comp_name, max_depth):
+    
     iterators_list = program_json["computations"][comp_name]["iterators"]
-    transformation_matrix = get_transformation_matrix(program_json, schedule_json, comp_name, max_depth)
     result = []
     for i in iterators_list:
         for j in range(2):
@@ -501,14 +518,12 @@ def get_padded_initial_constrain_matrix(program_json, schedule_json, comp_name, 
                 result.append(format_bound(i, program_json["iterators"][i]["lower_bound"], iterators_list, True))
             else:
                 result.append(format_bound(i, program_json["iterators"][i]["upper_bound"], iterators_list, False))
-                
-    result = np.c_[np.ones(len(result)), result]
-    result = np.r_[[np.ones(len(result[0]))], result]
+    result = np.array(result)            
     result = np.pad(
         result,
         [
-            (0, (max_depth + 1)*2 - result.shape[0]),
-            (0, max_depth + 1 - result.shape[1]),
+            (0, (max_depth)*2 - result.shape[0]),
+            (0, max_depth - result.shape[1]),
         ],
         mode="constant",
         constant_values=0,
@@ -526,18 +541,17 @@ def get_padded_transformed_constrain_matrix(program_json, schedule_json, comp_na
                 result.append(format_bound(i, program_json["iterators"][i]["upper_bound"], iterators_list, False))
     inverse = np.linalg.inv(transformation_matrix)
     result = np.matmul(result, inverse)
-    
-    result = np.c_[np.ones(len(result)), result]
-    result = np.r_[[np.ones(len(result[0]))], result]
+    result = np.array(result)
     result = np.pad(
         result,
         [
-            (0, (max_depth + 1)*2 - result.shape[0]),
-            (0, max_depth + 1 - result.shape[1]),
+            (0, (max_depth)*2 - result.shape[0]),
+            (0, max_depth - result.shape[1]),
         ],
         mode="constant",
         constant_values=0,
     )
+    
     return result
 def get_trasnformation_matrix_from_vector(transformation, matrix_size):
     matrix = np.identity(matrix_size)
@@ -691,9 +705,9 @@ def get_schedule_representation(
         
         nb_mat_elements = ogc_end[1] - ogc_start[1] + 1
         
-        max_depth_it = int(np.sqrt(nb_mat_elements / 2)) - 1
+        assert(max_depth*max_depth*2 == nb_mat_elements)
         
-        comps_repr[ogc_start[0]][ogc_start[1] : ogc_end[1] + 1 ] = get_padded_initial_constrain_matrix(program_json, schedule_json, comp_name, max_depth_it).flatten().tolist()
+        comps_repr[ogc_start[0]][ogc_start[1] : ogc_end[1] + 1 ] = get_padded_initial_constrain_matrix(program_json, schedule_json, comp_name, max_depth).flatten().tolist()
                               
         ogv_start = comps_placeholders_indices_dict[c_code+'-OgConstraintVectorStart']
         
@@ -708,10 +722,10 @@ def get_schedule_representation(
         c_end = comps_placeholders_indices_dict[c_code+'-ConstraintMatrixEnd']
         
         nb_mat_elements = c_end[1] - c_start[1] + 1
+
+        assert(max_depth*max_depth*2 == nb_mat_elements)
         
-        max_depth_it = int(np.sqrt(nb_mat_elements / 2)) - 1
-        
-        comps_repr[c_start[0]][ c_start[1] : c_end[1] + 1 ] = get_padded_transformed_constrain_matrix(program_json, schedule_json, comp_name, max_depth_it).flatten().tolist()
+        comps_repr[c_start[0]][ c_start[1] : c_end[1] + 1 ] = get_padded_transformed_constrain_matrix(program_json, schedule_json, comp_name, max_depth).flatten().tolist()
         
 
     # Fill the loop representation
