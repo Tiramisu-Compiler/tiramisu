@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(Tiramisu)
+project(tiramisu)
 
 enable_testing()
 

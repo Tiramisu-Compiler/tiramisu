@@ -472,6 +472,17 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
                     iterators_list = comp_info->iters;
                 }
         }
+        // Check if fusion was applied on this coomputation
+        for (optimization_info const& optim_info : ast.new_optims)
+            if (optim_info.type==optimization_type::FUSION && optim_info.comps[1] == comp){
+                // Retrieve the iterators list of the computation that it was fused with
+                for (auto comp_info : all_comps_info){
+                    if(comp_info->comp_ptr == optim_info.comps[0]){
+                        // Assign the same iterators list to both computations
+                        iterators_list = comp_info->iters;
+                    }
+                }
+            }
         assert(!iterators_list.empty() && "couldn't find the list of iterators for this computation");
 
         comp_sched_json += "\"shiftings\" : ";

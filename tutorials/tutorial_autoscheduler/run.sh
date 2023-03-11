@@ -1,4 +1,4 @@
-export BEAM_SIZE=10
+export BEAM_SIZE=3
 export DYNAMIC_RUNS=1
 export MAX_RUNS=1
 export NB_EXEC=1
@@ -19,8 +19,6 @@ make -j tiramisu_auto_scheduler
 cd ${TIRAMISU_ROOT}/tutorials/tutorial_autoscheduler
 # Cmpile and run a program
 mkdir build ; cd build
-export BUILD_TARGET="generator"
-export FUNCTION_TO_BUILD=$1
 cmake .. -DBUILD_TARGET="generator"  -DFUNCTION_TO_BUILD=$1
 make
 ../generator
