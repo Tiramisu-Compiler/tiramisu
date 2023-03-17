@@ -3125,6 +3125,166 @@ bool tiramisu::function::loop_vectorization_is_legal(tiramisu::var i , std::vect
     return result;
 }
 
+std::vector<isl_basic_set *> tiramisu::function::compute_dependencies_set_distance()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(!this->get_name().empty());
+
+    assert(this->dep_read_after_write != NULL);
+    assert(this->dep_write_after_write != NULL);
+    assert(this->dep_write_after_read != NULL);
+
+    isl_union_map * read_after_write_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->dep_read_after_write)) ;
+
+    isl_union_map * write_after_read_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->dep_write_after_read)) ;
+
+    isl_union_map * write_after_write_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->dep_write_after_write)) ;
+
+
+    isl_union_map * all_deps = isl_union_map_union(
+        read_after_write_dep,
+        write_after_read_dep
+        ) ;
+
+    // all the deps in 1 union map
+    all_deps = isl_union_map_union(all_deps,write_after_write_dep) ;
+
+
+    DEBUG(5, tiramisu::str_dump(" all the dependencies are  : "+std::string(isl_union_map_to_str(all_deps))));
+
+    // all current schedules in 1 union map
+    std::string empty_union = "{}" ;
+    std::string empty_time  = "" ;
+
+    isl_union_map * schedules = isl_union_map_read_from_str(this->get_isl_ctx(),empty_union.c_str()) ;
+
+    isl_map * schedule_one = NULL ;
+
+    for( auto& computation: this->get_computations())
+    {
+        schedule_one = isl_map_copy(computation->get_schedule()) ;
+
+        schedule_one = isl_map_set_tuple_name(schedule_one,isl_dim_out,empty_time.c_str());
+
+        schedules = isl_union_map_union(schedules,isl_union_map_from_map(schedule_one));
+    }
+    
+    DEBUG(5, tiramisu::str_dump(" all the used schedules are  : "+std::string(isl_union_map_to_str(schedules))));
+
+    // application to discard unused dep & modeling them in their time space
+
+    all_deps = isl_union_map_apply_range(all_deps,isl_union_map_copy(schedules));
+
+    all_deps = isl_union_map_apply_domain(all_deps,schedules);
+
+    DEBUG(5, tiramisu::str_dump(" all the used dependencies union map are  : "+std::string(isl_union_map_to_str(all_deps))));
+
+    if(isl_union_map_is_empty(all_deps))
+    {
+        DEBUG(5, tiramisu::str_dump(" No dependencies Found => no distance exists "));
+
+        DEBUG_INDENT(-4);
+
+        return std::vector<isl_basic_set *>();
+    }
+
+    isl_map * schedule_dep = isl_map_from_union_map(all_deps);
+
+    DEBUG(5, tiramisu::str_dump(" all the used dependencies after transformed to map are  : "+std::string(isl_map_to_str(schedule_dep))));
+
+    isl_set * deltas = isl_map_deltas(schedule_dep);
+
+    DEBUG(5, tiramisu::str_dump(" all deltas for all the dependencies are : "+std::string(isl_set_to_str(deltas))));
+
+    std::vector<isl_basic_set *> all_basic_sets;// contains basic sets 
+
+    auto f = [](isl_basic_set * bmap,void * user) { 
+
+        std::vector<isl_basic_set *>& myName = *reinterpret_cast<std::vector<isl_basic_set*>*>(user);
+     
+        myName.push_back(bmap);
+        return isl_stat_ok;
+    };
+    
+    isl_stat (*fun_ptr)(isl_basic_set * p,void * m) = (f);
+
+    isl_set_foreach_basic_set(deltas, fun_ptr,(void * ) &all_basic_sets);
+
+    isl_set_free(deltas);
+
+    DEBUG_INDENT(-4);
+
+    return all_basic_sets;
+}
+
+std::vector<std::vector<std::tuple<bool, int, int>>> tiramisu::function::compute_dependencies_distance()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(!this->get_name().empty());
+
+    assert(this->dep_read_after_write != NULL);
+    assert(this->dep_write_after_write != NULL);
+    assert(this->dep_write_after_read != NULL);
+
+    std::vector<isl_basic_set *> isl_distances = this->compute_dependencies_set_distance();
+
+    std::vector<std::vector<std::tuple<bool, int, int>>> result;
+
+    DEBUG(5, tiramisu::str_dump(" The Distance vectors produced are :"));
+
+    for (auto const& basic_set : isl_distances)
+    {
+        std::vector<std::tuple<bool, int, int>> distance;
+
+        std::string distance_log = "(";
+
+        const int distance_size = isl_basic_set_dim(basic_set, isl_dim_set);
+
+        for (int i=0; i < distance_size; i++)
+        {
+            isl_val * max_dim = isl_set_dim_max_val(isl_set_from_basic_set(isl_basic_set_copy(basic_set)), i);
+            isl_val * min_dim = isl_set_dim_min_val(isl_set_from_basic_set(isl_basic_set_copy(basic_set)), i);
+
+            int max_val = isl_val_get_d(max_dim);
+            int min_val = isl_val_get_d(min_dim);
+
+            isl_val_free(max_dim);
+            isl_val_free(min_dim);
+
+            if (max_val == min_val)
+            {
+                // this dimension distance is constant
+                distance.push_back(std::make_tuple(true, min_val, max_val));
+                distance_log += std::to_string(max_val) + ",";
+            }
+            else
+            {
+                // this dimension distance is bounded by max and min
+                distance.push_back(std::make_tuple(true, min_val, max_val));
+                distance_log += std::to_string(min_val) + "->" + std::to_string(max_val) + ",";
+            }
+        }
+
+        distance_log += ")";
+        DEBUG(5, tiramisu::str_dump(" > " + distance_log));
+
+        result.push_back(distance);
+
+        // clean up
+        isl_basic_set_free(basic_set);
+    }
+
+    DEBUG_INDENT(-4);
+    return result;
+}
+
 void tiramisu::function::reset_all_static_dims_to_zero()
 {   
     DEBUG_FCT_NAME(3);

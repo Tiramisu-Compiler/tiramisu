@@ -1334,6 +1334,16 @@ public:
     bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
 
     /**
+     * Computes the distances between dependencies
+    */
+    std::vector<isl_basic_set *> compute_dependencies_set_distance();
+
+    /**
+     * Computes the distances between dependencies
+    */
+    std::vector<std::vector<std::tuple<bool, int, int>>> compute_dependencies_distance();
+
+    /**
      * resets all the static beta dimensions in all the computations to Zero.
      * This would allow the execution of fuction.generate_ordering many times without issues.
      * Although, the static beta dimenesion and ordering that are not specified using the scheduling graph (after or then) would be lost.
