@@ -1295,12 +1295,22 @@ public:
     bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
     /**
-     * Computes the distances between dependencies
+     * Automatically computes the dependencies distances in isl_basic_set for all dependencies in this function.
+     * \return an isl_basic set for each dependency in this function, containing the distance, and with regard to the schedules. 
+     * \note: The method relies fully on the dependence analysis result, so the  methods \p prepare_schedules_for_legality_checks()
+     * then \p perform_full_dependency_analysis() must be invoked before.
     */
     std::vector<isl_basic_set *> compute_dependencies_set_distance();
 
     /**
-     * Computes the distances between dependencies
+     * Computes the dependencies distances for all dependencies in this function.
+     * \return a vector of distances. A distance is represented as a std::vector of std::tuple<bool, int, int>.
+     * where each element of the vector represents the distance in a particular dimension.
+     * A distance element is an std::tuple<bool, int, int> which is fact an interval [lower_bound, upper_bound] for the distance,
+     * extracted from the std::tuple<bool, lower_bound, upper_bound>. In some cases, the distance is constant meaning lower_bound == upper_bound,
+     * thus the first boolean of the tuple indicates if the distance is a constant one.
+     * \note: The method relies fully on the dependence analysis result, so the  methods \p prepare_schedules_for_legality_checks()
+     * then \p perform_full_dependency_analysis() must be invoked before.
     */
     std::vector<std::vector<std::tuple<bool, int, int>>> compute_dependencies_distance();
 
