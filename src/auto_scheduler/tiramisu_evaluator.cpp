@@ -718,6 +718,14 @@ std::string evaluate_by_learning_model::get_tree_structure_json(ast_node *node)
     for (computation_info const& comp_info : node->computations)
         comps_list.push_back(comp_info.comp_ptr->get_name());
         
+    for (ast_node *child : node->children)
+    {
+        if (child->name.compare("dummy_iter")!=0)
+            continue;
+            
+        for (int j = 0; j < child->computations.size(); ++j)
+            comps_list.push_back(child->computations[j].comp_ptr->get_name());
+    }
     
     for (std::string comp_name : comps_list)
         json += "\"" + comp_name + "\",";
