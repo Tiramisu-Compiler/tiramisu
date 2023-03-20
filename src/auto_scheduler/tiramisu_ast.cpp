@@ -992,7 +992,11 @@ void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
             
             // Set lower and upper bounds
             i_outer->low_bound = "0";
-            i_outer->up_bound = i_outer->get_extent() + "/" + std::to_string(opt.l0_fact - 1);
+            if(check_if_number(i_outer->get_extent())){
+                i_outer->up_bound =  std::to_string( stoi(i_outer->get_extent()) / opt.l0_fact - 1);
+            }else{
+                i_outer->up_bound =  i_outer->get_extent() + "/" + std::to_string((double)opt.l0_fact - 1);
+            }
             
             i_inner->low_bound = "0";
             i_inner->up_bound = std::to_string(opt.l0_fact - 1);

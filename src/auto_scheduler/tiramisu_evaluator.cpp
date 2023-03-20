@@ -352,7 +352,7 @@ std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()
 }
 std::vector<int> get_transformation_vector_from_optimization(optimization_info opt){
         //TODOF generalize to MAX_TAGS
-        std::vector<int> result(8);
+        std::vector<int> result(16);
         assert(opt.unimodular_transformation_type != 0);
 
         result.at(0) = opt.unimodular_transformation_type;
@@ -372,8 +372,16 @@ std::vector<int> get_transformation_vector_from_optimization(optimization_info o
             case 3:
                 result.at(4) = opt.l0;
                 result.at(5) = opt.l1;
-                result.at(6) = opt.l0_fact;
-                result.at(6) = opt.l1_fact;
+                result.at(6) = opt.l2;
+                result.at(7) = opt.l0_fact;
+                result.at(8) = opt.l1_fact;
+                result.at(9) = opt.l2_fact;
+                result.at(10) = opt.l3_fact;
+                result.at(11) = opt.l4_fact;
+                result.at(12) = opt.l5_fact;
+                result.at(13) = opt.l6_fact;
+                result.at(14) = opt.l7_fact;
+                result.at(15) = opt.l8_fact;
                 break;
 
         }
