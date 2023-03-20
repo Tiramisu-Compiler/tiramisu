@@ -645,7 +645,7 @@ void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, 
     
     for (int i = 0; i < node->children.size(); ++i)
     {
-        if (node->children[i]->name.compare("dummy_iter")!=0)
+        if (node->children[i]->name.compare("dummy_iter")==0)
             continue;
             
         iter_json += "\"" + node->children[i]->name + "\",";
@@ -668,7 +668,7 @@ void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, 
     
     for (int i = 0; i < node->children.size(); ++i)
     {
-        if (node->children[i]->name.compare("dummy_iter")!=0)
+        if (node->children[i]->name.compare("dummy_iter")==0)
             continue;
             
         ast_node *dummy_child = node->children[i];
@@ -718,14 +718,6 @@ std::string evaluate_by_learning_model::get_tree_structure_json(ast_node *node)
     for (computation_info const& comp_info : node->computations)
         comps_list.push_back(comp_info.comp_ptr->get_name());
         
-    for (ast_node *child : node->children)
-    {
-        if (child->name.compare("dummy_iter")!=0)
-            continue;
-            
-        for (int j = 0; j < child->computations.size(); ++j)
-            comps_list.push_back(child->computations[j].comp_ptr->get_name());
-    }
     
     for (std::string comp_name : comps_list)
         json += "\"" + comp_name + "\",";
@@ -741,7 +733,7 @@ std::string evaluate_by_learning_model::get_tree_structure_json(ast_node *node)
     bool has_children = false;
     for (ast_node *child : node->children)
     {
-        if (child->name.compare("dummy_iter")!=0)
+        if (child->name.compare("dummy_iter")==0)
             continue;
             
         json += "{" + get_tree_structure_json(child) + "},";

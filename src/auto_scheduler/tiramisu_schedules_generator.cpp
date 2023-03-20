@@ -1108,7 +1108,8 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     optim_info.l1 = new_node->depth + 1;
                     optim_info.l0_fact = std::get<0>(param);
                     optim_info.l1_fact = std::get<1>(param);
-
+                    optim_info.l2_fact = 0;
+                    optim_info.l3_fact = 1;
                     std::vector <  std::vector<int> >  matrix(depth);
                     for(int l = 0; l<matrix.size(); l++){
                         matrix.at(l)= std::vector<int>(depth);
@@ -1127,9 +1128,11 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                         // This skewing would cause the increment to be !=1 which is not supported by Tiramisu.
                         // We modify the skewing matrix so that we can still apply skewing.
                         std::vector<int> solutions=get_skew_params(optim_info.l0_fact, optim_info.l1_fact);
-
-                        matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(1);
-                        matrix.at(optim_info.l1).at(optim_info.l1-1) =  solutions.at(0);
+                        optim_info.l2_fact = solutions.at(0);
+                        optim_info.l3_fact = solutions.at(1);
+                        matrix.at(optim_info.l1).at(optim_info.l1-1) =  optim_info.l2_fact;
+                        matrix.at(optim_info.l1).at(optim_info.l1) =  optim_info.l3_fact;
+                        
                     }
 
                     optim_info.matrix = matrix;
@@ -1159,6 +1162,8 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     optim_info.l1 = new_node->depth + 1;
                     optim_info.l0_fact = std::get<0>(param);
                     optim_info.l1_fact = std::get<1>(param);
+                    optim_info.l2_fact = 0;
+                    optim_info.l3_fact = 1;
 
                     std::vector <  std::vector<int> >  matrix(depth);
                     for(int l = 0; l<matrix.size(); l++){
@@ -1178,9 +1183,10 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                         // This skewing would cause the increment to be !=1 which is not supported by Tiramisu.
                         // We modify the skewing matrix so that we can still apply skewing.
                         std::vector<int> solutions=get_skew_params(optim_info.l0_fact, optim_info.l1_fact);
-
-                        matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(1);
-                        matrix.at(optim_info.l1).at(optim_info.l1-1) =  solutions.at(0);
+                        optim_info.l2_fact = solutions.at(0);
+                        optim_info.l3_fact = solutions.at(1);
+                        matrix.at(optim_info.l1).at(optim_info.l1-1) =  optim_info.l2_fact;
+                        matrix.at(optim_info.l1).at(optim_info.l1) =  optim_info.l3_fact;
                     }
                     optim_info.matrix = matrix;
                     optim_info.comps = involved_computations_skew;
@@ -1209,7 +1215,8 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     optim_info.l1 = new_node->depth + 1;
                     optim_info.l0_fact = std::get<0>(param);
                     optim_info.l1_fact = std::get<1>(param);
-
+                    optim_info.l2_fact = 0;
+                    optim_info.l3_fact = 1;
                     if ((optim_info.l0 > 0) && (optim_info.l1 > 0))
                     { //require loop reversal for correctness
                         optim_info.l2_fact = -1;
@@ -1232,8 +1239,10 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                         // This skewing would cause the increment to be !=1 which is not supported by Tiramisu.
                         // We modify the skewing matrix so that we can still apply skewing.
                         std::vector<int> solutions=get_skew_params(optim_info.l0_fact, optim_info.l1_fact);
-                        matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(1);
-                        matrix.at(optim_info.l1).at(optim_info.l1-1) =  solutions.at(0);
+                        optim_info.l2_fact = solutions.at(0);
+                        optim_info.l3_fact = solutions.at(1);
+                        matrix.at(optim_info.l1).at(optim_info.l1-1) =  optim_info.l2_fact;
+                        matrix.at(optim_info.l1).at(optim_info.l1) =  optim_info.l3_fact;
                     }
                     optim_info.matrix = matrix;
 
