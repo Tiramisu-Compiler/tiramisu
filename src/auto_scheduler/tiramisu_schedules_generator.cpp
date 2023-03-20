@@ -1106,6 +1106,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     optim_info.nb_l = 2;
                     optim_info.l0 = new_node->depth;
                     optim_info.l1 = new_node->depth + 1;
+                    optim_info.l2 = 0;
                     optim_info.l0_fact = std::get<0>(param);
                     optim_info.l1_fact = std::get<1>(param);
                     optim_info.l2_fact = 0;
@@ -1160,6 +1161,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     optim_info.nb_l = 2;
                     optim_info.l0 = new_node->depth;
                     optim_info.l1 = new_node->depth + 1;
+                    optim_info.l2 = 0;
                     optim_info.l0_fact = std::get<0>(param);
                     optim_info.l1_fact = std::get<1>(param);
                     optim_info.l2_fact = 0;
@@ -1213,6 +1215,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     optim_info.nb_l = 2;
                     optim_info.l0 = new_node->depth;
                     optim_info.l1 = new_node->depth + 1;
+                    optim_info.l2 = 0;
                     optim_info.l0_fact = std::get<0>(param);
                     optim_info.l1_fact = std::get<1>(param);
                     optim_info.l2_fact = 0;
@@ -1275,6 +1278,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     optim_info.nb_l = 2;
                     optim_info.l0 = new_node->depth;
                     optim_info.l1 = new_node->depth+1;
+                    optim_info.l2 = 0;
                     optim_info.l0_fact = std::get<0>(param);
                     optim_info.l1_fact = std::get<1>(param);
                     optim_info.l2_fact = std::get<2>(param);
