@@ -3267,7 +3267,7 @@ std::vector<std::vector<std::tuple<bool, int, int>>> tiramisu::function::compute
             else
             {
                 // this dimension distance is bounded by max and min
-                distance.push_back(std::make_tuple(true, min_val, max_val));
+                distance.push_back(std::make_tuple(false, min_val, max_val));
                 distance_log += std::to_string(min_val) + "->" + std::to_string(max_val) + ",";
             }
         }
