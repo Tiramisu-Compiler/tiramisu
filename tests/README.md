@@ -59,4 +59,6 @@ test number `XX` in the file `tests/test_list.txt`.
 - parallelism check : 185,187
 - unrolling check : 186
 - vectorization check : 188
-- .correcting_loop_fusion_with_shifting() + partial legality 189 190 191 
+- .correcting_loop_fusion_with_shifting() + partial legality 189 190 191
+- custom allocation test : 197
+- positive skewing : 198 199

@@ -83,7 +83,7 @@ public:
     /**
      * transforms the matrix by skewing
     */
-    void transforme_matrix_by_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma);
+    void transform_matrix_by_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma);
 
 };
 

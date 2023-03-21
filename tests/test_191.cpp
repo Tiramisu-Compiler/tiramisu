@@ -51,7 +51,7 @@ void generate_function(std::string name, int size, int val0)
 
 
 
-    tiramisu::performe_full_dependency_analysis();
+    tiramisu::perform_full_dependency_analysis();
 
     //tests
 
@@ -63,7 +63,7 @@ void generate_function(std::string name, int size, int val0)
     
 
     B_out.then(A_out,j);
-    //fuze every thing and solve 
+    //fuse every thing and solve
 
 
     tiramisu::prepare_schedules_for_legality_checks(true);

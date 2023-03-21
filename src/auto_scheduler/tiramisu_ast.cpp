@@ -528,6 +528,10 @@ void syntax_tree::transform_ast(optimization_info const& opt)
         case optimization_type::SKEWING:
             transform_ast_by_skewing(opt);
             break;
+        
+        case optimization_type::SKEWING_POSITIVE:
+            transform_ast_by_skewing_positive(opt);
+            break;
 
         case optimization_type::SHIFTING:
             transform_ast_by_shifting(opt, true);
@@ -1067,7 +1071,7 @@ void syntax_tree::transform_ast_by_vectorization(const optimization_info &opt)
 
 
 void syntax_tree::transform_ast_by_parallelism(const optimization_info &info) {
-    // Just sets the parallilezed tag to true
+    // Just sets the parallelized tag to true
     info.node->parallelized = true;
 }
 void syntax_tree::transform_ast_by_reversal(const optimization_info &info){
@@ -1147,6 +1151,62 @@ void syntax_tree::transform_ast_by_shifting(const optimization_info &info, bool 
     }
 }
 
+// TODO FIX IT TO SUPPORT STRING BOUNDS
+void syntax_tree::transform_ast_by_skewing_positive(const optimization_info &info)
+{
+    // stage_isl_states();
+
+    // ast_node *node_1 = info.node;
+    // ast_node *node_2 = node_1->children[0];
+
+    // int number_space_outer = node_1->up_bound - node_1->low_bound;
+    // int inner_space = node_2->up_bound - node_2->low_bound;
+
+    // std::string new_1 = "_skew_" + std::to_string(info.l0_fact) + "_" + std::to_string(info.l1_fact);
+    // std::string new_2 = "_skew" + std::to_string(info.l2_fact) + "_" + std::to_string(info.l3_fact);
+
+    // node_2->low_bound = 0;
+    // // node_1->low_bound = info.l0_fact * node_1->low_bound + info.l1_fact *node_2->low_bound;
+    // node_1->low_bound = abs(info.l0_fact) * node_1->low_bound;
+    // node_1->up_bound = node_1->low_bound + abs(info.l0_fact) * number_space_outer + abs(info.l1_fact) * inner_space;
+    // node_2->up_bound = ((number_space_outer * inner_space) / (node_1->up_bound - node_1->low_bound)) + 1;
+
+    // std::vector<computation_info *> all_data;
+
+    // std::string outer_name = "";
+    // std::string inner_name = "";
+
+    // // collect computations to tile
+    // node_2->collect_all_computation(all_data);
+
+    // for (computation_info *info_comp : all_data)
+    // {
+    //     std::vector<std::string> loop_names = info_comp->comp_ptr->get_loop_level_names();
+
+    //     outer_name = loop_names[node_1->depth];
+    //     inner_name = loop_names[node_1->depth + 1];
+
+    //     info_comp->comp_ptr->skew(var(outer_name), var(inner_name),
+    //                               info.l0_fact, info.l1_fact, info.l2_fact, info.l3_fact,
+    //                               var(outer_name + new_1), var(inner_name + new_2));
+
+    //     std::string f = "";
+    //     for (auto &str : loop_names)
+    //     {
+    //         f += str + " ";
+    //     }
+    // }
+
+    // node_1->name = outer_name + new_1;
+    // node_2->name = inner_name + new_2;
+
+    // node_1->skewed = true;
+    // node_2->skewed = true;
+
+    // node_1->transform_accesses_with_skewing(info.l0_fact, info.l1_fact);
+
+    // recover_isl_states();
+}
 
 syntax_tree* syntax_tree::copy_ast() const
 {
@@ -2305,6 +2365,12 @@ std::string syntax_tree::get_schedule_str()
             case optimization_type::SKEWING:
                 schedule_str += "S("+comps_list_str+",L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+","+
                                 std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+")";
+                break;
+            
+            case optimization_type::SKEWING_POSITIVE:
+                schedule_str += "S(L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+","+
+                                std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+","+
+                                std::to_string(optim.l2_fact)+","+std::to_string(optim.l3_fact)+"),";
                 break;
 
             default:

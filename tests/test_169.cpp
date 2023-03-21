@@ -48,8 +48,8 @@ int main(int argc, char **argv)
                     .then(c_C, computation::root)
                     .then(copy_C_to_host, computation::root);
 
-    c_C.cache_shared(c_A, k0, {block * r_block, k_block}, {i00 * block * r_block, k0 * k_block});
-    c_C.cache_shared(c_B, k0, {k_block, block * r_block}, {k0 * k_block, j00 * block * r_block});
+//    c_C.cache_shared(c_A, k0, {block * r_block, k_block}, {i00 * block * r_block, k0 * k_block});
+//    c_C.cache_shared(c_B, k0, {k_block, block * r_block}, {k0 * k_block, j00 * block * r_block});
 
     tiramisu::codegen({&b_A, &b_B, &b_C}, "build/generated_fct_test_169.o", true);
 

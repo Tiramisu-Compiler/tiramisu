@@ -117,8 +117,16 @@ tiramisu::var::var(tiramisu::primitive_t type, std::string name, bool save)
 
     if (declared != var::declared_vars.end())
     {
-        assert(declared->second.dtype == type);
-        *this = declared->second;
+        // For int64 and int32 interoperability.
+        if ( (type == p_int32 && declared->second.dtype == p_int64) || (type == p_int64 && declared->second.dtype == p_int32) )
+        {
+            *this = declared->second;
+        } 
+        else
+        {
+            assert(declared->second.dtype == type);
+            *this = declared->second;
+        }
     }
     else
     {

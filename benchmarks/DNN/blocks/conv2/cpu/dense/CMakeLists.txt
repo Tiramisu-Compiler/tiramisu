@@ -15,8 +15,8 @@ add_executable(wrapper_nn_2 ${compare_SOURCES})
  
 
 target_link_libraries(conv_layer_generator_2  ${PROJECT_DIR}/3rdParty/Halide/lib/libHalide.a )
-target_link_libraries(conv_layer_generator_2_tiramisu   ${PROJECT_DIR}/build/libtiramisu.so)
-target_link_libraries(wrapper_nn_2 ${CMAKE_CURRENT_SOURCE_DIR}/generated_conv_2.o ${CMAKE_CURRENT_SOURCE_DIR}/generated_conv_2_tiramisu.o ${PROJECT_DIR}/build/libtiramisu.so 
+target_link_libraries(conv_layer_generator_2_tiramisu   ${PROJECT_BUILD}/libtiramisu.so)
+target_link_libraries(wrapper_nn_2 ${CMAKE_CURRENT_SOURCE_DIR}/generated_conv_2.o ${CMAKE_CURRENT_SOURCE_DIR}/generated_conv_2_tiramisu.o ${PROJECT_BUILD}/libtiramisu.so 
 )
 
 add_custom_target(halide_run_2
