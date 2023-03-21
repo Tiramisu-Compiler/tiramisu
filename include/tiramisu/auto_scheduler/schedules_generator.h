@@ -40,18 +40,18 @@ protected:
     /**
      * Max Number of dimension to explore for unrolling, starting from the innermost loop level,
     */
-    int unrolling_search_deapth = 3;
+    int unrolling_search_depth = 3;
 
     /**
      * Max Number of dimension to explore for parallelism, starting from the outermost loop level.
      * stops at first found.
     */
-    int parallelism_search_deapth = 3;
+    int parallelism_search_depth = 3;
 
     /**
      * Max Number of dimension to explore for unrolling, starting from the innermost loop level
     */
-    int vectorization_search_deapth = 3;
+    int vectorization_search_depth = 3;
 
     /**
      * The number of diffrent skewing proposed, skewing versions that enable inner parallelism in our case.

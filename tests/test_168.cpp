@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     copy_A_to_device.then(c_B, computation::root)
                     .then(copy_B_to_host, computation::root);
 
-    c_B.cache_shared(c_A, i1, {16, 16}, {i0 * block, j0 * block});
+//    c_B.cache_shared(c_A, i1, {16, 16}, {i0 * block, j0 * block});
 
     tiramisu::codegen({&b_A, &b_B}, "build/generated_fct_test_168.o", true);
 

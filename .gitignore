@@ -16,7 +16,9 @@ src/*.pyc
 configure_path.cmake
 configure.cmake
 3rdParty/isl/configure
+3rdParty/*
 __pycache__
 .ipynb_checkpoints
 cmake-build-debug/
 cmake-build-autoscheduler/
+.vscode

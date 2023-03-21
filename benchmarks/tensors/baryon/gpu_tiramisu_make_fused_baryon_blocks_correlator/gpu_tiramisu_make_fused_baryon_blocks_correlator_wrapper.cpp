@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <complex>
+#include <cmath>
 
 #ifdef __cplusplus
 extern "C" {
@@ -251,7 +252,7 @@ void tiramisu_make_nucleon_2pt(double* C_re,
          for (int r=0; r<B1Nrows; r++)
             for (int n=0; n<NsnkHex; n++)
                for (int t=0; t<Lt; t++) {
-                  printf("rp=%d, m=%d, r=%d, n=%d, t=%d: %4.1f + I (%4.1f) \n", rp, m, r, n, t, C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)],  C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)]);
+                  printf("rp=%d, m=%d, r=%d, n=%d, t=%d: %4.9f + I (%4.9f) \n", rp, m, r, n, t, C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)],  C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)]);
             }
    }
    }
@@ -440,7 +441,7 @@ int main(int, char **)
          for (r=0; r<B1Nrows; r++)
             for (n=0; n<NsnkHex; n++)
                for (t=0; t<Lt; t++) {
-                  printf("rp=%d, m=%d, r=%d, n=%d, t=%d: %4.1f + I (%4.1f) \n", rp, m, r, n, t, t_C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)],  t_C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)]);
+                  printf("rp=%d, m=%d, r=%d, n=%d, t=%d: %4.9f + I (%4.9f) \n", rp, m, r, n, t, t_C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)],  t_C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)]);
             }
    }
 
@@ -474,10 +475,11 @@ int main(int, char **)
          for (r=0; r<B1Nrows; r++)
             for (n=0; n<NsnkHex; n++)
                for (t=0; t<Lt; t++) {
-                  if ((std::abs(C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)] - t_C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)]) >= 0.01*Vsnk*Vsnk) ||
-	               (std::abs(C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)] -  t_C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)]) >= 0.01*Vsnk*Vsnk))
+                 double diff = std::sqrt(std::pow(std::abs(C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)] - t_C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)]),2) + std::pow(std::abs(C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)] -  t_C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)]),2));
+                 double mag = std::sqrt(std::pow(std::abs(C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)]),2) + std::pow(std::abs(C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)]),2));
+                 if (diff / mag >= 1/1e12 )
 	            {
-                  printf("rp=%d, m=%d, n=%d, t=%d: %4.1f + I (%4.1f) vs %4.1f + I (%4.1f) \n", rp, m, n, t, C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)], C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)],  t_C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)],  t_C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)]);
+                  printf("rp=%d, m=%d, n=%d, t=%d: %4.9f + I (%4.9f) vs %4.9f + I (%4.9f) \n", rp, m, n, t, C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)], C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)],  t_C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)],  t_C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)]);
 		            std::cout << "Error: different computed values for C_r or C_i!" << std::endl;
 		            exit(1);
 	            }

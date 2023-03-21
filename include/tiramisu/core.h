@@ -145,12 +145,12 @@ void init();
   * If \p gen_cuda_stmt is set to true, CUDA code is generated instead of code
   * targeting CPU (i.e., instead of generating Halide IR then LLVM IR).
   */
-void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
-void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag);
+ void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false, bool gen_python = false);
+ void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag, bool gen_python = false);
 
 /**
  * Full check of schedule legality for this function using dependency analysis 
- * must be used after invoking : performe_full_dependency_analysis()
+ * must be used after invoking : perform_full_dependency_analysis()
  */
 bool check_legality_of_function();
 
@@ -159,7 +159,7 @@ bool check_legality_of_function();
  * Performe a full dependency analysis RAW/WAR/WAW. The result is stored in the function's attributes
  * Before invoking this method, the user must call tiramisu::prepare_schedules_for_legality_checks() and must define the buffer associated with each computation.
  */
-void performe_full_dependency_analysis();
+void perform_full_dependency_analysis();
 
 
 /**
@@ -173,28 +173,28 @@ void performe_full_dependency_analysis();
 void prepare_schedules_for_legality_checks(bool reset_static_dimesion = false);
 
  /**
-     * Checks if the given fuzed computations could legally have their loop level \p i as parallel using dependence analysis and legality check.
-     * It relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * Checks if the given fused computations could legally have their loop level \p i as parallel using dependence analysis and legality check.
+     * It relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
   */
-  //@{
-  bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+//@{
+bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
-  bool loop_parallelization_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
-  //@}
-  /**
-  * Checks if the given fuzed computations could legally have their loop level \p i unrolled.
-  */
-  //@{
-  bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+bool loop_parallelization_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
+//@}
+/**
+ * Checks if the given fused computations could legally have their loop level \p i unrolled.
+ */
+//@{
+bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
-  bool loop_unrolling_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
-  //@}
-  /**
-  * Checks if the given fuzed computations could legally have their loop level \p i vectorized.
-  */
-  bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+bool loop_unrolling_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
+//@}
+/**
+ * Checks if the given fused computations could legally have their loop level \p i vectorized.
+ */
+bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
 //*******************************************************
 
@@ -546,7 +546,7 @@ private:
      * Forth [3]: set of (a,b) where a>0 and b<0 that strongly solves the dependencies.
      * Fifth [4]: set of (a,b) where we could have parallelism on outermost loop level.
      * 
-     * The inputs are a vector of fuzed computations that we want to apply skewing onto,
+     * The inputs are a vector of fused computations that we want to apply skewing onto,
      * and 2 consecutive loop variables (inner & outer).
      * 
      * It should return integer \p legal_process that describes the operation with 3 states depending on it's result:
@@ -554,7 +554,7 @@ private:
      *  0  : correct process while no dependencies were solved.
      * -1  : illegal process (impossible to solve dependencies)
      */
-    std::vector<isl_basic_set*> compute_legal_skewing(std::vector<tiramisu::computation *> fuzed_computations, tiramisu::var outer_variable, 
+    std::vector<isl_basic_set*> compute_legal_skewing(std::vector<tiramisu::computation *> fused_computations, tiramisu::var outer_variable,
                                               tiramisu::var inner_variable, int&  legal_process);
 
 
@@ -740,10 +740,6 @@ protected:
       */
     const std::vector<std::string> &get_iterator_names() const;
 
-    /**
-      * Get the name of the function.
-      */
-    const std::string &get_name() const;
 
     /**
       * Return a set that represents the parameters of the function
@@ -950,6 +946,12 @@ protected:
     void clear_sched_graph();
 
 public:
+
+        /**
+      * Get the name of the function.
+      */
+    const std::string &get_name() const;
+
 
     /**
      * \brief Construct a function called \p name.
@@ -1177,23 +1179,24 @@ public:
       */
     void gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os,
                         Halide::Target::Arch arch, int bits,
-                        const tiramisu::hardware_architecture_t hw_architecture) const;
+                        const tiramisu::hardware_architecture_t hw_architecture,
+			bool gen_python = false) const;
 
     /**
       * \overload
       */
     void gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os,
-                        Halide::Target::Arch arch, int bits) const;
+                        Halide::Target::Arch arch, int bits, bool gen_python = false) const;
 
     /**
       * \overload
       */
-    void gen_halide_obj(const std::string &obj_file_name) const;
+    void gen_halide_obj(const std::string &obj_file_name, bool gen_python = false) const;
 
     /**
       * \overload
       */
-    void gen_halide_obj(const std::string &obj_file_name, const tiramisu::hardware_architecture_t hw_architecture) const;
+    void gen_halide_obj(const std::string &obj_file_name, const tiramisu::hardware_architecture_t hw_architecture, bool gen_python = false) const;
 
     /**
       * Generate a Halide stmt that represents the function.
@@ -1242,8 +1245,8 @@ public:
      * Wrapper for all the functions required to run code generation of a
      * tiramisu program.
      */
-    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
-    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag);
+    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false, bool gen_python = false);
+    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag, bool gen_python = false);
 
     /**
      * \brief Set the context of the function.
@@ -1267,7 +1270,7 @@ public:
     void set_context_set(isl_set *context);
 
     /**
-      * Computes flow and performe data analysis for this function with all it's computations.
+      * Computes flow and perform data analysis for this function with all it's computations.
       * This includes Reads after write, Write after write, Write after read, live_out_access, and live_in_access.
       * The moment of the call, the computations order and their buffers must be defined, the schedules must be the default ones with no optimizations applied. 
       * So this method should be invoked directly after mapping computations to their buffers.
@@ -1277,11 +1280,11 @@ public:
       * This method also computes live_out and live_in access for this function.
       * After the call the user is free to change & optimize the schedules.
       */
-    void performe_full_dependency_analysis();
+    void perform_full_dependency_analysis();
   
     /**
      *  Uses the dependency analysis to check if the current schedules of all computations are legal
-     *  must be invoked after the correct call to \p performe_full_dependency_analysis()
+     *  must be invoked after the correct call to \p perform_full_dependency_analysis()
     */
     bool check_legality_for_function();
 
@@ -1303,22 +1306,22 @@ public:
 
 
     /**
-     * Checks if the given fuzed computations could legally have their loop level \p i as parallel using dependence analysis and legality check.
-     * It relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * Checks if the given fused computations could legally have their loop level \p i as parallel using dependence analysis and legality check.
+     * It relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
     */
     // @{
-    bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+    bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
-    bool loop_parallelization_is_legal(int parallel_dim, std::vector<tiramisu::computation *> fuzed_computations);
+    bool loop_parallelization_is_legal(int parallel_dim, std::vector<tiramisu::computation *> fused_computations);
     // @}
 
     /**
-     * Checks if the given fuzed computations could legally have their loop level \p i unrolled.
+     * Checks if the given fused computations could legally have their loop level \p i unrolled.
     */
     // @{
-    bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+    bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
     bool loop_unrolling_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
     // @}
 
@@ -1326,12 +1329,12 @@ public:
     * Checks if the given fuzed computations could legally have the loop levels \p i and \p j interchanged.
     * This function checks the control dependencies for the two loops.
     */
-    bool loop_interchnage_is_legal(int i, int j, std::vector<tiramisu::computation *> fuzed_computations);
+    bool loop_interchnage_is_legal(int i, int j, std::vector<tiramisu::computation *> fused_computations);
 
     /**
-     * Checks if the given fuzed computations could legally have their loop level \p i vectorized.
+     * Checks if the given fused computations could legally have their loop level \p i vectorized.
     */
-    bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+    bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
     /**
      * resets all the static beta dimensions in all the computations to Zero.
@@ -1345,7 +1348,7 @@ public:
      * with the vector of computations \p previous_computations if it is possible.
      * This method return a vector of tuples mapping each variable with the required shifting if the fusion is possible, and an empty vector otherwise(impossible fusion).
      * Note: In case where the fusion is legal and doesn't require shifting, the vector of tuples would map the variable to 0.
-     * The method relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * The method relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
      * The shifting parameters given are always superior or equal to zero. This is an additional internal condition.
@@ -1355,7 +1358,7 @@ public:
     /**
      * Uses the dependency analysis to check if the specified schedules of computations are legal.
      * This method only tests the dependencies between the computations specified in the input and ignore the rest.
-     * must be invoked after the correct call to \p performe_full_dependency_analysis()
+     * must be invoked after the correct call to \p perform_full_dependency_analysis()
     */
     bool check_partial_legality_in_function(std::vector<tiramisu::computation * > involved_computations);
 
@@ -1508,6 +1511,12 @@ private:
     bool auto_allocate;
 
     /**
+     * A boolean indicating whether the buffer should be allocated
+     * automatically by Tiramisu.
+     */
+    bool auto_deallocate = true;
+
+    /**
      * automatic_gpu_copy = true by default, is it set to false when the user wants
      * to do data transfert to gpu manually.
      */
@@ -1564,6 +1573,11 @@ protected:
       * Return whether the buffer should be allocated automatically.
       */
     bool get_auto_allocate();
+
+    /**
+      * Return whether the buffer should be allocated automatically.
+      */
+    bool get_auto_deallocate();
 
     /**
       * Return whether the copy should be done automatically to the gpu device.
@@ -1716,6 +1730,71 @@ public:
     //@}
 
     /**
+     * \brief Indicate when to deallocate the buffer (i.e., the schedule).
+     *
+     * \details The buffer is deallocated in the same loop of the computation \p C
+     * at the loop level \p level (but the order between the two is not
+     * specified).
+     *
+     * For example, let's assume that buf0 is a buffer, and let's assume
+     * that we have three computations C1, C2 and C3 scheduled as follow
+     *
+     * \code
+     * for (i=0; i<N; i++)
+     *      for (j=0; j<N; j++)
+     *           for (k=0; k<N; k++)
+     *              C1;
+     *
+     * for (i=0; i<N; i++) // level 0
+     *      for (j=0; j<N; j++) // level 1
+     *           for (k=0; k<N; k++) // level 2
+     *           {
+     *              C2;
+     *              C3;
+     *           }
+     * \endcode
+     *
+     * The following Tiramisu code
+     *
+     * \code
+     * tiramisu::computation *C4 = buf0.allocate_at(C2, j);
+     * C4->before(C2, j);
+     * tiramisu::computation *C5 = buf0.deallocate_at(C3, j);
+     * C5->after(C3, j)
+     * \endcode
+     *
+     * would allocate buf0 in the loop surrounding C2 at the loop
+     * level 0. The allocation computation is called C4, where
+     * C4 is scheduled to execute before C2 at the loop level 1.
+     * And would also deallocate buf0 at the end of the loop level 1
+     * The generated code would look like the following code:
+     *
+     * \code
+     * for (i=0; i<N; i++)
+     *      for (j=0; j<N; j++)
+     *           for (k=0; k<N; k++)
+     *              C1;
+     *
+     * for (i=0; i<N; i++) // level 0
+     *      for (j=0; j<N; j++) // level 1
+     *      {
+     *           allocate(buf0, buffer_size, buffer_type);
+     *           for (k=0; k<N; k++) // level 2
+     *           {
+     *              C2;
+     *              C3;
+     *           }
+     *           deallocate(buf0);
+     *      }
+     * \endcode
+     *
+     */
+    //@{
+    tiramisu::computation *deallocate_at(tiramisu::computation &C, tiramisu::var level);
+    tiramisu::computation *deallocate_at(tiramisu::computation &C, int level);
+    //@}
+
+    /**
       * \brief Dump the function on standard output.
       * \details This functions dumps most of the fields of the buffer class
       * but not all of them.  It is mainly useful for debugging.
@@ -1767,6 +1846,11 @@ public:
       * Set whether the buffer should be allocated automatically.
       */
     void set_auto_allocate(bool auto_allocation);
+
+    /**
+    * Sets whether the buffer should be deallocated automatically.
+    */
+    void set_auto_deallocate(bool auto_deallocation);
 
     /**
       * Set whether the GPU copy should be done automatically.
@@ -4439,7 +4523,7 @@ public:
      * Checks the correctness of a subset of dependencies after applying changes on the schedules (e.g., tiling, skewing, and shifting).
      * The checked subset of dependencies is the set of dependencies mapping from this computation (this) to second computation (second).
      * This methods returns a boolean: True if this subset of dependencies is respected, otherwise False.
-     * It relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * It relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
     */
@@ -5759,7 +5843,7 @@ Halide::Module lower_halide_pipeline(
     const std::string &pipeline_name,
     const Halide::Target &t,
     const std::vector<Halide::Argument> &args,
-    const Halide::Internal::LoweredFunc::LinkageType linkage_type,
+    const Halide::LinkageType linkage_type,
     Halide::Internal::Stmt s);
 
 int loop_level_into_dynamic_dimension(int level);

@@ -601,7 +601,8 @@ void HalideToTiramisu::visit(const Realize *op)
     // Assert that the bounds on the dimensions start from 0 for now.
     for (size_t i = 0; i < op->bounds.size(); ++i)
     {
-        assert(is_zero(op->bounds[i].min) && "Bound of realize node should start from 0 for now.\n");
+      //I am not sure this is a valid replacement for is_zero
+        assert(is_const_zero(op->bounds[i].min) && "Bound of realize node should start from 0 for now.\n");
     }
 
     // Create a temporary buffer

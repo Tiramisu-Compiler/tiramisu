@@ -14,7 +14,7 @@ The next section provides more details about the installation of these prerequis
 
 ###### Required
 
-1) [CMake](https://cmake.org/): version 3.5 or greater.
+1) [CMake](https://cmake.org/): version 3.22 or greater.
   
         # On Ubuntu
         sudo apt-get install cmake
@@ -68,7 +68,7 @@ If the above fails, check the ISL [README](http://repo.or.cz/isl.git/blob/HEAD:/
 
 ###### Building LLVM
 
-LLVM-5.0 or greater: required by the Halide framework. Check the section "Acquiring LLVM" in the Halide [README](https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM, build and install it.
+LLVM-14.0 or greater: required by the Halide framework. Check the section "Acquiring LLVM" in the Halide [README](https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM, build and install it.
 
 
 ##### Building Halide

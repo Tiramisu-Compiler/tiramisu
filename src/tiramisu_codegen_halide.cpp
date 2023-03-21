@@ -1,3 +1,4 @@
+#include <map>
 #include <isl/aff.h>
 #include <isl/set.h>
 #include <isl/constraint.h>
@@ -16,10 +17,8 @@
 
 #include <string>
 #include "../include/tiramisu/expr.h"
-#include "../3rdParty/Halide/src/Expr.h"
-#include "../3rdParty/Halide/src/Parameter.h"
+#include "Halide.h"
 #include "../include/tiramisu/debug.h"
-#include "../3rdParty/Halide/src/IR.h"
 #include "../include/tiramisu/core.h"
 
 namespace tiramisu
@@ -1523,7 +1522,7 @@ Halide::Expr halide_expr_from_isl_ast_expr_temp(isl_ast_expr *isl_expr)
                         isl_ast_expr *expr_itr = isl_ast_expr_get_op_arg(isl_expr, i);
                         Halide::Expr current_op = halide_expr_from_isl_ast_expr_temp<T, N>(expr_itr);
 
-                        result = Halide::Internal::Max::make2(result, current_op, true);
+                        result = Halide::Internal::Max::make(result, current_op);
                         
                         isl_ast_expr_free(expr_itr);
 
@@ -1545,7 +1544,7 @@ Halide::Expr halide_expr_from_isl_ast_expr_temp(isl_ast_expr *isl_expr)
                         isl_ast_expr *expr_itr = isl_ast_expr_get_op_arg(isl_expr, i);
                         Halide::Expr current_op = halide_expr_from_isl_ast_expr_temp<T, N>(expr_itr);
 
-                        result = Halide::Internal::Min::make2(result, current_op, true);
+                        result = Halide::Internal::Min::make(result, current_op);
                         
                         isl_ast_expr_free(expr_itr);
 
@@ -1554,23 +1553,23 @@ Halide::Expr halide_expr_from_isl_ast_expr_temp(isl_ast_expr *isl_expr)
                     break;
                 }
             case isl_ast_op_minus:
-                result = Halide::Internal::Sub::make(Halide::cast(op0.type(), Halide::Expr(0)), op0, true);
+                result = Halide::Internal::Sub::make(Halide::cast(op0.type(), Halide::Expr(0)), op0);
                 break;
             case isl_ast_op_add:
-                result = Halide::Internal::Add::make(op0, op1, true);
+                result = Halide::Internal::Add::make(op0, op1);
                 break;
             case isl_ast_op_sub:
-                result = Halide::Internal::Sub::make(op0, op1, true);
+	        result = Halide::Internal::Sub::make(op0, op1);
                 break;
             case isl_ast_op_mul:
-                result = Halide::Internal::Mul::make(op0, op1, true);
+                result = Halide::Internal::Mul::make(op0, op1);
                 break;
             case isl_ast_op_div:
-                result = Halide::Internal::Div::make(op0, op1, true);
+                result = Halide::Internal::Div::make(op0, op1);
                 break;
             case isl_ast_op_fdiv_q:
             case isl_ast_op_pdiv_q:
-                result = Halide::Internal::Div::make(op0, op1, true);
+                result = Halide::Internal::Div::make(op0, op1);
                 result = Halide::Internal::Cast::make(Halide::Int(N), Halide::floor(result));
                 break;
             case isl_ast_op_zdiv_r:
@@ -1582,19 +1581,19 @@ Halide::Expr halide_expr_from_isl_ast_expr_temp(isl_ast_expr *isl_expr)
                 result = Halide::Internal::Select::make(op0, op1, op2);
                 break;
             case isl_ast_op_le:
-                result = Halide::Internal::LE::make(op0, op1, true);
+                result = Halide::Internal::LE::make(op0, op1);
                 break;
             case isl_ast_op_lt:
-                result = Halide::Internal::LT::make(op0, op1, true);
+                result = Halide::Internal::LT::make(op0, op1);
                 break;
             case isl_ast_op_ge:
-                result = Halide::Internal::GE::make(op0, op1, true);
+                result = Halide::Internal::GE::make(op0, op1);
                 break;
             case isl_ast_op_gt:
-                result = Halide::Internal::GT::make(op0, op1, true);
+                result = Halide::Internal::GT::make(op0, op1);
                 break;
             case isl_ast_op_eq:
-                result = Halide::Internal::EQ::make(op0, op1, true);
+                result = Halide::Internal::EQ::make(op0, op1);
                 break;
             default:
                 tiramisu::str_dump("Transforming the following expression",
@@ -1762,8 +1761,14 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                 }
                 else if (op_type == tiramisu::o_free)
                 {
-                    auto * buffer = (comp->get_access_relation() != nullptr) ? fct.get_buffers().at(get_buffer_name(comp)) : nullptr;
-                    block = generator::make_buffer_free(buffer);
+                    std::string buffer_name = comp->get_expr().get_name();
+                    DEBUG(10, tiramisu::str_dump("The computation of the node is a free IR node."));
+                    DEBUG(10, tiramisu::str_dump("The buffer that should be freed is " + buffer_name));
+                    tiramisu::buffer *buf = comp->get_function()->get_buffers().at(buffer_name);
+                    if ( !buf || buf->get_auto_deallocate() )
+                        buf = (comp->get_access_relation() != nullptr) ? fct.get_buffers().at(buffer_name) : nullptr;
+                    if ( buf != nullptr && !buf->get_auto_deallocate() )
+                        block = generator::make_buffer_free(buf);
                 }
                 else
                 {
@@ -2468,8 +2473,7 @@ void function::gen_halide_stmt()
 
     DEBUG(3, this->gen_c_code());
 
-    Halide::Internal::set_always_upcast();
-
+    //    Halide::Internal::set_always_upcast();
     // This vector is used in generate_Halide_stmt_from_isl_node to figure
     // out what are the statements that have already been visited in the
     // AST tree.
@@ -2574,10 +2578,11 @@ Halide::Internal::Stmt generator::make_buffer_alloc(buffer *b, const std::vector
     using cuda_ast::memory_location;
     auto h_type = halide_type_from_tiramisu_type(b->get_elements_type());
     if (b->location == memory_location::host)
-    {
-        return Halide::Internal::Allocate::make(
+      {//Note: When this was created originally, Halide didn't have a memory type, but now it does - I think setting this to heap best resembles the old semantics
+      return Halide::Internal::Allocate::make(
                 b->get_name(),
                 h_type,
+		Halide::MemoryType::Heap,
                 extents, Halide::Internal::const_true(), stmt);
     }
     else if (b->location == memory_location::global)
@@ -2587,6 +2592,7 @@ Halide::Internal::Stmt generator::make_buffer_alloc(buffer *b, const std::vector
         {
             size = size * extents[i];
         }
+	//This should potentially be something else
         return Halide::Internal::LetStmt::make(
                 b->get_name(),
                 Halide::Internal::Call::make(Halide::type_of<void *>(), "tiramisu_cuda_malloc",
@@ -3128,7 +3134,8 @@ void computation::create_halide_assignment()
                 this->stmt = Halide::Internal::Store::make(
                         buffer_name,
                         generator::halide_expr_from_tiramisu_expr(this->get_function(), this->index_expr, tiramisu_rhs, this),
-                        index, param, Halide::Internal::const_true(type.lanes()));
+                        index, param, Halide::Internal::const_true(type.lanes()),
+			Halide::Internal::ModulusRemainder()); //ModulusRemainder has been added here but this might be wrong
 
                 DEBUG(3, tiramisu::str_dump("Halide::Internal::Store::make statement created."));
             } else if (this->is_library_call()) {
@@ -3328,6 +3335,7 @@ void computation::create_halide_assignment()
 
     DEBUG_INDENT(-4);
 }
+
 tiramisu::expr generator::replace_accesses(const tiramisu::function *fct, std::vector<isl_ast_expr *> &index_expr,
                                            const tiramisu::expr &tiramisu_expr){
     tiramisu::expr result;
@@ -3529,35 +3537,35 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                 DEBUG(10, tiramisu::str_dump("op type: o_logical_or"));
                 break;
             case tiramisu::o_max:
-                result = Halide::Internal::Max::make2(op0, op1, true);
+                result = Halide::Internal::Max::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_max"));
                 break;
             case tiramisu::o_min:
-                result = Halide::Internal::Min::make2(op0, op1, true);
+                result = Halide::Internal::Min::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_min"));
                 break;
             case tiramisu::o_minus:
-                result = Halide::Internal::Sub::make(Halide::cast(op0.type(), Halide::Expr(0)), op0, true);
+	        result = Halide::Internal::Sub::make(Halide::cast(op0.type(), Halide::Expr(0)), op0);
                 DEBUG(10, tiramisu::str_dump("op type: o_minus"));
                 break;
             case tiramisu::o_add:
-                result = Halide::Internal::Add::make(op0, op1, true);
+                result = Halide::Internal::Add::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_add"));
                 break;
             case tiramisu::o_sub:
-                result = Halide::Internal::Sub::make(op0, op1, true);
+                result = Halide::Internal::Sub::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_sub"));
                 break;
             case tiramisu::o_mul:
-                result = Halide::Internal::Mul::make(op0, op1, true);
+                result = Halide::Internal::Mul::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_mul"));
                 break;
             case tiramisu::o_div:
-                result = Halide::Internal::Div::make(op0, op1, true);
+                result = Halide::Internal::Div::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_div"));
                 break;
             case tiramisu::o_mod:
-                result = Halide::Internal::Mod::make(op0, op1, true);
+                result = Halide::Internal::Mod::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_mod"));
                 break;
             case tiramisu::o_select:
@@ -3572,19 +3580,19 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                 ERROR("Code generation for o_cond is not supported yet.", true);
                 break;
             case tiramisu::o_le:
-                result = Halide::Internal::LE::make(op0, op1, true);
+                result = Halide::Internal::LE::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_le"));
                 break;
             case tiramisu::o_lt:
-                result = Halide::Internal::LT::make(op0, op1, true);
+                result = Halide::Internal::LT::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_lt"));
                 break;
             case tiramisu::o_ge:
-                result = Halide::Internal::GE::make(op0, op1, true);
+                result = Halide::Internal::GE::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_ge"));
                 break;
             case tiramisu::o_gt:
-                result = Halide::Internal::GT::make(op0, op1, true);
+                result = Halide::Internal::GT::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_gt"));
                 break;
             case tiramisu::o_logical_not:
@@ -3592,11 +3600,11 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                 DEBUG(10, tiramisu::str_dump("op type: o_not"));
                 break;
             case tiramisu::o_eq:
-                result = Halide::Internal::EQ::make(op0, op1, true);
+                result = Halide::Internal::EQ::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_eq"));
                 break;
             case tiramisu::o_ne:
-                result = Halide::Internal::NE::make(op0, op1, true);
+                result = Halide::Internal::NE::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_ne"));
                 break;
             case tiramisu::o_type:
@@ -3789,7 +3797,8 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                         if (tiramisu_expr.get_op_type() != tiramisu::o_address_of) {
                             result = Halide::Internal::Load::make(
                                     type, tiramisu_buffer->get_name(), index, Halide::Buffer<>(),
-                                    param, Halide::Internal::const_true(type.lanes()));
+                                    param, Halide::Internal::const_true(type.lanes()),
+				    Halide::Internal::ModulusRemainder());
                         } else {
                             result = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(),
                                                                                    tiramisu_buffer->get_name() + ".buffer");
@@ -3805,7 +3814,8 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                         if (tiramisu_expr.get_op_type() != tiramisu ::o_address_of) {
                             result = Halide::Internal::Load::make(
                                     type, tiramisu_buffer->get_name(), index, Halide::Buffer<>(),
-                                    Halide::Internal::Parameter(), Halide::Internal::const_true(type.lanes()));
+                                    Halide::Internal::Parameter(), Halide::Internal::const_true(type.lanes()),
+				    Halide::Internal::ModulusRemainder());
                         } else {
                             result = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(),
                                                                       tiramisu_buffer->get_name() + ".buffer");
@@ -3969,7 +3979,7 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
 }
 
 void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os,
-                              Halide::Target::Arch arch, int bits, const tiramisu::hardware_architecture_t hw_architecture) const
+                              Halide::Target::Arch arch, int bits, const tiramisu::hardware_architecture_t hw_architecture, bool gen_python) const
 {
     // TODO(tiramisu): For GPU schedule, we need to set the features, e.g.
     // Halide::Target::OpenCL, etc.
@@ -3994,21 +4004,27 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
                 buf->get_name(),
                 halide_argtype_from_tiramisu_argtype(buf->get_argument_type()),
                 halide_type_from_tiramisu_type(buf->get_elements_type()),
-                buf->get_n_dims());
+                buf->get_n_dims(), Halide::ArgumentEstimates{});
 
         fct_arguments.push_back(buffer_arg);
     }
 
 
     Halide::Module m = lower_halide_pipeline(this->get_name(), target, fct_arguments,
-                                             Halide::Internal::LoweredFunc::External,
+                                             Halide::LinkageType::ExternalPlusMetadata,
                                              this->get_halide_stmt());
 
-    m.compile(Halide::Outputs().object(obj_file_name));
-    m.compile(Halide::Outputs().c_header(obj_file_name + ".h"));
+    std::map<Halide::OutputFileType, std::string> omap = {{Halide::OutputFileType::object, obj_file_name}, {Halide::OutputFileType::c_header, obj_file_name + ".h"},};
+   
+    //    m.compile(Halide::Output().c_header(obj_file_name + ".h"));
     if (hw_architecture == tiramisu::hardware_architecture_t::arch_flexnlp)
-        m.compile(Halide::Outputs().c_source(obj_file_name + "_generated.c"));
+      omap[Halide::OutputFileType::c_source] = obj_file_name + "_generated.c";
+      //m.compile(Halide::Output().c_source2587(obj_file_name + "_generated.c"));
+    if (gen_python){
+      omap[Halide::OutputFileType::python_extension] = obj_file_name + ".py.cpp";
+    }
 
+    m.compile(omap);
     if (nvcc_compiler) {
         nvcc_compiler->compile(obj_file_name);
     }
