@@ -932,7 +932,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     //this method uses the AST custom schedule generator
 
     std::vector<syntax_tree *> states;
-    bool explre_interchange = true;
+    bool explre_interchange = false;
     bool explre_solver_skew = true;
     std::vector<std::vector<std::vector<int>>> matrices;
     ast_node *node = std::get<0>(ast.get_current_optimization_target());

@@ -17,7 +17,8 @@ void beam_search::explore_schedules(syntax_tree &ast, std::vector<std::string> *
     std::queue<syntax_tree*> exploration_queue;
     exploration_queue.push(&ast);
     std::unordered_map<syntax_tree*, candidate_trace*> trace_map;
-    while(!exploration_queue.empty()){
+    int level = 1;
+    while(!exploration_queue.empty() && level < MAX_EXPLORATION_LEVEL){
         
         trace_map[&ast] = parent_trace;
         
@@ -48,7 +49,8 @@ void beam_search::explore_schedules(syntax_tree &ast, std::vector<std::string> *
         {   
             exploration_queue.push(child);
         }
-
+        level++;
+        std::cout<<"currently at level: "<<level<<std::endl;
     }
 }
 /*
@@ -282,32 +284,15 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
 {
     std::vector<syntax_tree*> children;
     std::vector<optimization_type> transformations_to_explore;
-    if (ast.search_depth==1){
-        
-        std::vector<ast_node*> nodes;
-        // go through each root of the tree to recover all computations
-        for(auto root: ast.roots){
-            std::vector<ast_node*> nodes;
-            root->get_all_nodes(nodes);
-            for(auto node : nodes){
-                if(node->computations.size()>0){
-                    optimization_info optim_info;
-                    optim_info.type = optimization_type::MATRIX;
-                    node->get_node_computations(optim_info.comps);
 
-                    // for the original schedule, the transformation matrix is the identity
-                    optim_info.matrix = get_identity(node->depth+1);
-                    ast.new_optims.push_back(optim_info);
-                }   
-            }
-        }    
-    }
     transformations_to_explore.push_back(optimization_type::FUSION);
     transformations_to_explore.push_back(optimization_type::TILING);
     transformations_to_explore.push_back(optimization_type::PARALLELIZE);
     // transformations_to_explore.push_back(optimization_type::UNROLLING);
     transformations_to_explore.push_back(optimization_type::MATRIX);
 
+    
+    
     if(generator_state::initialized == false)
     {
         ast.initialize_search_space_optimizations(transformations_to_explore);
