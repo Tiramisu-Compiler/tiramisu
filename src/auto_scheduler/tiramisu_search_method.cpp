@@ -28,29 +28,10 @@ void beam_search::explore_schedules(syntax_tree &ast, std::vector<std::string> *
             exploration_queue.pop();
             std::vector<syntax_tree*> intermediate_schedules ;
             
-            switch(ast_to_explore->ast_search_phase) {
-
-                case search_phase::FUSION:
-                    
-                    intermediate_schedules = search_save(*ast_to_explore, schedules_annotations, trace_map[ast_to_explore], schedule_timeout);
-                    break;
-
-                case search_phase::UNIMODULAR:
-                    
-                    intermediate_schedules = search_save_matrix(*ast_to_explore, schedules_annotations, trace_map[ast_to_explore], schedule_timeout);
-                    break;  
-
-                case search_phase::NON_UNIMODULAR:
-                    
-                    intermediate_schedules = search_save(*ast_to_explore, schedules_annotations, trace_map[ast_to_explore], schedule_timeout);
-                    break;
-                
-                default:
-                    return;
-            }
+            intermediate_schedules = search_save(*ast_to_explore, schedules_annotations, trace_map[ast_to_explore], schedule_timeout);
+            
             for(auto sched: intermediate_schedules){
                     trace_map[sched] = trace_map[ast_to_explore]->child_mappings[sched];
-                    
             }
             level_schedules.insert(level_schedules.end(), intermediate_schedules.begin(), intermediate_schedules.end());
         }
@@ -301,11 +282,31 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
 {
     std::vector<syntax_tree*> children;
     std::vector<optimization_type> transformations_to_explore;
-    if(ast.ast_search_phase == search_phase::FUSION){
-        transformations_to_explore.push_back(optimization_type::FUSION);
-    }else{
-        transformations_to_explore = DEFAULT_OPTIMIZATIONS_ORDER;
+    if (ast.search_depth==1){
+        
+        std::vector<ast_node*> nodes;
+        // go through each root of the tree to recover all computations
+        for(auto root: ast.roots){
+            std::vector<ast_node*> nodes;
+            root->get_all_nodes(nodes);
+            for(auto node : nodes){
+                if(node->computations.size()>0){
+                    optimization_info optim_info;
+                    optim_info.type = optimization_type::MATRIX;
+                    node->get_node_computations(optim_info.comps);
+
+                    // for the original schedule, the transformation matrix is the identity
+                    optim_info.matrix = get_identity(node->depth+1);
+                    ast.new_optims.push_back(optim_info);
+                }   
+            }
+        }    
     }
+    transformations_to_explore.push_back(optimization_type::FUSION);
+    transformations_to_explore.push_back(optimization_type::TILING);
+    transformations_to_explore.push_back(optimization_type::PARALLELIZE);
+    // transformations_to_explore.push_back(optimization_type::UNROLLING);
+    transformations_to_explore.push_back(optimization_type::MATRIX);
 
     if(generator_state::initialized == false)
     {
@@ -318,26 +319,26 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
     {
         // schedule generation based on generator_state attribute in the AST.
         auto new_children = scheds_gen->generate_schedules(ast);
-        
+
         for(auto& child:new_children)
             child->move_to_next_optimization_target();
 
         children.insert(children.end(), new_children.begin(), new_children.end()); // concatenate
-
+        
         if  (ast.search_state.is_current_optimization_fully_explored() && !children.empty()) {
             // move to next optimization
             // explores next optimization/alternative
             ast.move_to_next_optimization_target();
-            break;
+            // break;
         }
         else
             ast.move_to_next_optimization_target();
     }
-    
-    
+
+            
     // Stop if no more optimizations can be applied
     // Unless we are exploring fusion. SInce Fusion is seperated from the other transformations, even if no fusion candidates are available, we explore the root.
-    if (children.size() == 0 && ast.ast_search_phase != search_phase::FUSION)
+    if (children.size() == 0)
         return children;
     
 
@@ -466,11 +467,6 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
     // Sort children from smallest evaluation to largest
     for (syntax_tree *child : children)
     {
-        if(child->ast_search_phase == search_phase::FUSION){
-            // reinitialize current index to zero for the next level of exploration
-            child->search_state.current_index = 0;
-            child->ast_search_phase = search_phase::UNIMODULAR;
-        }
         child->search_depth = ast.search_depth + 1;
     }
     return children;

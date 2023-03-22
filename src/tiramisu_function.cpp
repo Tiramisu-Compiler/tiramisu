@@ -2852,7 +2852,7 @@ bool tiramisu::function::loop_interchnage_is_legal(int i, int j, std::vector<tir
     DEBUG_INDENT(4);
     
     DEBUG(3, tiramisu::str_dump("interchange check for level : "+std::to_string(i)+" and level "+std::to_string(j)));
-
+    
     bool result = true;
 
     for(auto& computation : fuzed_computations)

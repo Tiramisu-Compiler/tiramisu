@@ -236,9 +236,15 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
     // Generate the specified optimization
     switch (ast.get_current_optimization_type())
     {
-    
+    case optimization_type::MATRIX:
+        {
+            std::vector<syntax_tree *> suggested_transformations =  generate_matrices(ast);
+            for (auto schedule: suggested_transformations){
+                states.push_back(schedule);
+            }
+        }
+        break;    
     case optimization_type::FUSION:
-
         /* iteration of the ast in done preorder  */
         {
             if (ast.search_state.current_index == 0)
@@ -1312,12 +1318,18 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         }
         ast.recover_isl_states();
     }
+
     ast.stage_isl_states();
+
     bool explre_3d_solver_skew = true;
+    
+    shared_nodes = node->collect_shared_nodes_from_head();
+    
     if (shared_nodes.size() > 2)
     {
         shared_nodes[0]->get_all_computations(involved_computations_skew);
         shared_nodes.pop_back(); //removes 2nd loop level, first is enough
+        shared_nodes.pop_back(); //removes 3rd loop level, first is enough
     }
     else
     {
@@ -1325,6 +1337,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         explre_3d_solver_skew = false;
     }
     if(explre_3d_solver_skew){
+        std::cout<<"exploring 3d skewing"<<std::endl;
         for (ast_node *commun_node : shared_nodes)
         {
             std::vector<std::string> loop_names = involved_computations_skew[0]->get_loop_level_names();
@@ -1408,6 +1421,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
             }
             ast.stage_isl_states();
         }
+        ast.recover_isl_states();
     }
     return states;
 }
