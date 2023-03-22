@@ -1312,12 +1312,16 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         }
         ast.recover_isl_states();
     }
+    
     ast.stage_isl_states();
     bool explre_3d_solver_skew = true;
+
+    shared_nodes = node->collect_shared_nodes_from_head();
     if (shared_nodes.size() > 2)
     {
         shared_nodes[0]->get_all_computations(involved_computations_skew);
         shared_nodes.pop_back(); //removes 2nd loop level, first is enough
+        shared_nodes.pop_back(); //removes 3rd loop level, first is enough
     }
     else
     {
@@ -1408,6 +1412,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
             }
             ast.stage_isl_states();
         }
+        ast.recover_isl_states();
     }
     return states;
 }
