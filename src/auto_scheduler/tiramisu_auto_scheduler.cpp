@@ -23,17 +23,18 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     setenv("INIT_EXEC_TIME", "0", true); // set the INIT_EXEC_TIME to 0 meaning that it's the non scheduled version
     float initial_timeout = std::atof(read_env_var("INITIAL_TIMEOUT"));
     std::vector<float> initial_measurements;
-    if (std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1 || std::atoi(read_env_var("EXECUTE_BEST_AND_INITIAL_SCHED"))==1){
-        initial_measurements =  exec_evaluator->get_measurements(ast, true, initial_timeout);
-    }else{
-        // If we're exploring using the model, the speed up for the original schedule is 1.
-        initial_measurements = {1};
-    }
-    initial_exec_time = min_eval(initial_measurements);
-    if (std::isinf(initial_exec_time)){
-        std::cerr << "error: Evaluation of the non scheduled version of the program failed "<< std::endl;
-        exit(1);
-    }
+    initial_measurements.push_back(1);
+    // if (std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1 || std::atoi(read_env_var("EXECUTE_BEST_AND_INITIAL_SCHED"))==1){
+    //     initial_measurements =  exec_evaluator->get_measurements(ast, true, initial_timeout);
+    // }else{
+    //     // If we're exploring using the model, the speed up for the original schedule is 1.
+    //     initial_measurements = {1};
+    // }
+    // initial_exec_time = min_eval(initial_measurements);
+    // if (std::isinf(initial_exec_time)){
+    //     std::cerr << "error: Evaluation of the non scheduled version of the program failed "<< std::endl;
+    //     exit(1);
+    // }
     ast.evaluation = initial_exec_time;
 
    if (std::atoi(read_env_var("AS_VERBOSE"))==1)
@@ -64,9 +65,9 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
 //        if (std::atoi(read_env_var("AS_VERBOSE")) == 1)
         std::cout << "Schedule measurements timeout set to " << schedule_timeout << "*" << read_env_var("MAX_RUNS") << "(MAX_RUNS) s" << std::endl;
     }
-    searcher->set_exec_eval(exec_evaluator);
-    // start exploration with fusion and explore other transformations recursivly
-    searcher->explore_schedules(ast, &schedules_annotations, &exploration_trace_root, schedule_timeout);
+    // searcher->set_exec_eval(exec_evaluator);
+    // // start exploration with fusion and explore other transformations recursivly
+    // searcher->explore_schedules(ast, &schedules_annotations, &exploration_trace_root, schedule_timeout);
 
     std::string output_json;
 
