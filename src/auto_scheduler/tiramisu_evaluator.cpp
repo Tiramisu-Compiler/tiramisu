@@ -621,7 +621,8 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
 
 void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, std::string& iterators_json)
 {
-    if (node->get_extent() == "0-0+1")
+    // We skip dummy nodes
+    if (node->name.compare("dummy_iter")==0)
         return;
         
     std::string iter_json;
@@ -668,7 +669,7 @@ void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, 
     
     for (int i = 0; i < node->children.size(); ++i)
     {
-        if (node->children[i]->name.compare("dummy_iter")==0)
+        if (node->children[i]->name.compare("dummy_iter")!=0)
             continue;
             
         ast_node *dummy_child = node->children[i];

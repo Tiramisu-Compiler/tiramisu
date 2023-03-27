@@ -2851,7 +2851,7 @@ bool tiramisu::function::loop_interchnage_is_legal(int i, int j, std::vector<tir
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
     
-    DEBUG(3, tiramisu::str_dump("interchange check for level : "+std::to_string(i)+" and level "+std::to_string(j)));
+    DEBUG(3, tiramisu::str_dump("Interchange check for level : "+std::to_string(i)+" and level "+std::to_string(j)));
 
     bool result = true;
 
@@ -2876,11 +2876,12 @@ bool tiramisu::function::loop_interchnage_is_legal(int i, int j, std::vector<tir
             std::string name = isl_set_get_dim_name(iter_domain, isl_dim_set, level);
             std::string low_bound = utility::get_bound(iter_domain, level, false).to_str();
             std::string up_bound = utility::get_bound(iter_domain, level, true).to_str();
-
+            DEBUG(3, tiramisu::str_dump("Checking whether the loop with the bounds: "+second_level_low_bound+" and "+second_level_up_bound+" has the iterator: "+name));
             //  If the second node bounds depend on the current node iterator
             if(second_level_up_bound.find(name) != std::string::npos || second_level_low_bound.find(name) != std::string::npos){
                 return false;
             }
+            DEBUG(3, tiramisu::str_dump("checking whether loop: "+name+" with bounds: "+low_bound+" and "+up_bound+" has the iterator: "+first_level_name));
             //  If the current node bounds depend on the first node iterator
             if(low_bound.find(first_level_name) != std::string::npos || up_bound.find(first_level_name) != std::string::npos){
                 return false;
