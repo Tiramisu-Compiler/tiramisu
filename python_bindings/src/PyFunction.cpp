@@ -15,7 +15,9 @@ namespace tiramisu {
 	.def("dump", &function::dump)
 	.def("gen_c_code", &function::gen_c_code)
 	.def("dump_halide_stmt", &function::dump_halide_stmt)
-	.def("codegen", py::overload_cast<const std::vector<tiramisu::buffer *> &, const std::string, const bool, bool>(&tiramisu::function::codegen));
+	.def("codegen", py::overload_cast<const std::vector<tiramisu::buffer *> &, const std::string, const bool, bool>(&tiramisu::function::codegen))
+	.def("skewing_local_solver", py::overload_cast<std::vector<computation *>, var, var, int>(&function::skewing_local_solver))
+	.def("skewing_local_solver", py::overload_cast<std::vector<computation *>, int, int, int>(&function::skewing_local_solver));
 
       function_class.def("pycodegen", [](tiramisu::function & fct, const std::vector<tiramisu::buffer *> & buffs, const std::string name, const bool cuda)
 	     -> void{
