@@ -16,6 +16,8 @@
 #define Vsnk P_Vsnk
 #define Nsrc P_Nsrc
 #define Nsnk P_Nsnk
+#define NsrcSC P_B1Nweights
+#define NsnkSC P_B1Nweights
 #define NsrcHex P_NsrcHex
 #define NsnkHex P_NsnkHex
 #define mq P_mq
@@ -30,7 +32,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 // Define these values for each new test
-#define TEST_NAME_STR       "tiramisu_make_fused_identical_baryon_blocks_correaltor"
+#define TEST_NAME_STR       "tiramisu_make_fused_identical_baryon_blocks_correlator"
 
 #include <tiramisu/utils.h>
 

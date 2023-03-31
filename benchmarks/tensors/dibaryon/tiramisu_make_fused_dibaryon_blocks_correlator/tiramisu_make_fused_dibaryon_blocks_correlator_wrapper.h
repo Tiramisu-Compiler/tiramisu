@@ -15,6 +15,10 @@
 #define Vsnk P_Vsnk
 #define Nsrc P_Nsrc
 #define Nsnk P_Nsnk
+#define B1NsrcSC P_B1NsrcSC
+#define B1NsnkSC P_B1NsnkSC
+#define B2NsrcSC P_B2NsrcSC
+#define B2NsnkSC P_B2NsnkSC
 #define NsrcHex P_NsrcHex
 #define NsnkHex P_NsnkHex
 #define mq P_mq
@@ -39,6 +43,13 @@ extern "C" {
 #endif
 
 int tiramisu_make_fused_dibaryon_blocks_correlator(
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
