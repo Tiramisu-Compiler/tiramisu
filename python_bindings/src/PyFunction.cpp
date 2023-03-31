@@ -6,21 +6,24 @@
 #define TO_STR(x) TO_STR2(x)
 std::string halide_build_p = TO_STR(HALIDE_BUILD);
 
-namespace tiramisu {
+namespace tiramisu
+{
 
-  namespace PythonBindings {
-    void define_function(py::module &m){
-      auto function_class = py::class_<function>(m, "function")
-	.def(py::init<std::string>(), py::return_value_policy::reference)
-	.def("dump", &function::dump)
-	.def("gen_c_code", &function::gen_c_code)
-	.def("dump_halide_stmt", &function::dump_halide_stmt)
-	.def("codegen", py::overload_cast<const std::vector<tiramisu::buffer *> &, const std::string, const bool, bool>(&tiramisu::function::codegen))
-	.def("skewing_local_solver", py::overload_cast<std::vector<computation *>, var, var, int>(&function::skewing_local_solver))
-	.def("skewing_local_solver", py::overload_cast<std::vector<computation *>, int, int, int>(&function::skewing_local_solver));
+	namespace PythonBindings
+	{
+		void define_function(py::module &m)
+		{
+			auto function_class = py::class_<function>(m, "function")
+									  .def(py::init<std::string>(), py::return_value_policy::reference)
+									  .def("dump", &function::dump)
+									  .def("gen_c_code", &function::gen_c_code)
+									  .def("dump_halide_stmt", &function::dump_halide_stmt)
+									  .def("codegen", py::overload_cast<const std::vector<tiramisu::buffer *> &, const std::string, const bool, bool>(&tiramisu::function::codegen))
+									  .def("skewing_local_solver", py::overload_cast<std::vector<computation *>, var, var, int>(&function::skewing_local_solver))
+									  .def("skewing_local_solver", py::overload_cast<std::vector<computation *>, int, int, int>(&function::skewing_local_solver));
 
-      function_class.def("pycodegen", [](tiramisu::function & fct, const std::vector<tiramisu::buffer *> & buffs, const std::string name, const bool cuda)
-	     -> void{
+			function_class.def("pycodegen", [](tiramisu::function &fct, const std::vector<tiramisu::buffer *> &buffs, const std::string name, const bool cuda) -> void
+							   {
 			   fct.codegen(buffs, name, cuda, true);
 	       std::string fname = fct.get_name();
 	       //	       py::scoped_interpreter guard{};
@@ -42,17 +45,9 @@ build_extension.extensions = cythonize([extension],
                                        include_path=[dir + "/include"], quiet=False)
 build_extension.build_lib = os.path.dirname(filename)
 build_extension.run()
-)", py::globals(), locals);
-		 }
-	      );
-      //Printer, add buffers, get buffers?
+)", py::globals(), locals); });
+			// Printer, add buffers, get buffers?
+		}
 
-    }
-
-
-  }  // namespace PythonBindings
-}  // namespace tiramisu
-
-
-
-
+	} // namespace PythonBindings
+} // namespace tiramisu
