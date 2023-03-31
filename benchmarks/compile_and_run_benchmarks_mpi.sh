@@ -1,9 +1,6 @@
 #!/bin/bash
 
 # Machine specific directories
-#MPIINCLUDE="-I/opt/ohpc/pub/mpi/openmpi-gnu7/1.10.7/include"
-#MPILIB="-L/opt/ohpc/pub/mpi/openmpi-gnu7/1.10.7/lib"
-
 MPIINCLUDE="-I/opt/ohpc/pub/compiler/intel/compilers_and_libraries_2019.4.243/linux/mpi/intel64/include"
 MPILIB="-L/opt/ohpc/pub/compiler/intel/compilers_and_libraries_2019.4.243/linux/mpi/intel64/lib"
 
@@ -27,8 +24,9 @@ source configure_paths.sh
 
 CXXFLAGS="-std=c++11 -O3 -fno-rtti -mavx512f -m64 $MPIINCLUDE $MPILIB -lmpi"
 #CORES=128
-CORES=216
-#CORES=2
+#CORES=216
+#CORES=1
+CORES=8
 
 # Compile options
 # - Make ${CXX} dump generated assembly
