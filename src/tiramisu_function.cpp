@@ -2852,7 +2852,7 @@ bool tiramisu::function::loop_interchnage_is_legal(int i, int j, std::vector<tir
     DEBUG_INDENT(4);
     
     DEBUG(3, tiramisu::str_dump("interchange check for level : "+std::to_string(i)+" and level "+std::to_string(j)));
-    
+    tiramisu::str_dump("interchange check for level : "+std::to_string(i)+" and level "+std::to_string(j));std::cout<<std::endl;
     bool result = true;
 
     for(auto& computation : fuzed_computations)
@@ -2862,6 +2862,8 @@ bool tiramisu::function::loop_interchnage_is_legal(int i, int j, std::vector<tir
         isl_set *iter_domain = computation->get_iteration_domain();
         int nb_iterators = isl_set_dim(iter_domain, isl_dim_set);
         
+        std::cout<<"number of iterators in legality check is: "<<nb_iterators<<std::endl;
+        std::cout<<isl_set_to_str(iter_domain)<<std::endl;
         assert(i < nb_iterators && j < nb_iterators);
         // Get the iterator name of the first interchange parameter loop.
         std::string first_level_name = isl_set_get_dim_name(iter_domain, isl_dim_set, i);

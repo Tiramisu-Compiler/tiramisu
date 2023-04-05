@@ -18,7 +18,7 @@ void beam_search::explore_schedules(syntax_tree &ast, std::vector<std::string> *
     exploration_queue.push(&ast);
     std::unordered_map<syntax_tree*, candidate_trace*> trace_map;
     int level = 1;
-    while(!exploration_queue.empty() && level < MAX_EXPLORATION_LEVEL){
+    while(!exploration_queue.empty() && level <= MAX_EXPLORATION_LEVEL){
         
         trace_map[&ast] = parent_trace;
         
@@ -36,6 +36,7 @@ void beam_search::explore_schedules(syntax_tree &ast, std::vector<std::string> *
             }
             level_schedules.insert(level_schedules.end(), intermediate_schedules.begin(), intermediate_schedules.end());
         }
+        std::cout<<"currently at level: "<<level<<" exploring: "<<level_schedules.size()<<std::endl;
         //Sort children from smallest evaluation to largest
         std::sort(level_schedules.begin(), level_schedules.end(), [](syntax_tree *a, syntax_tree *b) {
             return a->evaluation < b->evaluation;
@@ -50,7 +51,7 @@ void beam_search::explore_schedules(syntax_tree &ast, std::vector<std::string> *
             exploration_queue.push(child);
         }
         level++;
-        std::cout<<"currently at level: "<<level<<std::endl;
+
     }
 }
 /*
@@ -131,7 +132,7 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
         else
             ast.move_to_next_head();
     }
-
+    std::cout<<"number of children is: "<<children.size()<<std::endl;
     // if no candidates were generated, return an empty list
     if (children.size() == 0) return children;
  
@@ -285,41 +286,42 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
     std::vector<syntax_tree*> children;
     std::vector<optimization_type> transformations_to_explore;
 
+    if (std::atoi(read_env_var("AS_VERBOSE"))==1){
+                // print deleted Ast
+                ast.print_previous_optims();
+                std::cout << "\n-----------" << std::endl;
+                ast.print_new_optims();
+                ast.print_ast();
+                std::cout << "\n<AST to be explored at this level >\n";
+            }
+
     transformations_to_explore.push_back(optimization_type::FUSION);
     transformations_to_explore.push_back(optimization_type::TILING);
     transformations_to_explore.push_back(optimization_type::PARALLELIZE);
     // transformations_to_explore.push_back(optimization_type::UNROLLING);
     transformations_to_explore.push_back(optimization_type::MATRIX);
 
+    ast.initialize_search_space_optimizations(transformations_to_explore);
     
     
-    if(generator_state::initialized == false)
-    {
-        ast.initialize_search_space_optimizations(transformations_to_explore);
-        // the optimizations are specified along with the parameters in the generator_state attribute inside the AST.
-        assert(generator_state::initialized == true);
-    }
+    // if(generator_state::initialized == false)
+    // {
+        
+    //     // the optimizations are specified along with the parameters in the generator_state attribute inside the AST.
+    //     assert(generator_state::initialized == true);
+    // }
 
     while ((!ast.is_search_space_empty()))
     {
         // schedule generation based on generator_state attribute in the AST.
         auto new_children = scheds_gen->generate_schedules(ast);
 
-        for(auto& child:new_children)
-            child->move_to_next_optimization_target();
-
         children.insert(children.end(), new_children.begin(), new_children.end()); // concatenate
-        
-        if  (ast.search_state.is_current_optimization_fully_explored() && !children.empty()) {
-            // move to next optimization
-            // explores next optimization/alternative
-            ast.move_to_next_optimization_target();
-            // break;
-        }
-        else
-            ast.move_to_next_optimization_target();
-    }
 
+        ast.move_to_next_optimization_target();
+            
+    }
+    std::cout<<"done generating children: "<<children.size()<<std::endl;
             
     // Stop if no more optimizations can be applied
     // Unless we are exploring fusion. SInce Fusion is seperated from the other transformations, even if no fusion candidates are available, we explore the root.
