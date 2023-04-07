@@ -129,7 +129,7 @@ mkdir build
 3) Configure:
 
 ```bash
-cmake . -B build -DISL_INCLUDE_DIRECTORY=$ISL_INCLUDE_DIRECTORY -DISL_INCLUDE_DIRECTORY=$ISL_INCLUDE_DIRECTORY -DPython3_EXECUTABLE=`which python3`
+cmake . -B build -DISL_LIB_DIRECTORY=$ISL_LIB_DIRECTORY -DISL_INCLUDE_DIRECTORY=$ISL_INCLUDE_DIRECTORY -DPython3_EXECUTABLE=`which python3`
 ```
 		
 If you want to install, add `CMAKE_INSTALL_PREFIX`. If you are installing the python bindings, add `Tiramisu_INSTALL_PYTHONDIR` to tell Tiramisu where to place a python package. You will need add these install locations to the relevant path variables such as `PYTHONPATH` and `LD_LIBRARY_PATH`.
