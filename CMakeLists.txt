@@ -73,7 +73,7 @@ set(CMAKE_CXX_STANDARD 17)  # or newer
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)
 
-find_package(Halide 14 REQUIRED)
+find_package(Halide REQUIRED)
 find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
 
 if (${USE_MPI})
