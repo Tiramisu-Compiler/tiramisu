@@ -170,7 +170,7 @@ export CMAKE_PREFIX_PATH=<TIRAMISU_ROOT_DIR>/3rdParty/Halide/build/:$CMAKE_PREFI
 mkdir build
 cd build
 cmake ..
-make -j tiramisu
+cmake --build .
 ```
         
 6) If you want to build the autoscheduler module, set `USE_AUTO_SCHEDULER` to `TRUE` in `configure.cmake`, and after building Tiramisu :

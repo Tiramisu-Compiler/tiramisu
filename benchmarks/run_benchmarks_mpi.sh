@@ -22,7 +22,7 @@ KERNEL_FOLDER=$1
 KERNEL=$2
 source configure_paths.sh
 
-CXXFLAGS="-m64 -std=c++11 -O3 -fno-rtti -mavx2 $MPIINCLUDE $MPILIB -lmpi"
+CXXFLAGS="-std=c++17 -O3 -fno-rtti -mavx512f -m64 $MPIINCLUDE $MPILIB -lmpi"
 CORES=8
 
 # Compile options

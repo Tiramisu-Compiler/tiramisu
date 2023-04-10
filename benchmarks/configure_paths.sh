@@ -31,8 +31,8 @@ export CORES=1
 # Paths to Tiramisu 3rd party libraries
 export ISL_INCLUDE_DIRECTORY=${TIRAMISU_ROOT}/3rdParty/isl/build/include/
 export ISL_LIB_DIRECTORY=${TIRAMISU_ROOT}/3rdParty/isl/build/lib/
-export HALIDE_SOURCE_DIRECTORY=${TIRAMISU_ROOT}/3rdParty/Halide
-export HALIDE_LIB_DIRECTORY=${TIRAMISU_ROOT}/3rdParty/Halide/lib
+export HALIDE_SOURCE_DIRECTORY=${TIRAMISU_ROOT}/3rdParty/Halide/install
+export HALIDE_LIB_DIRECTORY=${TIRAMISU_ROOT}/3rdParty/Halide/install/lib64
 
 # Lanka configuration
 # export TIRAMISU_ROOT=/data/scratch/baghdadi/tiramisu/
