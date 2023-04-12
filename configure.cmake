@@ -20,7 +20,7 @@ option(WITH_DOCS "Build Docs" OFF)
 
 # Related configuration:
 # Debug
-option(ENABLE_DEBUG "Enable debug printing" TRUE)
+option(ENABLE_DEBUG "Enable debug printing" FALSE)
 set(DEBUG_LEVEL 0 CACHE STRING "Debug level value")
 
 # ISL paths
