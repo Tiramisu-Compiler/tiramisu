@@ -1220,10 +1220,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     optim_info.l1_fact = std::get<1>(param);
                     optim_info.l2_fact = 0;
                     optim_info.l3_fact = 1;
-                    if ((optim_info.l0 > 0) && (optim_info.l1 > 0))
-                    { //require loop reversal for correctness
-                        optim_info.l2_fact = -1;
-                    }
                     std::vector <  std::vector<int> >  matrix(depth);
                     for(int l = 0; l<matrix.size(); l++){
                         matrix.at(l)= std::vector<int>(depth);
