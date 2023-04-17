@@ -51,6 +51,7 @@ Tiramisu requires the following packages to be installed: ISL, Halide and LLVM. 
 
 ##### Building ISL
 
+Version 0.23 or greater is required.
 Install the [ISL](http://isl.gforge.inria.fr/) Library as follows
 
         cd 3rdParty/isl
