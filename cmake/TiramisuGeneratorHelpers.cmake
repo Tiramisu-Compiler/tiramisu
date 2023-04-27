@@ -113,6 +113,58 @@ function(add_tiramisu_library TARGET)
     target_link_libraries("${TARGET}" Halide::Runtime tiramisu)
 endfunction()
 
+
+function(add_tiramisu_test_library TARGET)
+    set(options "")
+    set(oneValueArgs FROM GENERATOR FUNCTION_NAME NAMESPACE)
+    set(multiValueArgs PARAMS)
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
+
+    if (NOT "${ARG_UNPARSED_ARGUMENTS}" STREQUAL "")
+        message(AUTHOR_WARNING "Arguments to add_tiramisu_library were not recognized: ${ARG_UNPARSED_ARGUMENTS}")
+    endif ()
+
+    if (NOT ARG_FROM)
+        message(FATAL_ERROR "Missing FROM argument specifying a Halide generator target")
+    endif ()
+
+    if (NOT ARG_GENERATOR)
+        set(ARG_GENERATOR "${TARGET}")
+    endif ()
+
+    if (NOT ARG_FUNCTION_NAME)
+        set(ARG_FUNCTION_NAME "${TARGET}")
+    endif ()
+
+    if (ARG_NAMESPACE)
+        set(ARG_FUNCTION_NAME "${ARG_NAMESPACE}::${ARG_FUNCTION_NAME}")
+    endif ()
+
+    
+
+    set(GENERATOR_CMD "${ARG_FROM}")
+    set(GENERATOR_CMD_DEPS ${ARG_FROM})
+    list(APPEND generator_output_files "${ARG_FUNCTION_NAME}.o" "${ARG_FUNCTION_NAME}.o.h")
+
+    add_custom_command(OUTPUT ${generator_output_files}
+                       COMMAND ${GENERATOR_CMD} ${ARG_PARAMS}
+		       DEPENDS ${GENERATOR_CMD_DEPS}
+		       VERBATIM)
+    list(TRANSFORM generator_output_files PREPEND "${CMAKE_CURRENT_BINARY_DIR}/")
+    add_custom_target("${TARGET}.update" ALL DEPENDS ${generator_output_files})
+    add_library("${TARGET}" STATIC "${ARG_FUNCTION_NAME}.o")
+    set_target_properties("${TARGET}" PROPERTIES
+    			  POSITION_INDEPENDENT_CODE ON
+                          LINKER_LANGUAGE CXX
+			  EXCLUDE_FROM_ALL true)
+
+    add_dependencies("${TARGET}" "${TARGET}.update")
+    target_include_directories("${TARGET}" INTERFACE "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>")
+    target_link_libraries("${TARGET}" Halide::Runtime tiramisu)
+endfunction()
+
+
+
 # Exported Functions for use downstream.
 # Gen
 # Use Gen 
