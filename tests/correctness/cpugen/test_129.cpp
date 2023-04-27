@@ -24,7 +24,7 @@ void gen(std::string name, int size)
     A.store_in(&bufA, {i, (j + 3) % size});
     S0.store_in(&bufS0, {(i + j * 2) % size, (i + j * (size - 1)) % size});
 
-    tiramisu::codegen({&bufA, &bufS0}, "build/generated_fct_test_129.o");
+    tiramisu::codegen({&bufA, &bufS0}, "generated_fct_test_129.o");
 }
 
 int main(int argc, char **argv)

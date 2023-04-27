@@ -67,7 +67,7 @@ void generate_function_1(std::string name) {
     sr2.s->set_wait_access("{send2[q,x,y]->buff_wait_send2[x,y]}");
     sr2.r->set_wait_access("{recv2[q,x,y]->buff_wait_recv2[x,y]}");
 
-    function0.codegen({&buff}, "build/generated_fct_test_100.o");
+    function0.codegen({&buff}, "generated_fct_test_100.o");
 }
 
 int main() {

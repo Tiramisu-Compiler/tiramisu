@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 
     B.then(C, l1);
 
-    tiramisu::codegen({A.get_buffer(), C.get_buffer()}, "build/generated_fct_test_143.o");
+    tiramisu::codegen({A.get_buffer(), C.get_buffer()}, "generated_fct_test_143.o");
 
     return 0;
 }

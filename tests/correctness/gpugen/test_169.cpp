@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 //    c_C.cache_shared(c_A, k0, {block * r_block, k_block}, {i00 * block * r_block, k0 * k_block});
 //    c_C.cache_shared(c_B, k0, {k_block, block * r_block}, {k0 * k_block, j00 * block * r_block});
 
-    tiramisu::codegen({&b_A, &b_B, &b_C}, "build/generated_fct_test_169.o", true);
+    tiramisu::codegen({&b_A, &b_B, &b_C}, "generated_fct_test_169.o", true);
 
     return 0;
 }

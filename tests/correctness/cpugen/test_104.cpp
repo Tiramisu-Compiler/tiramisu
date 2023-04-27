@@ -20,7 +20,7 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     tiramisu::buffer buf0("buf0", {size, size}, tiramisu::p_uint8, a_output, &function0);
     S0.set_access("{S0[i,j]->buf0[i,j]}");
 
-    function0.codegen({&buf0}, "build/generated_fct_test_104.o");
+    function0.codegen({&buf0}, "generated_fct_test_104.o");
 }
 
 int main(int argc, char **argv)

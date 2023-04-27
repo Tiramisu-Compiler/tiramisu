@@ -32,7 +32,7 @@ void gen(std::string name, int size, int val0, int val1)
     S0.store_in(&bufS0);
     S1.store_in(&bufS1);
 
-    tiramisu::codegen({&bufA, &bufB, &bufS1}, "build/generated_fct_test_128.o");
+    tiramisu::codegen({&bufA, &bufB, &bufS1}, "generated_fct_test_128.o");
 }
 
 int main(int argc, char **argv)

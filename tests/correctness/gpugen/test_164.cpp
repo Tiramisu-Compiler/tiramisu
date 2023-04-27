@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 
     tiramisu::codegen({sizes.get_buffer(), params.get_buffer(), transposes.get_buffer(),
                        A.get_buffer(), B.get_buffer(), C.get_buffer()},
-                      "build/generated_fct_test_164.o", true);
+                      "generated_fct_test_164.o", true);
 
     return 0;
 }

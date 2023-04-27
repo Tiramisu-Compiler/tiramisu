@@ -105,7 +105,7 @@ void generate_function_1(int size)
     func.gen_isl_ast();
     func.gen_halide_stmt();
     func.dump_halide_stmt();
-    func.gen_halide_obj("build/generated_fct_test_05.o");
+    func.gen_halide_obj("generated_fct_test_05.o");
 }
 
 

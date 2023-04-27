@@ -23,7 +23,7 @@ void gen(std::string name, int size, int val0, int val1)
 
     std::cout << std::endl << "Upper bound for i is " << val << std::endl;
 
-    tiramisu::codegen({&buf0}, "build/generated_fct_test_161.o");
+    tiramisu::codegen({&buf0}, "generated_fct_test_161.o");
 }
 
 int main(int argc, char **argv)

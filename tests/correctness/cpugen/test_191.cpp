@@ -93,7 +93,7 @@ void generate_function(std::string name, int size, int val0)
     
 
     // Code generation
-    tiramisu::codegen({&b_A}, "build/generated_fct_test_" + std::string(TEST_NUMBER_STR) + ".o");
+    tiramisu::codegen({&b_A}, "generated_fct_test_" + std::string(TEST_NUMBER_STR) + ".o");
 }
 
 int main(int argc, char **argv)

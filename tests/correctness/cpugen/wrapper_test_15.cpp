@@ -21,7 +21,7 @@ int main(int, char**)
     Duration duration = end - start;
     duration_vector.push_back(duration);
 
-    Halide::Tools::save_image(output, "./build/blurxy_tiramisu_test.png");
+    Halide::Tools::save_image(output, "./blurxy_tiramisu_test.png");
 
     return 0;
 }

@@ -16,7 +16,7 @@ int main(int, char **)
 
     //TODO(psuriana): Fix this test
     // compare_buffers("blurxy", output, ref);
-    Halide::Tools::save_image(output, "./build/blurxy_tiramisu_test.png");
+    Halide::Tools::save_image(output, "./blurxy_tiramisu_test.png");
 
     return 0;
 }

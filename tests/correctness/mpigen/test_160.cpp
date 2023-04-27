@@ -52,7 +52,7 @@ void gen(std::string name)
 
     blurx.gen_communication();
 
-    boxblur.codegen({&b_img, &b_blury}, "build/generated_fct_test_" + std::string(TEST_NUMBER_STR) + ".o");
+    boxblur.codegen({&b_img, &b_blury}, "generated_fct_test_" + std::string(TEST_NUMBER_STR) + ".o");
 }
 
 int main(int argc, char **argv)

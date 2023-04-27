@@ -46,7 +46,7 @@ void generate_function_1(std::string name, int size)
     function0.gen_time_space_domain();
     function0.gen_isl_ast();
     function0.gen_halide_stmt();
-    function0.gen_halide_obj("build/generated_fct_test_56.o");
+    function0.gen_halide_obj("generated_fct_test_56.o");
 }
 
 int main(int argc, char **argv)

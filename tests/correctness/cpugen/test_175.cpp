@@ -31,7 +31,7 @@ void generate_function(std::string name, int size, int val0)
     result.store_in(&result_buffer);
 
     // Code generation
-    tiramisu::codegen({&result_buffer}, "build/generated_fct_test_" + std::string(TEST_NUMBER_STR) + ".o");
+    tiramisu::codegen({&result_buffer}, "generated_fct_test_" + std::string(TEST_NUMBER_STR) + ".o");
 }
 
 int main(int argc, char **argv)

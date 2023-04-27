@@ -14,7 +14,7 @@ int main(int argc, char **argv)
     var i("i", 0, 10);
     computation output({i}, source(i + shift));
 
-    tiramisu::codegen({params.get_buffer(), source.get_buffer(), output.get_buffer()}, "build/generated_fct_test_163.o");
+    tiramisu::codegen({params.get_buffer(), source.get_buffer(), output.get_buffer()}, "generated_fct_test_163.o");
 
     return 0;
 }

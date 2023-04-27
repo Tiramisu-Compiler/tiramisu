@@ -41,7 +41,7 @@ void generate_function(std::string name, int size, int val0)
     assert(check_legality_of_function() == true) ;
 
     // Code generation
-    tiramisu::codegen({&buff_A}, "build/generated_fct_test_" + std::string(TEST_NUMBER_STR) + ".o");
+    tiramisu::codegen({&buff_A}, "generated_fct_test_" + std::string(TEST_NUMBER_STR) + ".o");
 }
 
 int main(int argc, char **argv)

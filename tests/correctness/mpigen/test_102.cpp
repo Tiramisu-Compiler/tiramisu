@@ -73,7 +73,7 @@ void generate_function_1(std::string name)
     fan_out.r->set_access("{fan_out_r[q,x,y]->buff_input[x,y]}");
     fan_in.r->set_access("{fan_in_r[p,q,x,y]->buff_output[q*100+x,y]}");
 
-    function0.codegen({&buff_input, &buff_output}, "build/generated_fct_test_102.o");
+    function0.codegen({&buff_input, &buff_output}, "generated_fct_test_102.o");
 }
 
 

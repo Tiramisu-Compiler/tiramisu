@@ -93,7 +93,7 @@ int main(int argc, char **argv)
     blurxy_tiramisu.gen_isl_ast();
     blurxy_tiramisu.gen_halide_stmt();
     blurxy_tiramisu.dump_halide_stmt();
-    blurxy_tiramisu.gen_halide_obj("build/generated_fct_test_15.o");
+    blurxy_tiramisu.gen_halide_obj("generated_fct_test_15.o");
     blurxy_tiramisu.gen_c_code();
 
     blurxy_tiramisu.dump(true);

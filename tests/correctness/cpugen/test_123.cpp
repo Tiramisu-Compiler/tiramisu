@@ -17,7 +17,7 @@ void gen(std::string name, int size, int val0, int val1)
     tiramisu::buffer buf0("buf0", {size}, tiramisu::p_uint8, a_output);
     S0.store_in(&buf0, {i});
 
-    tiramisu::codegen({&buf0}, "build/generated_fct_test_123.o");
+    tiramisu::codegen({&buf0}, "generated_fct_test_123.o");
 }
 
 int main(int argc, char **argv)

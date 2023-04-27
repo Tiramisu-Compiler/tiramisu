@@ -73,6 +73,6 @@ int main(int argc, char **argv)
                 .then( copy_B_device_to_host, t )
                 .then( *deallocate_B, t );
 
-    tiramisu::codegen({ A.get_buffer(), B.get_buffer() }, "build/generated_fct_test_197.o", true);
+    tiramisu::codegen({ A.get_buffer(), B.get_buffer() }, "generated_fct_test_197.o", true);
     return 0;
 }

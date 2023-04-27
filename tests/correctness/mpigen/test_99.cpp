@@ -45,7 +45,7 @@ void generate_function_1(std::string name) {
     sr.r->set_access("{recv[q,x,y]->buff[0,y]}");
     sr2.r->set_access("{recv2[q,x,y]->buff[0,y]}");
 
-    function0.codegen({&buff}, "build/generated_fct_test_99.o");
+    function0.codegen({&buff}, "generated_fct_test_99.o");
 
 }
 

@@ -32,7 +32,7 @@ int main(int argc, char **argv)
     C.store_in({i, k}, {M, K});
     C_init.store_in(C.get_buffer());
 
-    tiramisu::codegen({sizes.get_buffer(), A.get_buffer(), B.get_buffer(), C.get_buffer()}, "build/generated_fct_test_155.o");
+    tiramisu::codegen({sizes.get_buffer(), A.get_buffer(), B.get_buffer(), C.get_buffer()}, "generated_fct_test_155.o");
 
     return 0;
 }

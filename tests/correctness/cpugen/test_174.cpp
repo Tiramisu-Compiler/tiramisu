@@ -10,7 +10,7 @@ void gen(std::string name, int size, int val0, int val1)
 
     tiramisu::computation S0({i}, (i != 0), tiramisu::expr((uint8_t) (val0 + val1)));
 
-    tiramisu::codegen({S0.get_buffer()}, "build/generated_fct_test_174.o");
+    tiramisu::codegen({S0.get_buffer()}, "generated_fct_test_174.o");
 }
 
 int main(int argc, char **argv)

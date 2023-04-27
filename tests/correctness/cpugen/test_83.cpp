@@ -61,7 +61,7 @@ public:
 	function0.gen_time_space_domain();
 	function0.gen_isl_ast();
 	function0.gen_halide_stmt();
-	function0.gen_halide_obj("build/generated_fct_test_" + std::string(TEST_NUMBER_STR) + ".o");
+	function0.gen_halide_obj("generated_fct_test_" + std::string(TEST_NUMBER_STR) + ".o");
     }
 };
 

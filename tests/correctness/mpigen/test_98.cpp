@@ -43,7 +43,7 @@ void generate_function_1(std::string name)
     S0_init.set_access("{S0_init[x,y]->buff_output[x,y]}");
     S0.set_access("{S0[r,x,y]->buff_output[x,y]}");
 
-    function0.codegen({&buff_input, &buff_output}, "build/generated_fct_test_98.o");
+    function0.codegen({&buff_input, &buff_output}, "generated_fct_test_98.o");
 }
 
 

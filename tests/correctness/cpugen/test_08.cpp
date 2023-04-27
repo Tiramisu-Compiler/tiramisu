@@ -37,7 +37,7 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     function0.gen_isl_ast();
     function0.gen_halide_stmt();
     function0.dump_halide_stmt();
-    function0.gen_halide_obj("build/generated_fct_test_08.o");
+    function0.gen_halide_obj("generated_fct_test_08.o");
 }
 
 

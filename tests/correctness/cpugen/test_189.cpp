@@ -78,7 +78,7 @@ void generate_function(std::string name, int size, int val0)
     assert(fct->check_partial_legality_in_function({&A_out,&B_out}) == true);
 
     // Code generation
-    tiramisu::codegen({&b_A}, "build/generated_fct_test_" + std::string(TEST_NUMBER_STR) + ".o");
+    tiramisu::codegen({&b_A}, "generated_fct_test_" + std::string(TEST_NUMBER_STR) + ".o");
 }
 
 int main(int argc, char **argv)
