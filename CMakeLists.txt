@@ -6,6 +6,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR})
 set(CMAKE_VERBOSE_MAKEFILE "ON")
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
+
+include(CMakeDependentOption)
+include(CheckCXXSymbolExists)
+
+# Make our custom helpers available throughout the project via include().
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+include(TiramisuGeneratorHelpers)
+
 include(configure.cmake)
 if (DEBUG_LEVEL GREATER_EQUAL 1)
    set(ENABLE_DEBUG TRUE)
@@ -117,31 +125,6 @@ if (WITH_PYTHON_BINDINGS)
   target_include_directories(Tiramisu_Python PRIVATE "include")
 endif()
 
-## SETUP INSTALLS:
-
-install(TARGETS tiramisu
-EXPORT tiramisu_Targets
-LIBRARY DESTINATION lib
-INCLUDES DESTINATION include
-PUBLIC_HEADER DESTINATION include/tiramisu
-)
-
-if (USE_AUTO_SCHEDULER)
-   install(TARGETS tiramisu_auto_scheduler
-   EXPORT tiramisu_Targets
-   LIBRARY DESTINATION lib
-   INCLUDES DESTINATION include
-   PUBLIC_HEADER DESTINATION include/tiramisu/autoscheduler)
-endif()
-
-
-if (WITH_PYTHON_BINDINGS)
-  install(FILES ${CMAKE_SOURCE_DIR}/python_bindings/tiramisu.pyi ${CMAKE_SOURCE_DIR}/python_bindings/__init__.py
-  DESTINATION "${Tiramisu_INSTALL_PYTHONDIR}/tiramisu")
-  install(TARGETS Tiramisu_Python
-  EXPORT tiramisu_Targets
-  LIBRARY DESTINATION "${Tiramisu_INSTALL_PYTHONDIR}/tiramisu")
-endif()
 
 
 

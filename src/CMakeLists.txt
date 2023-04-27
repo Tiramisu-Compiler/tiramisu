@@ -31,13 +31,14 @@ ${CMAKE_SOURCE_DIR}/include/tiramisu/tiramisu.h
 add_library(tiramisu SHARED ${SOURCES})
 target_link_libraries(tiramisu Halide::Halide Halide::Runtime Halide::Tools ${ISLLib})
 target_link_libraries(tiramisu Threads::Threads)
+
 set_target_properties(tiramisu
   PROPERTIES
   LIBRARY_OUTPUT_NAME tiramisu
   EXPORT_NAME tiramisu
   PUBLIC_HEADER "${HEADERS}"
   )
-target_include_directories(tiramisu PUBLIC ${CMAKE_SOURCE_DIR}/include/)
+target_include_directories(tiramisu PUBLIC "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>" "$<INSTALL_INTERFACE:include>")
 target_include_directories(tiramisu PUBLIC "${ISL_INCLUDE_DIRECTORY}")
 
 if (${USE_AUTO_SCHEDULER})

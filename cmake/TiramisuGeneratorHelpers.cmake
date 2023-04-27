@@ -14,7 +14,7 @@ function(_Halide_try_load_generators)
         # Communicate found information to the caller
         set(${ARG_PACKAGE_NAME}_FOUND "${${ARG_PACKAGE_NAME}_FOUND}" PARENT_SCOPE)
 
-        if (NOT ${ARG_PACKAGE_NAME}_FOUND AND CMAKE_CROSSCOMPILING AND NOT CMAKE_CROSSCOMPILING_EMULATOR)
+        if (NOT ${ARG_PACKAGE_NAME}_FOUND)
             message(WARNING
                     "'${ARG_PACKAGE_NAME}' was not found and it looks like you "
                     "are cross-compiling without an emulator. This is likely to "
@@ -25,11 +25,26 @@ function(_Halide_try_load_generators)
 endfunction()
 
 function(add_tiramisu_generator TARGET)
+    set(options "")
     set(oneValueArgs PACKAGE_NAME PACKAGE_NAMESPACE EXPORT_FILE)
     set(multiValueArgs SOURCES LINK_LIBRARIES)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    _Halide_try_load_generators
+    if (NOT ARG_PACKAGE_NAME)
+        set(ARG_PACKAGE_NAME "${PROJECT_NAME}-tiramisu_generators")
+    endif ()
+
+     if (NOT ARG_PACKAGE_NAMESPACE)
+        set(ARG_PACKAGE_NAMESPACE "${PROJECT_NAME}::tiramisu_generators::")
+    endif ()
+
+    if (NOT ARG_EXPORT_FILE)
+        file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/cmake")
+        set(ARG_EXPORT_FILE "${PROJECT_BINARY_DIR}/cmake/${ARG_PACKAGE_NAME}Config.cmake")
+    endif ()
+
+    _Halide_try_load_generators()
+    
 
     set(${ARG_PACKAGE_NAME}_FOUND "${${ARG_PACKAGE_NAME}_FOUND}" PARENT_SCOPE)
 
@@ -38,8 +53,9 @@ function(add_tiramisu_generator TARGET)
         if (NOT TARGET "${ARG_PACKAGE_NAME}")
             add_custom_target("${ARG_PACKAGE_NAME}")
         endif ()
+    endif()
 
-     find_package(Tiramisu REQUIRED)
+     find_package(tiramisu REQUIRED)
      add_executable(${TARGET} ${ARG_SOURCES})
      add_executable(${gen} ALIAS ${TARGET})
      target_link_libraries(${TARGET} tiramisu Halide::Halide ${ARG_LINK_LIBRARIES})
@@ -50,12 +66,13 @@ function(add_tiramisu_generator TARGET)
 endfunction()
 
 function(add_tiramisu_library TARGET)
+    set(options "")
     set(oneValueArgs FROM GENERATOR FUNCTION_NAME NAMESPACE)
     set(multiValueArgs PARAMS)
-    cmake_parse_arguments(ARG  "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
 
     if (NOT "${ARG_UNPARSED_ARGUMENTS}" STREQUAL "")
-        message(AUTHOR_WARNING "Arguments to add_halide_library were not recognized: ${ARG_UNPARSED_ARGUMENTS}")
+        message(AUTHOR_WARNING "Arguments to add_tiramisu_library were not recognized: ${ARG_UNPARSED_ARGUMENTS}")
     endif ()
 
     if (NOT ARG_FROM)
@@ -74,6 +91,8 @@ function(add_tiramisu_library TARGET)
         set(ARG_FUNCTION_NAME "${ARG_NAMESPACE}::${ARG_FUNCTION_NAME}")
     endif ()
 
+    
+
     set(GENERATOR_CMD "${ARG_FROM}")
     set(GENERATOR_CMD_DEPS ${ARG_FROM})
     list(APPEND generator_output_files "${ARG_FUNCTION_NAME}.o" "${ARG_FUNCTION_NAME}.o.h")
@@ -83,10 +102,15 @@ function(add_tiramisu_library TARGET)
 		       DEPENDS ${GENERATOR_CMD_DEPS}
 		       VERBATIM)
     list(TRANSFORM generator_output_files PREPEND "${CMAKE_CURRENT_BINARY_DIR}/")
-    add_custom_target("${TARGET}.update" ALL DEPENDS ${generator_output_files})     
+    add_custom_target("${TARGET}.update" ALL DEPENDS ${generator_output_files})
+    add_library("${TARGET}" STATIC "${ARG_FUNCTION_NAME}.o")
+    set_target_properties("${TARGET}" PROPERTIES
+    			  POSITION_INDEPENDENT_CODE ON
+                          LINKER_LANGUAGE CXX)
+
     add_dependencies("${TARGET}" "${TARGET}.update")
     target_include_directories("${TARGET}" INTERFACE "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>")
-    target_link_libraries("${TARGET}" Halide::Runtime)
+    target_link_libraries("${TARGET}" Halide::Runtime tiramisu)
 endfunction()
 
 # Exported Functions for use downstream.

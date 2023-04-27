@@ -6,7 +6,7 @@ option(USE_GPU "Build with GPU support" OFF)
 
 option(USE_MPI "Build with MPI support" OFF)
 
-option(WITH_PYTHON_BINDINGS "Build Python bindings" ON)
+option(WITH_PYTHON_BINDINGS "Build Python bindings" OFF)
 
 option(USE_AUTO_SCHEDULER "Build the Tiramisu auto-scheduler" FALSE)
 

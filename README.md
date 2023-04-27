@@ -67,14 +67,6 @@ There are several ways to acquire Tiramisu:
 3) Purely from source with our install script.
 
 The second two only differ only in how they setup the dependenies.
-##### Building with spack
-
-Install spack and then run:
-```bash
-spack install tiramisu
-```
-
-
 ##### Building Dependencies with Homebrew
 If you are on MacOS and using Homebrew, you can run the following commands to setup the dependencies:
 ```bash
@@ -92,6 +84,14 @@ brew info isl
 ISL_INCLUDE_DIRECTORY=..
 ISL_LIB_DIRECTORY=..
 ```		
+
+##### Building with spack
+
+Install spack and then run:
+```bash
+spack install tiramisu
+```
+
 
 ##### Building Dependencies with Apt
 

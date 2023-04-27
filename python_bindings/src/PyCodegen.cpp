@@ -1,7 +1,17 @@
 #include "PyInit.h"
 #include "../../include/tiramisu/core.h"
 #include <pybind11/embed.h> // everything needed for embedding
-#include <experimental/filesystem>
+#include <version>
+
+// #ifdef __cpp_lib_filesystem
+//     #include <filesystem>
+//     using fs = std::filesystem;
+// #elif __cpp_lib_experimental_filesystem
+//     #include <experimental/filesystem>
+//     using fs = std::experimental::filesystem;
+// #else
+//     #error "no filesystem support ='("
+// #endif
 
 #define TO_STR2(x) #x
 #define TO_STR(x) TO_STR2(x)
