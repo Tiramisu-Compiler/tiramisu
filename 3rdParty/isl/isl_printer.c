@@ -1,5 +1,7 @@
 #include <string.h>
 #include <isl_int.h>
+#include <isl/id.h>
+#include <isl/id_to_id.h>
 #include <isl_printer_private.h>
 
 static __isl_give isl_printer *file_start_line(__isl_take isl_printer *p)
@@ -91,6 +93,7 @@ static __isl_give isl_printer *str_print_indent(__isl_take isl_printer *p,
 		goto error;
 	for (i = 0; i < indent; ++i)
 		p->buf[p->buf_n++] = ' ';
+	p->buf[p->buf_n] = '\0';
 	return p;
 error:
 	isl_printer_free(p);

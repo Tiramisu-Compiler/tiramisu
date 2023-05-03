@@ -1,5 +1,10 @@
 if HAVE_CLANG
-    MAYBE_INTERFACE = interface
+if HAVE_CXX11
+MAYBE_INTERFACE = interface
+FORCE:
+interface/extract_interface$(BUILD_EXEEXT): FORCE
+	$(MAKE) $(AM_MAKEFLAGS) -C interface extract_interface$(BUILD_EXEEXT)
+endif
 endif
 SUBDIRS = . $(MAYBE_INTERFACE) doc
 DIST_SUBDIRS = $(MAYBE_INTERFACE) doc
@@ -15,6 +20,30 @@ noinst_PROGRAMS = isl_test isl_polyhedron_sample isl_pip \
 	isl_flow isl_flow_cmp isl_schedule_cmp
 TESTS = isl_test codegen_test.sh pip_test.sh bound_test.sh isl_test_int \
 	flow_test.sh schedule_test.sh
+if HAVE_CPP_ISL_H
+  CPP_H = include/isl/cpp.h
+if HAVE_CXX11
+  noinst_PROGRAMS += isl_test_cpp
+  TESTS += isl_test_cpp
+endif
+endif
+if HAVE_CLANG
+if HAVE_CXX11
+  noinst_PROGRAMS += isl_test_cpp-checked isl_test_cpp-checked-conversion
+  TESTS += isl_test_cpp-checked isl_test_cpp-checked-conversion
+if HAVE_PYTHON
+  TESTS += isl_test_python.py
+  noinst_PYTHON = interface/isl.py
+  isl_test_python.py: interface/isl.py libisl.la
+endif
+endif
+endif
+TEST_EXTENSIONS = .py
+AM_TESTS_ENVIRONMENT = \
+	export PYTHONPATH=interface; \
+	export ISL_DYLD_LIBRARY_PATH=.libs; \
+	export LD_LIBRARY_PATH=".libs:$(LD_LIBRARY_PATH)";
+PY_LOG_COMPILER = $(PYTHON)
 
 if IMATH_FOR_MP
 
@@ -58,12 +87,14 @@ MP_SRC = \
 MP_INCLUDE_H = include/isl/val_gmp.h
 endif
 
-AM_CPPFLAGS = -I. -I$(srcdir) -I$(srcdir)/include -Iinclude/ @MP_CPPFLAGS@
-AM_CFLAGS = @WARNING_FLAGS@
+includes = -I. -I$(srcdir) -I$(srcdir)/include -Iinclude/
+AM_CPPFLAGS = $(includes) @MP_CPPFLAGS@
+AM_CFLAGS = @WARNING_FLAGS@ @MP_CFLAGS@
 
 libisl_la_SOURCES = \
 	$(MP_SRC) \
 	isl_aff.c \
+	isl_aff_map.c \
 	isl_aff_private.h \
 	isl_affine_hull.c \
 	isl_arg.c \
@@ -84,6 +115,7 @@ libisl_la_SOURCES = \
 	isl_blk.h \
 	isl_bound.c \
 	isl_bound.h \
+	isl_box.c \
 	isl_coalesce.c \
 	isl_constraint.c \
 	isl_constraint_private.h \
@@ -102,7 +134,6 @@ libisl_la_SOURCES = \
 	isl_flow.c \
 	isl_fold.c \
 	isl_hash.c \
-	isl_hash_private.h \
 	isl_id_to_ast_expr.c \
 	isl_id_to_id.c \
 	isl_id_to_pw_aff.c \
@@ -110,6 +141,7 @@ libisl_la_SOURCES = \
 	isl_ilp_private.h \
 	isl_input.c \
 	isl_int.h \
+	isl_local_private.h \
 	isl_local.h \
 	isl_local.c \
 	isl_local_space_private.h \
@@ -169,6 +201,8 @@ libisl_la_SOURCES = \
 	isl_stream_private.h \
 	isl_seq.c \
 	isl_seq.h \
+	isl_set_to_ast_graft_list.c \
+	isl_set_to_ast_graft_list.h \
 	isl_stride.c \
 	isl_tab.c \
 	isl_tab.h \
@@ -262,9 +296,79 @@ isl_closure_LDADD = libisl.la
 isl_closure_SOURCES = \
 	closure.c
 
+isl_test_cpp_SOURCES = \
+	isl_test_cpp.cc \
+	include/isl/cpp.h
+isl_test_cpp_LDFLAGS = @MP_LDFLAGS@
+isl_test_cpp_LDADD = libisl.la @MP_LIBS@
+
+isl_test_cpp_checked_SOURCES = \
+	isl_test_cpp-checked.cc \
+	include/isl/cpp-checked.h
+isl_test_cpp_checked_LDFLAGS = @MP_LDFLAGS@
+isl_test_cpp_checked_LDADD = libisl.la @MP_LIBS@
+
+isl_test_cpp_checked_conversion_SOURCES = \
+	isl_test_cpp-checked-conversion.cc \
+	include/isl/cpp-checked-conversion.h
+isl_test_cpp_checked_conversion_LDFLAGS = @MP_LDFLAGS@
+isl_test_cpp_checked_conversion_LDADD = libisl.la @MP_LIBS@
+
+# dummy library that captures the dependencies on all headers
+# that are relevant for the bindings
+noinst_LIBRARIES = libdep.a
+libdep_a_SOURCES = dep.c
+
+if HAVE_CLANG
+if HAVE_CXX11
+interface/isldlname.py: libisl.la
+	$(AM_V_GEN) $(GREP) dlname $< | $(SED) -e 's/dlname/isl_dlname/' > $@
+interface/isl.py: interface/extract_interface$(BUILD_EXEEXT) libdep.a \
+		python/isl.py.top interface/isldlname.py
+	(cat interface/isldlname.py $(srcdir)/python/isl.py.top && \
+		interface/extract_interface$(BUILD_EXEEXT) --language=python \
+			$(includes) $(srcdir)/all.h) \
+			> $@ || (rm $@ && false)
+
+include/isl/cpp.h: interface/extract_interface$(BUILD_EXEEXT) libdep.a \
+		cpp/cpp.h.top cpp/cpp.h.pre cpp/cpp.h.bot
+	$(MKDIR_P) "include/isl/cpp" && \
+	(cat $(srcdir)/cpp/cpp.h.top $(srcdir)/all.h \
+	    $(srcdir)/cpp/cpp.h.pre && \
+		interface/extract_interface$(BUILD_EXEEXT) --language=cpp \
+			$(includes) $(srcdir)/all.h && \
+		cat $(srcdir)/cpp/cpp.h.bot) \
+			> $@ || (rm $@ && false)
+
+include/isl/cpp-checked.h: interface/extract_interface$(BUILD_EXEEXT) libdep.a \
+		cpp/cpp-checked.h.top \
+		cpp/cpp-checked.h.pre cpp/cpp-checked.h.bot
+	(cat $(srcdir)/cpp/cpp-checked.h.top $(srcdir)/all.h \
+	    $(srcdir)/cpp/cpp-checked.h.pre && \
+		interface/extract_interface$(BUILD_EXEEXT) \
+			--language=cpp-checked \
+			$(includes) $(srcdir)/all.h && \
+		cat $(srcdir)/cpp/cpp-checked.h.bot) \
+			> $@ || (rm $@ && false)
+
+include/isl/cpp-checked-conversion.h: \
+		interface/extract_interface$(BUILD_EXEEXT) \
+		libdep.a \
+		cpp/cpp-checked-conversion.h.top \
+		cpp/cpp-checked-conversion.h.bot
+	(cat $(srcdir)/cpp/cpp-checked-conversion.h.top && \
+		interface/extract_interface$(BUILD_EXEEXT) \
+			--language=cpp-checked-conversion \
+			$(includes) $(srcdir)/all.h && \
+		cat $(srcdir)/cpp/cpp-checked-conversion.h.bot) \
+			> $@ || (rm $@ && false)
+endif
+endif
+
 nodist_pkginclude_HEADERS = \
 	include/isl/stdint.h
 pkginclude_HEADERS = \
+	$(CPP_H) \
 	$(MP_INCLUDE_H) \
 	include/isl/aff.h \
 	include/isl/aff_type.h \
@@ -274,8 +378,10 @@ pkginclude_HEADERS = \
 	include/isl/ast_build.h \
 	include/isl/constraint.h \
 	include/isl/ctx.h \
+	include/isl/fixed_box.h \
 	include/isl/flow.h \
 	include/isl/id.h \
+	include/isl/id_type.h \
 	include/isl/id_to_ast_expr.h \
 	include/isl/id_to_id.h \
 	include/isl/id_to_pw_aff.h \
@@ -310,20 +416,34 @@ pkginclude_HEADERS = \
 	include/isl/set.h \
 	include/isl/set_type.h \
 	include/isl/space.h \
+	include/isl/space_type.h \
 	include/isl/stream.h \
+	include/isl/stride_info.h \
 	include/isl/union_map.h \
 	include/isl/union_map_type.h \
 	include/isl/union_set.h \
 	include/isl/union_set_type.h \
 	include/isl/val.h \
+	include/isl/val_type.h \
 	include/isl/vec.h \
 	include/isl/version.h \
 	include/isl/vertices.h
 
-BUILT_SOURCES = gitversion.h
-
+if HAVE_CLANG
+if HAVE_CXX11
+    CPP_INTERFACES = \
+	include/isl/cpp.h \
+	include/isl/cpp-checked.h \
+	include/isl/cpp-checked-conversion.h
+endif
+endif
+BUILT_SOURCES = gitversion.h $(CPP_INTERFACES)
 CLEANFILES = \
-	gitversion.h
+	gitversion.h \
+	interface/isldlname.py \
+	interface/isl.py \
+	interface/isl.pyc \
+	$(CPP_INTERFACES)
 
 DISTCLEANFILES = \
 	isl-uninstalled.sh \
@@ -335,45 +455,124 @@ DISTCLEANFILES = \
 EXTRA_DIST = \
 	LICENSE \
 	isl_config_post.h \
+	isl_aff_lex_templ.c \
+	isl_align_params_templ.c \
+	isl_align_params_bin_templ.c \
 	basis_reduction_templ.c \
+	isl_bind_domain_templ.c \
 	bset_to_bmap.c \
 	bset_from_bmap.c \
+	isl_check_named_params_templ.c \
+	check_reparse_templ.c \
+	check_reparse_test_templ.c \
+	check_single_reference_templ.c \
+	check_type_range_templ.c \
+	isl_copy_tuple_id_templ.c \
+	isl_domain_factor_templ.c \
 	extract_key.c \
+	isl_ilp_opt_multi_val_templ.c \
+	isl_ilp_opt_val_templ.c \
+	has_single_reference_templ.c \
+	isl_insert_domain_templ.c \
+	isl_list_macro.h \
 	isl_list_templ.c \
 	isl_list_templ.h \
+	isl_map_bound_templ.c \
 	isl_map_lexopt_templ.c \
+	isl_maybe_ast_graft_list.h \
 	isl_maybe_map.h \
 	isl_multi_macro.h \
+	isl_multi_bind_templ.c \
+	isl_multi_explicit_domain.c \
+	isl_multi_pw_aff_explicit_domain.c \
+	isl_multi_union_pw_aff_explicit_domain.c \
+	isl_multi_no_explicit_domain.c \
+	isl_multi_no_domain_templ.c \
 	isl_multi_templ.c \
 	isl_multi_templ.h \
+	isl_multi_add_constant_templ.c \
+	isl_multi_align_templ.c \
+	isl_multi_align_set.c \
+	isl_multi_align_union_set.c \
 	isl_multi_apply_templ.c \
 	isl_multi_apply_set.c \
 	isl_multi_apply_union_set.c \
+	isl_multi_arith_templ.c \
+	isl_multi_bind_domain_templ.c \
 	isl_multi_cmp.c \
 	isl_multi_coalesce.c \
+	isl_multi_dim_id_templ.c \
 	isl_multi_dims.c \
+	isl_multi_domain_templ.c \
 	isl_multi_floor.c \
+	isl_multi_from_base_templ.c \
 	isl_multi_gist.c \
 	isl_multi_hash.c \
+	isl_multi_insert_domain_templ.c \
 	isl_multi_intersect.c \
+	isl_multi_identity_templ.c \
+	isl_multi_locals_templ.c \
+	isl_multi_min_max_templ.c \
+	isl_multi_move_dims_templ.c \
+	isl_multi_nan_templ.c \
+	isl_multi_param_templ.c \
+	isl_multi_product_templ.c \
+	isl_multi_read_no_explicit_domain_templ.c \
+	isl_multi_splice_templ.c \
+	isl_multi_tuple_id_templ.c \
+	isl_multi_unbind_params_templ.c \
+	isl_multi_union_add_templ.c \
+	isl_multi_zero_templ.c \
+	isl_opt_mpa_templ.c \
+	opt_type.h \
 	print_templ.c \
 	print_templ_yaml.c \
+	print_yaml_field_templ.c \
 	isl_power_templ.c \
+	isl_project_out_all_params_templ.c \
 	isl_pw_macro.h \
 	isl_pw_templ.c \
+	isl_pw_templ.h \
+	isl_pw_add_constant_templ.c \
+	isl_pw_add_constant_multi_val_templ.c \
+	isl_pw_add_constant_val_templ.c \
+	isl_pw_bind_domain_templ.c \
+	isl_pw_eval.c \
 	isl_pw_hash.c \
+	isl_pw_insert_dims_templ.c \
+	isl_pw_insert_domain_templ.c \
+	isl_pw_lift_templ.c \
+	isl_pw_locals_templ.c \
+	isl_pw_morph_templ.c \
+	isl_pw_move_dims_templ.c \
+	isl_pw_neg_templ.c \
+	isl_pw_opt_templ.c \
+	isl_pw_pullback_templ.c \
+	isl_pw_sub_templ.c \
 	isl_pw_union_opt.c \
 	read_in_string_templ.c \
 	set_to_map.c \
 	set_from_map.c \
+	set_list_from_map_list_inl.c \
 	isl_tab_lexopt_templ.c \
+	isl_test_list_templ.c \
+	isl_test_plain_equal_templ.c \
+	isl_type_check_equal_space_templ.c \
+	isl_type_has_equal_space_bin_templ.c \
+	isl_type_has_equal_space_templ.c \
+	isl_type_has_space_templ.c \
+	isl_unbind_params_templ.c \
 	uset_to_umap.c \
+	uset_from_umap.c \
 	isl_union_macro.h \
 	isl_union_templ.c \
 	isl_union_single.c \
 	isl_union_multi.c \
 	isl_union_eval.c \
+	isl_union_locals_templ.c \
+	isl_union_map_lex_templ.c \
 	isl_union_neg.c \
+	isl_union_pw_templ.c \
 	libisl-gdb.py \
 	doc/CodingStyle \
 	doc/SubmittingPatches \
@@ -389,9 +588,11 @@ EXTRA_DIST = \
 	imath/imath.h \
 	imath/imrat.c \
 	imath/imrat.h \
-	interface/all.h \
-	interface/isl.py.top \
-	interface/isl_test_python.py \
+	all.h \
+	cpp \
+	python \
+	isl_test_cpp-generic.cc \
+	isl_test_python.py \
 	test_inputs
 
 dist-hook:

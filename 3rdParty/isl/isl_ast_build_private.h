@@ -50,7 +50,7 @@
  *
  * "strides" contains the stride of each loop.  The number of elements
  * is equal to the number of dimensions in "domain".
- * "offsets" constains the offsets of strided loops.  If s is the stride
+ * "offsets" contains the offsets of strided loops.  If s is the stride
  * for a given dimension and f is the corresponding offset, then the
  * dimension takes on values
  *
@@ -133,7 +133,7 @@
  * an AST from a schedule tree.  It may be NULL if we are not generating
  * an AST from a schedule tree or if we are not inside a band node.
  *
- * "loop_type" originally constains loop AST generation types for
+ * "loop_type" originally contains loop AST generation types for
  * the "n" members of "node" and it is updated (along with "n") when
  * a schedule dimension is inserted.
  * It is NULL if "node" is NULL.
@@ -204,7 +204,7 @@ __isl_give isl_ast_build *isl_ast_build_clear_local_info(
 __isl_give isl_ast_build *isl_ast_build_increase_depth(
 	__isl_take isl_ast_build *build);
 int isl_ast_build_get_depth(__isl_keep isl_ast_build *build);
-unsigned isl_ast_build_dim(__isl_keep isl_ast_build *build,
+isl_size isl_ast_build_dim(__isl_keep isl_ast_build *build,
 	enum isl_dim_type type);
 __isl_give isl_space *isl_ast_build_get_space(
 	__isl_keep isl_ast_build *build, int internal);
@@ -244,8 +244,7 @@ __isl_give isl_ast_build *isl_ast_build_restrict_generated(
 	__isl_take isl_ast_build *build, __isl_take isl_set *set);
 __isl_give isl_ast_build *isl_ast_build_replace_pending_by_guard(
 	__isl_take isl_ast_build *build, __isl_take isl_set *guard);
-__isl_give int isl_ast_build_need_schedule_map(
-	__isl_keep isl_ast_build *build);
+isl_bool isl_ast_build_need_schedule_map(__isl_keep isl_ast_build *build);
 __isl_give isl_multi_aff *isl_ast_build_get_schedule_map_multi_aff(
 	__isl_keep isl_ast_build *build);
 __isl_give isl_map *isl_ast_build_get_schedule_map(

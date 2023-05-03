@@ -8,7 +8,8 @@
  */
 
 #include <isl/val.h>
-#include <isl/aff.h>
+#include <isl_map_private.h>
+#include <isl_aff_private.h>
 #include <isl/constraint.h>
 #include <isl/set.h>
 
@@ -20,6 +21,16 @@ struct isl_stride_info {
 	isl_val *stride;
 	isl_aff *offset;
 };
+
+/* Return the ctx to which "si" belongs.
+ */
+isl_ctx *isl_stride_info_get_ctx(__isl_keep isl_stride_info *si)
+{
+	if (!si)
+		return NULL;
+
+	return isl_val_get_ctx(si->stride);
+}
 
 /* Free "si" and return NULL.
  */
@@ -53,6 +64,18 @@ error:
 	isl_val_free(stride);
 	isl_aff_free(offset);
 	return NULL;
+}
+
+/* Make a copy of "si" and return it.
+ */
+__isl_give isl_stride_info *isl_stride_info_copy(
+	__isl_keep isl_stride_info *si)
+{
+	if (!si)
+		return NULL;
+
+	return isl_stride_info_alloc(isl_val_copy(si->stride),
+		isl_aff_copy(si->offset));
 }
 
 /* Return the stride of "si".
@@ -204,20 +227,27 @@ error:
 static isl_stat detect_stride(__isl_take isl_constraint *c, void *user)
 {
 	struct isl_detect_stride_data *data = user;
-	int i, n_div;
+	int i;
+	isl_size n_div;
 	isl_ctx *ctx;
 	isl_stat r = isl_stat_ok;
 	isl_val *v, *stride, *m;
+	isl_bool is_eq, relevant, has_stride;
 
-	if (!isl_constraint_is_equality(c) ||
-	    !isl_constraint_involves_dims(c, isl_dim_set, data->pos, 1)) {
+	is_eq = isl_constraint_is_equality(c);
+	relevant = isl_constraint_involves_dims(c, isl_dim_set, data->pos, 1);
+	if (is_eq < 0 || relevant < 0)
+		goto error;
+	if (!is_eq || !relevant) {
 		isl_constraint_free(c);
 		return isl_stat_ok;
 	}
 
+	n_div = isl_constraint_dim(c, isl_dim_div);
+	if (n_div < 0)
+		goto error;
 	ctx = isl_constraint_get_ctx(c);
 	stride = isl_val_zero(ctx);
-	n_div = isl_constraint_dim(c, isl_dim_div);
 	for (i = 0; i < n_div; ++i) {
 		v = isl_constraint_get_coefficient_val(c, isl_dim_div, i);
 		stride = isl_val_gcd(stride, v);
@@ -228,7 +258,8 @@ static isl_stat detect_stride(__isl_take isl_constraint *c, void *user)
 	stride = isl_val_div(stride, isl_val_copy(m));
 	v = isl_val_div(v, isl_val_copy(m));
 
-	if (!isl_val_is_zero(stride) && !isl_val_is_one(stride)) {
+	has_stride = isl_val_gt_si(stride, 1);
+	if (has_stride >= 0 && has_stride) {
 		isl_aff *aff;
 		isl_val *gcd, *a, *b;
 
@@ -241,6 +272,7 @@ static isl_stat detect_stride(__isl_take isl_constraint *c, void *user)
 			aff = isl_aff_set_coefficient_si(aff,
 							 isl_dim_div, i, 0);
 		aff = isl_aff_set_coefficient_si(aff, isl_dim_in, data->pos, 0);
+		aff = isl_aff_remove_unused_divs(aff);
 		a = isl_val_neg(a);
 		aff = isl_aff_scale_val(aff, a);
 		aff = isl_aff_scale_down_val(aff, m);
@@ -252,7 +284,12 @@ static isl_stat detect_stride(__isl_take isl_constraint *c, void *user)
 	}
 
 	isl_constraint_free(c);
+	if (has_stride < 0)
+		return isl_stat_error;
 	return r;
+error:
+	isl_constraint_free(c);
+	return isl_stat_error;
 }
 
 /* Check if the constraints in "set" imply any stride on set dimension "pos" and
@@ -321,4 +358,36 @@ __isl_give isl_val *isl_set_get_stride(__isl_keep isl_set *set, int pos)
 	set_detect_stride(set, pos, &data);
 
 	return data.stride;
+}
+
+/* Check if the constraints in "map" imply any stride on output dimension "pos",
+ * independently of any other output dimensions, and
+ * return the results in the form of an offset and a stride.
+ *
+ * Convert the input to a set with only the input dimensions and
+ * the single output dimension such that it be passed to
+ * isl_set_get_stride_info and convert the result back to
+ * an expression defined over the domain of "map".
+ */
+__isl_give isl_stride_info *isl_map_get_range_stride_info(
+	__isl_keep isl_map *map, int pos)
+{
+	isl_stride_info *si;
+	isl_set *set;
+	isl_size n_in;
+
+	n_in = isl_map_dim(map, isl_dim_in);
+	if (n_in < 0)
+		return NULL;
+	map = isl_map_copy(map);
+	map = isl_map_project_onto(map, isl_dim_out, pos, 1);
+	set = isl_map_wrap(map);
+	si = isl_set_get_stride_info(set, n_in);
+	isl_set_free(set);
+	if (!si)
+		return NULL;
+	si->offset = isl_aff_domain_factor_domain(si->offset);
+	if (!si->offset)
+		return isl_stride_info_free(si);
+	return si;
 }

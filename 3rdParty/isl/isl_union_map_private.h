@@ -10,9 +10,18 @@ struct isl_union_map {
 	struct isl_hash_table	table;
 };
 
+struct isl_hash_table_entry *isl_union_set_find_entry(
+	__isl_keep isl_union_set *uset, __isl_keep isl_space *space,
+	int reserve);
+
+__isl_keep isl_space *isl_union_map_peek_space(__isl_keep isl_union_map *umap);
+__isl_keep isl_space *isl_union_set_peek_space(__isl_keep isl_union_set *uset);
+isl_bool isl_union_map_is_params(__isl_keep isl_union_map *umap);
 isl_bool isl_union_map_space_has_equal_params(__isl_keep isl_union_map *umap,
 	__isl_keep isl_space *space);
 isl_bool isl_union_set_space_has_equal_params(__isl_keep isl_union_set *uset,
 	__isl_keep isl_space *space);
 __isl_give isl_union_map *isl_union_map_reset_range_space(
+	__isl_take isl_union_map *umap, __isl_take isl_space *space);
+__isl_give isl_union_map *isl_union_map_reset_equal_dim_space(
 	__isl_take isl_union_map *umap, __isl_take isl_space *space);

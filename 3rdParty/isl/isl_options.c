@@ -134,6 +134,9 @@ ISL_ARG_CHOICE(struct isl_options, convex, 0, "convex-hull", \
 	convex,	ISL_CONVEX_HULL_WRAP, "convex hull algorithm to use")
 ISL_ARG_BOOL(struct isl_options, coalesce_bounded_wrapping, 0,
 	"coalesce-bounded-wrapping", 1, "bound wrapping during coalescing")
+ISL_ARG_BOOL(struct isl_options, coalesce_preserve_locals, 0,
+	"coalesce-preserve-locals", 0,
+	"preserve local variables during coalescing")
 ISL_ARG_INT(struct isl_options, schedule_max_coefficient, 0,
 	"schedule-max-coefficient", "limit", -1, "Only consider schedules "
 	"where the coefficients of the variable and parameter dimensions "
@@ -164,7 +167,7 @@ ISL_ARG_BOOL(struct isl_options, schedule_separate_components, 0,
 	"schedule-separate-components", 1,
 	"separate components in dependence graph")
 ISL_ARG_BOOL(struct isl_options, schedule_whole_component, 0,
-	"schedule-whole-component", 1,
+	"schedule-whole-component", 0,
 	"try and compute schedule for entire component first")
 ISL_ARG_CHOICE(struct isl_options, schedule_algorithm, 0,
 	"schedule-algorithm", isl_schedule_algorithm_choice,
@@ -187,6 +190,8 @@ ISL_ARG_STR(struct isl_options, ast_iterator_type, 0,
 ISL_ARG_BOOL(struct isl_options, ast_always_print_block, 0,
 	"ast-always-print-block", 0, "print for and if bodies as a block "
 	"regardless of the number of statements in the body")
+ISL_ARG_BOOL(struct isl_options, ast_print_outermost_block, 0,
+	"ast-print-outermost-block", 1, "print outermost block node as a block")
 ISL_ARG_BOOL(struct isl_options, ast_print_macro_once, 0,
 	"ast-print-macro-once", 0, "only print macro definitions once")
 ISL_ARG_BOOL(struct isl_options, ast_build_atomic_upper_bound, 0,
@@ -240,6 +245,11 @@ ISL_CTX_SET_BOOL_DEF(isl_options, struct isl_options, isl_options_args,
 	coalesce_bounded_wrapping)
 ISL_CTX_GET_BOOL_DEF(isl_options, struct isl_options, isl_options_args,
 	coalesce_bounded_wrapping)
+
+ISL_CTX_SET_BOOL_DEF(isl_options, struct isl_options, isl_options_args,
+	coalesce_preserve_locals)
+ISL_CTX_GET_BOOL_DEF(isl_options, struct isl_options, isl_options_args,
+	coalesce_preserve_locals)
 
 ISL_CTX_SET_BOOL_DEF(isl_options, struct isl_options, isl_options_args,
 	gbr_only_first)
@@ -350,6 +360,11 @@ ISL_CTX_SET_BOOL_DEF(isl_options, struct isl_options, isl_options_args,
 	ast_always_print_block)
 ISL_CTX_GET_BOOL_DEF(isl_options, struct isl_options, isl_options_args,
 	ast_always_print_block)
+
+ISL_CTX_SET_BOOL_DEF(isl_options, struct isl_options, isl_options_args,
+	ast_print_outermost_block)
+ISL_CTX_GET_BOOL_DEF(isl_options, struct isl_options, isl_options_args,
+	ast_print_outermost_block)
 
 ISL_CTX_SET_BOOL_DEF(isl_options, struct isl_options, isl_options_args,
 	ast_print_macro_once)

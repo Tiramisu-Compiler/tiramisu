@@ -23,16 +23,20 @@ isl_bool FN(MULTI(BASE),involves_dims)(__isl_keep MULTI(BASE) *multi,
 
 	if (!multi)
 		return isl_bool_error;
-	if (multi->n == 0 || n == 0)
+	if (n == 0)
 		return isl_bool_false;
 
 	for (i = 0; i < multi->n; ++i) {
 		isl_bool involves;
 
-		involves = FN(EL,involves_dims)(multi->p[i], type, first, n);
+		involves = FN(EL,involves_dims)(multi->u.p[i], type, first, n);
 		if (involves < 0 || involves)
 			return involves;
 	}
+
+	if (FN(MULTI(BASE),has_explicit_domain)(multi))
+		return FN(MULTI(BASE),involves_explicit_domain_dims)(multi,
+								type, first, n);
 
 	return isl_bool_false;
 }
@@ -59,10 +63,16 @@ __isl_give MULTI(BASE) *FN(MULTI(BASE),insert_dims)(
 	multi->space = isl_space_insert_dims(multi->space, type, first, n);
 	if (!multi->space)
 		return FN(MULTI(BASE),free)(multi);
+	if (FN(MULTI(BASE),has_explicit_domain)(multi))
+		multi = FN(MULTI(BASE),insert_explicit_domain_dims)(multi,
+								type, first, n);
+	if (!multi)
+		return NULL;
 
 	for (i = 0; i < multi->n; ++i) {
-		multi->p[i] = FN(EL,insert_dims)(multi->p[i], type, first, n);
-		if (!multi->p[i])
+		multi->u.p[i] = FN(EL,insert_dims)(multi->u.p[i],
+							type, first, n);
+		if (!multi->u.p[i])
 			return FN(MULTI(BASE),free)(multi);
 	}
 
@@ -72,9 +82,11 @@ __isl_give MULTI(BASE) *FN(MULTI(BASE),insert_dims)(
 __isl_give MULTI(BASE) *FN(MULTI(BASE),add_dims)(__isl_take MULTI(BASE) *multi,
 	enum isl_dim_type type, unsigned n)
 {
-	unsigned pos;
+	isl_size pos;
 
 	pos = FN(MULTI(BASE),dim)(multi, type);
+	if (pos < 0)
+		return FN(MULTI(BASE),free)(multi);
 
 	return FN(MULTI(BASE),insert_dims)(multi, type, pos, n);
 }
@@ -85,11 +97,13 @@ __isl_give MULTI(BASE) *FN(MULTI(BASE),add_dims)(__isl_take MULTI(BASE) *multi,
 __isl_give MULTI(BASE) *FN(MULTI(BASE),project_domain_on_params)(
 	__isl_take MULTI(BASE) *multi)
 {
-	unsigned n;
+	isl_size n;
 	isl_bool involves;
 	isl_space *space;
 
 	n = FN(MULTI(BASE),dim)(multi, isl_dim_in);
+	if (n < 0)
+		return FN(MULTI(BASE),free)(multi);
 	involves = FN(MULTI(BASE),involves_dims)(multi, isl_dim_in, 0, n);
 	if (involves < 0)
 		return FN(MULTI(BASE),free)(multi);
