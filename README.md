@@ -134,6 +134,9 @@ cmake . -B build -DISL_LIB_DIRECTORY=$ISL_LIB_DIRECTORY -DISL_INCLUDE_DIRECTORY=
 		
 If you want to install, add `CMAKE_INSTALL_PREFIX`. If you are installing the python bindings, add `Tiramisu_INSTALL_PYTHONDIR` to tell Tiramisu where to place a python package. You will need add these install locations to the relevant path variables such as `PYTHONPATH` and `LD_LIBRARY_PATH`.
 
+If you installed Halide from source, you may need to add -DCMAKE_PREFIX_PATH=${TIRAMISU_ROOT}/3rdParty/Halide/install.
+This will allow cmake to find Halide when installed using ./get_submodules.sh script.
+
 4) Build:
 ```bash
 cmake --build build
