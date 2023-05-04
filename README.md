@@ -59,23 +59,29 @@ This section provides a description of how to build Tiramisu.  The installation 
 3) Python 3.8 or higher if you want to use the python bindings. (Along with Pybind 2.10.2, Cython, and Numpy).
 
 
-#### Build Methods
+### Build Methods
 
 There are several ways to acquire Tiramisu:
 1) From [spack](https://packages.spack.io/package.html?name=tiramisu), which will build everything from source for you.
 2) From source, but using system package managers for dependencies. 
 3) Purely from source with our install script.
 
-The second two only differ only in how they setup the dependenies.
-##### Building with spack
+The last two only differ only in how they setup the dependenies.
+
+#### Method 1: Build with spack
 
 Install spack and then run:
 ```bash
 spack install tiramisu
 ```
 
+#### Method 2: Build from source, but install dependencies using system package managers
 
-##### Building Dependencies with Homebrew
+There are two steps to do: first, install the dependencies (either using Homebrew or using Apt), then use Cmake to build Tiramisu.
+
+##### Install the dependencies
+
+###### Install the dependencies using Homebrew
 If you are on MacOS and using Homebrew, you can run the following commands to setup the dependencies:
 ```bash
 brew install cmake
@@ -86,14 +92,14 @@ brew link halide
 brew link isl
 ```
 
-If any of these ask you to update your path, do so. Using the following command, you can find the isl include and library directories:
+If any of these ask you to update your path, do so. For example, using the following command, you can find the isl include and library directories:
 ```bash
 brew info isl
 ISL_INCLUDE_DIRECTORY=..
 ISL_LIB_DIRECTORY=..
 ```		
 
-##### Building Dependencies with Apt
+###### Install the dependencies using Apt
 
 If you are on Ubuntu/Debian, you can use apt to setup the dependencies:
 
@@ -116,7 +122,8 @@ ISL_INCLUDE_DIRECTORY=..
 ISL_LIB_DIRECTORY=..
 ```
 		
-##### Building with cmake 
+##### Building Tiramisu with cmake 
+
 1) Get Tiramisu
 ```bash
 git clone https://github.com/Tiramisu-Compiler/tiramisu.git
@@ -142,6 +149,7 @@ cmake --build build
 You can also install if you want via `cmake --install`.
 		
 
+#### Method 3: Build from source, but install dependencies using our script
 
 ##### Building Dependencies via Script
 1) Get Tiramisu
