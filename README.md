@@ -68,7 +68,7 @@ There are 3 ways to build Tiramisu:
 
 The last two only differ only in how they setup the dependenies.
 
-#### Method 1: Build with spack
+#### Method 1: Build from spack
 
 Install spack and then run:
 ```bash
