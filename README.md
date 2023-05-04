@@ -51,6 +51,8 @@ This section provides a description of how to build Tiramisu.  The installation 
 1) [CMake](https://cmake.org/): version 3.22 or greater.
 
 2) [Autoconf](https://www.gnu.org/software/autoconf/) and [libtool](https://www.gnu.org/software/libtool/).
+
+3) [Ninja](https://ninja-build.org/).
   
 ###### Optional
 1) [OpenMPI](https://www.open-mpi.org/) and [OpenSSh](https://www.openssh.com/): if you want to generate and run distributed code (MPI).
