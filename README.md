@@ -75,9 +75,11 @@ Install spack and then run:
 spack install tiramisu
 ```
 
-#### Method 2: Build from source, but install dependencies using system package managers
+#### Method 2: Build from source but install dependencies using system package managers
 
-There are two steps to do: first, install the dependencies (either using Homebrew or using Apt), then use Cmake to build Tiramisu.
+There are two steps:
+1) Install the dependencies (either using Homebrew or using Apt).
+2) Use Cmake to build Tiramisu.
 
 ##### Install the dependencies
 
@@ -150,6 +152,10 @@ You can also install if you want via `cmake --install`.
 		
 
 #### Method 3: Build from source, but install dependencies using our script
+
+There are two steps:
+1) Install the dependencies using our script.
+2) Use Cmake to build Tiramisu.
 
 ##### Building Dependencies via Script
 1) Get Tiramisu
