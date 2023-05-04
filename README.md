@@ -46,7 +46,7 @@ void generate_code()
 
 This section provides a description of how to build Tiramisu.  The installation instructions below have been tested on Linux Ubuntu (18.04) and MacOS (13.0.1) but should work on other Linux and MacOS versions.
 
-#### Prerequisites
+### Prerequisites
 ###### Required
 1) [CMake](https://cmake.org/): version 3.22 or greater.
 
