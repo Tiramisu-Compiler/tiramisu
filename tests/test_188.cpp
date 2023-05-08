@@ -26,11 +26,11 @@ void generate_function(std::string name, int size, int val0)
     A.store_in(&buff_A);
     result.store_in(&buff_A);
 
+    // legality check of function
+    prepare_schedules_for_legality_checks();
     // analysis
     performe_full_dependency_analysis();     
 
-    // legality check of function
-    prepare_schedules_for_legality_checks();
 
     assert(loop_vectorization_is_legal(i,{&result}) == false);
     assert(loop_vectorization_is_legal(j,{&result}) == true);

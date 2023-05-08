@@ -5142,17 +5142,18 @@ bool computation::unrolling_is_legal(var l)
 
         if ((n_piece_max == 1) && (n_piece_min == 1))
         {
-            DEBUG(3, tiramisu::str_dump(" max & min are both cst unrolling legal"));
+            DEBUG(3, tiramisu::str_dump(" max & min are both cst unrolling legal for "+this->get_name()));
         }
         else
         {
-            DEBUG(3, tiramisu::str_dump(" max & min are not cst unrolling impossible "));
+            DEBUG(3, tiramisu::str_dump(" max & min are not cst unrolling impossible for "+this->get_name()));
         }
 
         DEBUG_INDENT(-4);
 
         isl_set_free(normal_set);
-        return ((n_piece_max == 1) && (n_piece_min == 1) && (is_number(min_string)) && ( is_number(max_string)) );
+        // return ((n_piece_max == 1) && (n_piece_min == 1) && (is_number(min_string)) && ( is_number(max_string)) );
+        return ((n_piece_max == 1) && (n_piece_min == 1));
     }
 
 
