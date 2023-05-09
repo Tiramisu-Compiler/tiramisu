@@ -1182,7 +1182,6 @@ void generate_function(std::string name)
 
     // H_H
     // only diagonal part in spin is calculated (r = rp)
-    // only upper-triagle in msc, mscH
     computation C_H_H_prop_init_r("C_H_H_prop_init_r", {t, x_out, rp, mscH, mH, nscH, nH}, expr((double) 0));
     computation C_H_H_prop_init_i("C_H_H_prop_init_i", {t, x_out, rp, mscH, mH, nscH, nH}, expr((double) 0));
 
@@ -1201,22 +1200,8 @@ void generate_function(std::string name)
 
     complex_expr H_H_term_res = hex_hex_prefactor * hex_hex_src_psi * hex_snk_psi * B1_H * B2_H;
 
-    computation C_H_H_start_sc("C_H_H_start_sc", {t, x_out, rp, mscH, mH, nscH}, expr(cast(p_boolean,1)));
-    computation C_H_H_check_lower_sc("C_H_H_check_lower_sc", {t, x_out, rp, mscH, mH, nscH}, expr(cast(p_boolean,0)));
-    C_H_H_check_lower_sc.add_predicate(nscH < mscH);
-    computation C_H_H_start_src("C_H_H_start_src", {t, x_out, rp, mscH, mH, nscH, nH}, expr(cast(p_boolean,1)));
-    computation C_H_H_check_lower("C_H_H_check_lower", {t, x_out, rp, mscH, mH, nscH, nH}, expr(cast(p_boolean,0)));
-    C_H_H_check_lower.add_predicate(nH < mH);
-    computation C_H_H_check_src("C_H_H_check_src", {t, x_out, rp, mscH, mH, nscH, nH, wnumHexHex}, expr(cast(p_boolean,0)));
-    C_H_H_check_src.add_predicate(hex_snk_weights(rp, mscH, wnumHexHex) == 0.0);
-    computation C_H_H_start_snk("C_H_H_start_snk", {t, x_out, rp, mscH, mH, nscH, nH, wnumHexHex}, expr(cast(p_boolean,1)));
-    computation C_H_H_check_snk("C_H_H_check_snk", {t, x_out, rp, mscH, mH, nscH, nH, wnumHexHex, wnumHex}, expr(cast(p_boolean,0)));
-    C_H_H_check_snk.add_predicate(hex_snk_weights(rp, nscH, wnumHex) == 0.0);
-
     computation C_H_H_prop_update_r("C_H_H_prop_update_r", {t, x_out, rp, mscH, mH, nscH, nH, wnumHexHex, wnumHex, nperm, x_in, y}, C_H_H_prop_init_r(t, x_out, rp, mscH, mH, nscH, nH) + H_H_term_res.get_real());
-    C_H_H_prop_update_r.add_predicate(C_H_H_start_sc(t, x_out, rp, mscH, mH, nscH) && C_H_H_start_src(t, x_out, rp, mscH, mH, nscH, nH) && C_H_H_start_snk(t, x_out, rp, mscH, mH, nscH, nH, wnumHexHex));
     computation C_H_H_prop_update_i("C_H_H_prop_update_i", {t, x_out, rp, mscH, mH, nscH, nH, wnumHexHex, wnumHex, nperm, x_in, y}, C_H_H_prop_init_i(t, x_out, rp, mscH, mH, nscH, nH) + H_H_term_res.get_imag());
-    C_H_H_prop_update_i.add_predicate(C_H_H_start_sc(t, x_out, rp, mscH, mH, nscH) && C_H_H_start_src(t, x_out, rp, mscH, mH, nscH, nH) && C_H_H_start_snk(t, x_out, rp, mscH, mH, nscH, nH, wnumHexHex));
 
     complex_computation C_H_H_prop_update(&C_H_H_prop_update_r, &C_H_H_prop_update_i); 
 
@@ -1224,9 +1209,7 @@ void generate_function(std::string name)
 
     // only upper-triangular part (diagonal inclusive) is calculated, other entries are copied over
     computation C_H_H_update_r("C_H_H_update_r", {t, x_out, rp, mscH, mH, nscH, nH}, C_init_r(t, x_out, rp, B1NsrcSC*Nsrc+mscH*NsrcHex+mH, rp, B1NsnkSC*Nsnk+nscH*NsnkHex+nH) + C_H_H_prop_init_r(t, x_out, rp, mscH, mH, nscH, nH));
-    C_H_H_update_r.add_predicate((nscH >= mscH) && (nH >= mH));
     computation C_H_H_update_i("C_H_H_update_i", {t, x_out, rp, mscH, mH, nscH, nH}, C_init_i(t, x_out, rp, B1NsrcSC*Nsrc+mscH*NsrcHex+mH, rp, B1NsnkSC*Nsnk+nscH*NsnkHex+nH) + C_H_H_prop_init_i(t, x_out, rp, mscH, mH, nscH, nH));
-    C_H_H_update_i.add_predicate((nscH >= mscH) && (nH >= mH));
 
 
     // -------------------------------------------------------
@@ -1762,14 +1745,7 @@ void generate_function(std::string name)
     handle = &(handle
           ->then(C_H_H_prop_init_r, t)
           .then(C_H_H_prop_init_i, nH)
-          .then(C_H_H_start_sc, nscH) 
-          .then(C_H_H_check_lower_sc, nscH) 
-          .then(C_H_H_start_src, nH) 
-          .then(C_H_H_check_lower, nH) 
-          .then(C_H_H_check_src, nH) 
-          .then(C_H_H_start_snk, wnumHexHex)  
-          .then(C_H_H_check_snk, wnumHexHex)  
-          .then(C_H_H_prop_update_r, wnumHex) 
+          .then(C_H_H_prop_update_r, nH) 
           .then(C_H_H_prop_update_i, y)
           .then(C_H_H_update_r, nH) 
           .then(C_H_H_update_i, nH) 
@@ -2615,18 +2591,6 @@ void generate_function(std::string name)
     C_H_H_prop_init_i.store_in(&buf_C_H_H_prop_i, {0});
     C_H_H_prop_update_r.store_in(&buf_C_H_H_prop_r, {0});
     C_H_H_prop_update_i.store_in(&buf_C_H_H_prop_i, {0});
-
-    buffer buf_C_H_H_check_sc("buf_C_H_H_check_sc", {1}, p_boolean, a_temporary);
-    buffer buf_C_H_H_check_src("buf_C_H_H_check_src", {1}, p_boolean, a_temporary);
-    buffer buf_C_H_H_check_snk("buf_C_H_H_check_snk", {1}, p_boolean, a_temporary);
-
-    C_H_H_start_sc.store_in(&buf_C_H_H_check_sc, {0});
-    C_H_H_check_lower_sc.store_in(&buf_C_H_H_check_sc, {0});
-    C_H_H_start_src.store_in(&buf_C_H_H_check_src, {0});
-    C_H_H_check_lower.store_in(&buf_C_H_H_check_src, {0});
-    C_H_H_check_src.store_in(&buf_C_H_H_check_src, {0});
-    C_H_H_start_snk.store_in(&buf_C_H_H_check_snk, {0});
-    C_H_H_check_snk.store_in(&buf_C_H_H_check_snk, {0}); 
 
     C_H_H_update_r.store_in(&buf_C_r, {t, x_out, rp, B1NsrcSC*Nsrc+mscH*NsrcHex+mH, rp, B1NsnkSC*Nsnk+nscH*NsnkHex+nH});
     C_H_H_update_i.store_in(&buf_C_i, {t, x_out, rp, B1NsrcSC*Nsrc+mscH*NsrcHex+mH, rp, B1NsnkSC*Nsnk+nscH*NsnkHex+nH});  

@@ -527,7 +527,7 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
          for (int r=0; r<B2Nrows; r++)
             for (int n=0; n<NsnkTot; n++)
                for (int t=0; t<Lt; t++)
-                  for (int x=0; x<Vsnk; x++) {
+                  for (int x=0; x<Vsnk/sites_per_rank; x++) {
                      double number0r = b_C_r(n,r,m,rp,x,t);
                      double number0i = b_C_i(n,r,m,rp,x,t);
                      C_re[index_5d(rp,m,r,n,t, NsrcTot,B2Nrows,NsnkTot,Lt)] += number0r;

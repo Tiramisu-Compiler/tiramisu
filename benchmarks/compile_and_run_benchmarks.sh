@@ -1,5 +1,8 @@
 #!/bin/bash
 
+MPIINCLUDE="-I/opt/cray/pe/mpich/8.1.25/ofi/gnu/9.1/include"
+MPILIB="-L/opt/cray/pe/mpich/8.1.25/ofi/gnu/9.1/lib"
+
 CXX=g++
 
 #set -x
@@ -18,7 +21,7 @@ KERNEL=$2
 source configure_paths.sh
 
 # Add -mavx2 to enable AVX2 (in addition to editing the file src/tiramisu_codegen_halide.cpp
-CXXFLAGS="-std=c++11 -O3 -fno-rtti"
+CXXFLAGS="-std=c++17 -O3 -fno-rtti -m64 $MPIINCLUDE $MPILIB" # -lmpi-mavx512f 
 
 # Compile options
 # - Make ${CXX} dump generated assembly
@@ -38,14 +41,14 @@ CXXFLAGS="-std=c++11 -O3 -fno-rtti"
 #   Guide: https://software.intel.com/en-us/vtune-amplifier-help-amplxe-cl-command-syntax
 
 INCLUDES="-I${MKL_PREFIX}/include/ -I${TIRAMISU_ROOT}/include/ -I${HALIDE_SOURCE_DIRECTORY}/include/ -I${ISL_INCLUDE_DIRECTORY} -I${TIRAMISU_ROOT}/benchmarks/"
-LIBRARIES="-ltiramisu ${MKL_FLAGS} -lHalide -lisl -lz -lpthread ${EXTRA_LIBRARIES}"
+LIBRARIES="-ltiramisu ${MKL_FLAGS} -lHalide -lisl -lz -lpthread -ldl ${EXTRA_LIBRARIES}"
 LIBRARIES_DIR="-L${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} -L${HALIDE_LIB_DIRECTORY}/ -L${ISL_LIB_DIRECTORY}/ -L${TIRAMISU_ROOT}/build/"
 
 echo "Compiling ${KERNEL}"
 
 cd ${KERNEL_FOLDER}
 
-rm -rf ${KERNEL}_generator ${KERNEL}_wrapper generated_${KERNEL}.o generated_${KERNEL}_halide.o
+#rm -rf ${KERNEL}_generator ${KERNEL}_wrapper generated_${KERNEL}.o generated_${KERNEL}_halide.o
 
 # Generate code from Tiramisu
 ${CXX} ${LANKA_OPTIONS} $CXXFLAGS ${INCLUDES} ${DEFINED_SIZE} ${KERNEL}_generator.cpp ${LIBRARIES_DIR} ${LIBRARIES}                       -o ${KERNEL}_generator
@@ -56,7 +59,7 @@ if [ $? -ne 0 ]; then
 	exit
 fi
 
-# echo "Compiling ${KERNEL} wrapper"
+echo "Compiling ${KERNEL} wrapper"
 ${CXX} ${LANKA_OPTIONS} $CXXFLAGS ${INCLUDES} ${DEFINED_SIZE} ${KERNEL}_wrapper.cpp   ${LIBRARIES_DIR} ${LIBRARIES} generated_${KERNEL}.o ${LIBRARIES} -o ${KERNEL}_wrapper
 echo "Running ${KERNEL} wrapper"
 # To enable profiling:

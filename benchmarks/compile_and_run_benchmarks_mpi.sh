@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Machine specific directories
-MPIINCLUDE="-I/opt/ohpc/pub/compiler/intel/compilers_and_libraries_2019.4.243/linux/mpi/intel64/include"
-MPILIB="-L/opt/ohpc/pub/compiler/intel/compilers_and_libraries_2019.4.243/linux/mpi/intel64/lib"
+MPIINCLUDE="-I/opt/cray/pe/mpich/8.1.25/ofi/gnu/9.1/include"
+MPILIB="-L/opt/cray/pe/mpich/8.1.25/ofi/gnu/9.1/lib"
 
 CXX="mpicxx -DWITH_MPI"
 DXX="mpicxx -DWITH_MPI"
@@ -22,7 +22,7 @@ KERNEL_FOLDER=$1
 KERNEL=$2
 source configure_paths.sh
 
-CXXFLAGS="-std=c++17 -O3 -fno-rtti -mavx512f -m64 $MPIINCLUDE $MPILIB -lmpi"
+CXXFLAGS="-std=c++17 -O2 -fno-rtti -m64 $MPIINCLUDE $MPILIB -lmpi" #-mavx512f 
 #CORES=128
 #CORES=216
 #CORES=1
