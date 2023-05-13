@@ -1,5 +1,7 @@
 #!/bin/bash
 
+## [[deperecated]]
+## use ./install_submodules instead
 if [ "$#" -ne 1 ]; then
 	echo "Usage: get_isl_module.sh <TIRAMISU_ROOT_PATH>"
 	exit 1
