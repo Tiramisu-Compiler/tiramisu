@@ -6299,7 +6299,6 @@ int utility::get_single_iterator_bound(isl_set *set, int dim)
             isl_constraint *cst = isl_constraint_list_get_constraint(cst_list, j);
             if (strcmp(isl_val_to_str(isl_constraint_get_coefficient_val(cst, isl_dim_out, dim)), "0") != 0)
             {
-                std::cout<<"constant_val";
                 return (-1 * std::stoi(isl_val_to_str(isl_constraint_get_constant_val(cst))));
             }
         }
