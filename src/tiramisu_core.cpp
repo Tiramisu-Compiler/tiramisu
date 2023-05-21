@@ -762,6 +762,40 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v, tiramisu:
 
     DEBUG(3, tiramisu::str_dump("Separating the computation at level " + std::to_string(dim)));
 
+
+    // add the the information on constants values, otherwise it is impossible to split correctly
+
+    this->gen_time_space_domain();
+        
+    if ((isl_map_dim(this->get_schedule(), isl_dim_param) > 0) && (global::get_implicit_function() != NULL)) {
+
+        tiramisu::function * f = global::get_implicit_function();
+        std::map<std::string, int> constant_mappings;
+        for (auto const& constant : f->get_invariants()) {
+            try {
+                constant_mappings[constant.name] =  std::stoi(constant.expression.to_str());
+            }
+            catch (...) {
+                ERROR("Can not split if the constant expression is not a number", true);
+            }
+        }
+
+        // get params of time space
+        unsigned int nb_param = isl_map_dim(this->get_schedule(), isl_dim_param);
+
+        for (unsigned int i=0 ; i < nb_param; i++) {
+            std::string name(isl_map_get_dim_name(this->get_schedule(), isl_dim_param, i));
+
+            // add the constraints to the schedule
+            isl_space * space_schedule = isl_map_get_space(this->get_schedule());
+            isl_local_space *lsp_schedule = isl_local_space_from_space(space_schedule);
+            isl_constraint *cst_schedule = isl_constraint_alloc_equality(lsp_schedule);
+            cst_schedule = isl_constraint_set_coefficient_si(cst_schedule, isl_dim_param, i, 1);
+            cst_schedule = isl_constraint_set_constant_si(cst_schedule, - constant_mappings[name]);
+            this->set_schedule(isl_map_add_constraint(this->get_schedule(), cst_schedule));
+        }
+    }
+
     DEBUG(3, tiramisu::str_dump("Generating the time-space domain."));
     this->gen_time_space_domain();
 
