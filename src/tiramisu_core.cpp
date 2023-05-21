@@ -6234,59 +6234,14 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
 
     isl_ast_node *node = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_from_map(map));
 
-    // handle the case when the actual number of for loops is less than the target unrolled loop
-    isl_ast_node* node1 = node;
-    int cpt = 0;
-    bool stop = false;
-    // calculate the number of for loops 
-    while(!stop){
-        if(isl_ast_node_get_type(node1) == isl_ast_node_for ){
-            cpt++;
-            node1 = isl_ast_node_for_get_body(node1);
-        }
-        else if(isl_ast_node_get_type(node1) == isl_ast_node_user ){
-            stop = true;
-        }
-        else if(isl_ast_node_get_type(node1) == isl_ast_node_if){
-            node1 = isl_ast_node_if_get_then(node1);
-        }             
-    }
+
     // Treating the case where the set we're extracting bounds from
     // either has one iteration or if conditions
     // if the number of for levels is less or equal to the unrolled loop, skip the optimization (exception handled when getting measurements)
     // if(cpt <= dim){std::cout<<"the case"<<std::endl;throw NonForLoopBoundExtractionException();}
-    std::string dim_name = "";
-    if (isl_set_get_dim_name(set, isl_dim_set, dim) == NULL)
-    {
-        //isl_set_get_dim_name only return null if dim is greater than the size of the set?
-        //throw exception in this case?
-        e = utility::extract_bound_expression(node, dim, upper);
-    }
-    else
-    {
 
-        dim_name = isl_set_get_dim_name(set, isl_dim_set, dim);
-        if (constraints_map.find(dim_name) != constraints_map.end() && constraints_map[dim_name] == true)
-        {
-            int offset = 0;
-            for (int o = 0; o < dim; o++)
-            {
-                if(!isl_set_has_dim_name(set, isl_dim_set, o))
-                    continue;
-                
-                std::string current_dim_name = isl_set_get_dim_name(set, isl_dim_set, o);
-                if (constraints_map.find(current_dim_name) != constraints_map.end() && constraints_map[current_dim_name] == false)
-                {
-                    offset = offset + 1;
-                }
-            }
-            e = utility::extract_bound_expression(node, dim - offset, upper);
-        }
-        else
-        {
-            e = tiramisu::expr(get_single_iterator_bound(set, dim));
-        }
-    }
+    e = utility::extract_bound_expression(node, dim, upper);
+
     isl_ast_build_free(ast_build);
 
     assert(e.is_defined() && "The computed bound expression is undefined.");
@@ -6310,6 +6265,7 @@ int utility::get_single_iterator_bound(isl_set *set, int dim)
             isl_constraint *cst = isl_constraint_list_get_constraint(cst_list, j);
             if (strcmp(isl_val_to_str(isl_constraint_get_coefficient_val(cst, isl_dim_out, dim)), "0") != 0)
             {
+                std::cout<<"constant_val";
                 return (-1 * std::stoi(isl_val_to_str(isl_constraint_get_constant_val(cst))));
             }
         }
