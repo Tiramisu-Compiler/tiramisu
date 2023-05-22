@@ -2929,6 +2929,9 @@ bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<t
             break;
         }
     }
+
+    DEBUG(3, tiramisu::str_dump(" unrolling check for var result is : "+std::to_string(result)));
+
     DEBUG_INDENT(-4);
 
     return result;
@@ -3119,7 +3122,7 @@ bool tiramisu::function::loop_vectorization_is_legal(tiramisu::var i , std::vect
     bool result = this->loop_unrolling_is_legal(i,fuzed_computations) 
                 && this->loop_parallelization_is_legal(i,fuzed_computations);
 
-    DEBUG(3, tiramisu::str_dump(" vectorization legality is : "+result));
+    DEBUG(3, tiramisu::str_dump(" vectorization legality is : " + std::to_string(result)));
 
     DEBUG_INDENT(-4);
 

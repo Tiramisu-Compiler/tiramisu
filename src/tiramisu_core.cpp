@@ -762,6 +762,40 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v, tiramisu:
 
     DEBUG(3, tiramisu::str_dump("Separating the computation at level " + std::to_string(dim)));
 
+
+    // add the the information on constants values, otherwise it is impossible to split correctly
+
+    this->gen_time_space_domain();
+        
+    if ((isl_map_dim(this->get_schedule(), isl_dim_param) > 0) && (global::get_implicit_function() != NULL)) {
+
+        tiramisu::function * f = global::get_implicit_function();
+        std::map<std::string, int> constant_mappings;
+        for (auto const& constant : f->get_invariants()) {
+            try {
+                constant_mappings[constant.name] =  std::stoi(constant.expression.to_str());
+            }
+            catch (...) {
+                ERROR("Can not split if the constant expression is not a number", true);
+            }
+        }
+
+        // get params of time space
+        unsigned int nb_param = isl_map_dim(this->get_schedule(), isl_dim_param);
+
+        for (unsigned int i=0 ; i < nb_param; i++) {
+            std::string name(isl_map_get_dim_name(this->get_schedule(), isl_dim_param, i));
+
+            // add the constraints to the schedule
+            isl_space * space_schedule = isl_map_get_space(this->get_schedule());
+            isl_local_space *lsp_schedule = isl_local_space_from_space(space_schedule);
+            isl_constraint *cst_schedule = isl_constraint_alloc_equality(lsp_schedule);
+            cst_schedule = isl_constraint_set_coefficient_si(cst_schedule, isl_dim_param, i, 1);
+            cst_schedule = isl_constraint_set_constant_si(cst_schedule, - constant_mappings[name]);
+            this->set_schedule(isl_map_add_constraint(this->get_schedule(), cst_schedule));
+        }
+    }
+
     DEBUG(3, tiramisu::str_dump("Generating the time-space domain."));
     this->gen_time_space_domain();
 
@@ -5142,17 +5176,18 @@ bool computation::unrolling_is_legal(var l)
 
         if ((n_piece_max == 1) && (n_piece_min == 1))
         {
-            DEBUG(3, tiramisu::str_dump(" max & min are both cst unrolling legal"));
+            DEBUG(3, tiramisu::str_dump(" max & min are both cst unrolling legal for "+this->get_name()));
         }
         else
         {
-            DEBUG(3, tiramisu::str_dump(" max & min are not cst unrolling impossible "));
+            DEBUG(3, tiramisu::str_dump(" max & min are not cst unrolling impossible for "+this->get_name()));
         }
 
         DEBUG_INDENT(-4);
 
         isl_set_free(normal_set);
-        return ((n_piece_max == 1) && (n_piece_min == 1) && (is_number(min_string)) && ( is_number(max_string)) );
+        // return ((n_piece_max == 1) && (n_piece_min == 1) && (is_number(min_string)) && ( is_number(max_string)) );
+        return ((n_piece_max == 1) && (n_piece_min == 1));
     }
 
 
@@ -6233,59 +6268,14 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
 
     isl_ast_node *node = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_from_map(map));
 
-    // handle the case when the actual number of for loops is less than the target unrolled loop
-    isl_ast_node* node1 = node;
-    int cpt = 0;
-    bool stop = false;
-    // calculate the number of for loops 
-    while(!stop){
-        if(isl_ast_node_get_type(node1) == isl_ast_node_for ){
-            cpt++;
-            node1 = isl_ast_node_for_get_body(node1);
-        }
-        else if(isl_ast_node_get_type(node1) == isl_ast_node_user ){
-            stop = true;
-        }
-        else if(isl_ast_node_get_type(node1) == isl_ast_node_if){
-            node1 = isl_ast_node_if_get_then(node1);
-        }             
-    }
+
     // Treating the case where the set we're extracting bounds from
     // either has one iteration or if conditions
     // if the number of for levels is less or equal to the unrolled loop, skip the optimization (exception handled when getting measurements)
     // if(cpt <= dim){std::cout<<"the case"<<std::endl;throw NonForLoopBoundExtractionException();}
-    std::string dim_name = "";
-    if (isl_set_get_dim_name(set, isl_dim_set, dim) == NULL)
-    {
-        //isl_set_get_dim_name only return null if dim is greater than the size of the set?
-        //throw exception in this case?
-        e = utility::extract_bound_expression(node, dim, upper);
-    }
-    else
-    {
 
-        dim_name = isl_set_get_dim_name(set, isl_dim_set, dim);
-        if (constraints_map.find(dim_name) != constraints_map.end() && constraints_map[dim_name] == true)
-        {
-            int offset = 0;
-            for (int o = 0; o < dim; o++)
-            {
-                if(!isl_set_has_dim_name(set, isl_dim_set, o))
-                    continue;
-                
-                std::string current_dim_name = isl_set_get_dim_name(set, isl_dim_set, o);
-                if (constraints_map.find(current_dim_name) != constraints_map.end() && constraints_map[current_dim_name] == false)
-                {
-                    offset = offset + 1;
-                }
-            }
-            e = utility::extract_bound_expression(node, dim - offset, upper);
-        }
-        else
-        {
-            e = tiramisu::expr(get_single_iterator_bound(set, dim));
-        }
-    }
+    e = utility::extract_bound_expression(node, dim, upper);
+
     isl_ast_build_free(ast_build);
 
     assert(e.is_defined() && "The computed bound expression is undefined.");

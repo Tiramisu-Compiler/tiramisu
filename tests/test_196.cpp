@@ -24,7 +24,7 @@ void gen(std::string name, int size, int val0, int val1)
 
 int main(int argc, char **argv)
 {
-    gen("func", 10, 3, 4);
+    gen("func", 20, 3, 4);
 
     return 0;
 }
