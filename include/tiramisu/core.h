@@ -557,6 +557,16 @@ private:
     std::vector<isl_basic_set*> compute_legal_skewing(std::vector<tiramisu::computation *> fuzed_computations, tiramisu::var outer_variable, 
                                               tiramisu::var inner_variable, int&  legal_process);
 
+    /**
+     * This method finds the legal polyhedral space for the 2 selected variables.
+     * It also provide the list of deltas found in the selected scop.
+     * In case the dependencies are empty it returns an empty set.
+     * \warning always check that set is not empty
+     * \note in case no dependencies are present the set is NULL
+     */
+    std::pair<std::vector<std::pair<int,int>>, isl_basic_set*>  compute_legal_polyhedral_space(std::vector<tiramisu::computation *> fused_computations, int outer_variable, 
+                                              int inner_variable);
+
 
 
 protected:

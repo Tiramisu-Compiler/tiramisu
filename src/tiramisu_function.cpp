@@ -4411,6 +4411,381 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
 
 }
 
+
+std::pair<std::vector<std::pair<int,int>>, isl_basic_set*>  tiramisu::function::compute_legal_polyhedral_space(std::vector<tiramisu::computation *> fused_computations, int outer_variable, 
+                                              int inner_variable)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    // TO-DO : memory leaks for exists with process != 1
+    assert(!this->get_name().empty());
+
+    assert(this->dep_read_after_write != NULL );
+    assert(this->dep_write_after_write != NULL );
+    assert(this->dep_write_after_read != NULL );
+    assert(fused_computations.size() > 0);
+    assert(outer_variable < inner_variable);
+
+    computation * first_computation = fused_computations[0];
+    
+    DEBUG(3, tiramisu::str_dump(" Polyhedral solving for : " + std::to_string(outer_variable) + " and " + std::to_string(inner_variable)));
+
+    std::vector<std::string> original_loop_level_names = first_computation->get_loop_level_names();
+
+    int outer_dim_full = tiramisu::loop_level_into_dynamic_dimension(outer_variable);
+    int inner_dim_full = tiramisu::loop_level_into_dynamic_dimension(inner_variable);
+
+
+    DEBUG(3, tiramisu::str_dump(" Dim numbers in the schedule are : "+std::to_string(outer_dim_full)+ " and "+std::to_string(inner_dim_full)));
+
+    // extracting deps
+
+     isl_union_map * read_after_write_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->dep_read_after_write)) ;
+
+    isl_union_map * write_after_read_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->dep_write_after_read)) ;
+
+    isl_union_map * write_after_write_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->dep_write_after_write)) ;
+
+
+    isl_union_map * all_deps = isl_union_map_union(
+        read_after_write_dep,
+        write_after_read_dep
+        ) ;
+
+    // all the deps in 1 union map
+    all_deps = isl_union_map_union(all_deps,write_after_write_dep) ;
+
+
+    DEBUG(3, tiramisu::str_dump(" all the dependencies are  : "+std::string(isl_union_map_to_str(all_deps))));
+
+    // all current schedules in 1 union map
+    std::string empty_union = "{}" ;
+    std::string empty_time  = "" ;
+
+    isl_union_map * schedules = isl_union_map_read_from_str(this->get_isl_ctx(),empty_union.c_str()) ;
+
+    isl_map * schedule_one = NULL ;
+
+    for( auto& computation: fused_computations)
+    {
+        schedule_one = isl_map_copy(computation->get_schedule()) ;
+
+        schedule_one = isl_map_set_tuple_name(schedule_one,isl_dim_out,empty_time.c_str());
+
+        schedules = isl_union_map_union(schedules,isl_union_map_from_map(schedule_one));
+    }
+    
+    DEBUG(3, tiramisu::str_dump(" all the used schedules are  : "+std::string(isl_union_map_to_str(schedules))));
+
+    // application to discard unused dep & modeling them in their time space
+
+    all_deps = isl_union_map_apply_range(all_deps,isl_union_map_copy(schedules));
+
+    all_deps = isl_union_map_apply_domain(all_deps,schedules);
+
+    DEBUG(3, tiramisu::str_dump(" all the used dependencies union map are  : "+std::string(isl_union_map_to_str(all_deps))));
+
+    isl_map * equation_map = isl_map_from_union_map(all_deps);
+
+    DEBUG(3, tiramisu::str_dump(" all the used dependencies after transformed to map are  : "+std::string(isl_map_to_str(equation_map))));
+
+    // remove already solved dimensions and project them out
+    for(int i=0; i < outer_dim_full; i++)
+    {
+        equation_map = isl_map_equate(equation_map,isl_dim_in,i,isl_dim_out, i);
+        DEBUG(3, tiramisu::str_dump(" --> remaining deps at itr " + std::to_string(i) + " : " + std::string(isl_map_to_str(equation_map))));    
+    }
+
+    //equate the middle static dimension [i,_0_,j]
+    equation_map = isl_map_equate(equation_map,isl_dim_in,outer_dim_full+1,isl_dim_out,outer_dim_full+1);
+
+    for (int i = outer_dim_full + 2; i < inner_dim_full; i++){
+        // equation_map = isl_map_equate(equation_map,isl_dim_in,i,isl_dim_out,i);
+        // skip removal
+        DEBUG(3, tiramisu::str_dump(" --> remaining deps at itr "+std::to_string(i)+" : "+std::string(isl_map_to_str(equation_map)))); 
+    }
+
+    if (inner_dim_full - outer_dim_full - 2 > 0){
+        // case where there is more than 1 static dimension in between target loops
+        // remove and project them out
+        equation_map = isl_map_project_out(equation_map, isl_dim_in,
+                outer_dim_full + 2,inner_dim_full - outer_dim_full - 2);
+        equation_map = isl_map_project_out(equation_map, isl_dim_out,
+                outer_dim_full + 2,inner_dim_full - outer_dim_full - 2);
+    }
+    DEBUG(3, tiramisu::str_dump(" Map without in between dimensions : " + std::string(isl_map_to_str(equation_map))));
+
+    int left_size = isl_map_dim(equation_map, isl_dim_in);
+    int right_size = isl_map_dim(equation_map, isl_dim_out);
+
+    assert(left_size == right_size);
+
+    equation_map = isl_map_project_out(equation_map, isl_dim_in, 0, outer_dim_full);
+    equation_map = isl_map_project_out(equation_map, isl_dim_out, 0, outer_dim_full);
+
+    DEBUG(3, tiramisu::str_dump(" Map without irrelevant dimensions : "+std::string(isl_map_to_str(equation_map))));
+
+    left_size = isl_map_dim(equation_map, isl_dim_in);
+    right_size = isl_map_dim(equation_map, isl_dim_out);
+
+    assert(left_size == right_size);
+
+    if(isl_map_is_empty(equation_map))
+    {
+        DEBUG(3, tiramisu::str_dump(" No dependencies to be solved => no changes to be proposed: Keep identity "));
+
+        // nothing to solve return empty structure
+        DEBUG_INDENT(-4);
+        return std::make_pair(std::vector<std::pair<int, int>>(), static_cast<isl_basic_set*>(NULL));
+        
+    }
+
+    int number_of_remaining_dims = right_size - 3;// [(i,0,j),10,k,0]
+
+    std::string constant_set = "[";
+
+    for(int i=0; i<number_of_remaining_dims; i++)
+    {
+        constant_set +="cx"+std::to_string(i);
+
+        if(i != (number_of_remaining_dims - 1))
+        {
+            constant_set += ",";
+        }
+    }
+    constant_set +="]" ;
+
+    std::string set_of_remaining = constant_set+"->{"+constant_set+"}" ;
+
+    isl_set * set_constant = isl_set_read_from_str(this->get_isl_ctx(),set_of_remaining.c_str());
+
+    DEBUG(3, tiramisu::str_dump(" constant set to intersect domain : "+std::string(isl_set_to_str(set_constant))));
+    
+    std::vector<isl_basic_map *> all_basic_maps;// contains basic maps 
+
+    auto f = [](isl_basic_map * bmap,void * user) { 
+
+        std::vector<isl_basic_map *>& myName = *reinterpret_cast<std::vector<isl_basic_map*>*>(user);
+     
+        myName.push_back(bmap);
+        return isl_stat_ok;
+    };
+    
+    isl_stat (*fun_ptr)(isl_basic_map * p,void * m) = (f);
+
+    isl_map_foreach_basic_map(equation_map,fun_ptr,(void * ) &all_basic_maps);
+
+    isl_map * remaining_map = NULL;
+
+    isl_set * remaining_domain = NULL;
+
+    isl_set * remaining_range = NULL;
+
+    bool process_legal = true;
+
+    bool must_strongly_solved = false;
+
+    double first_int=0.0;
+    double second_int=0.0;
+    double tan_value = 0.0;
+
+    std::vector<std::pair<int, int>> dependencies_deltas_results;
+
+
+    std::string normal_map_str = "{ [0,j]->[1,0]: j>0; [i,0]->[0,1]: i!=0 ; [i,j]->[j,-i] : j>0 and i!=0 ; [i,j]->[-j,i] : j<0 and i!=0 }";
+
+    isl_map * normal_map_calculator = isl_map_read_from_str(this->get_isl_ctx(),normal_map_str.c_str());
+
+
+    // a set used to compute the domain of gamma & sigma 
+    std::string upper_domain_real_domain = "{[a,b] : a>=0 and b>=0 and a+b>0}";
+
+    isl_basic_set * upper_legal_set_domain = isl_basic_set_read_from_str(this->get_isl_ctx(),upper_domain_real_domain.c_str());
+
+    /// construct the legal set
+
+   int iteration = 0;
+
+    for(auto dependency: all_basic_maps)
+    {
+        if(! isl_map_is_identity(isl_map_from_basic_map(isl_basic_map_copy(dependency)))) // remove identity relations 
+        {
+            DEBUG(3, tiramisu::str_dump(" --> DEPENDENCY & constraints for : "+std::string(isl_basic_map_to_str(dependency))));
+            // no free variable or impossible
+            
+            remaining_map = isl_map_project_out(isl_map_from_basic_map(isl_basic_map_copy(dependency)),isl_dim_out, 0, 3);
+
+            remaining_map = isl_map_project_out(remaining_map, isl_dim_in, 0, 3);
+
+            DEBUG(3, tiramisu::str_dump(" --> ---> remaining map no intersect : "+std::string(isl_map_to_str(remaining_map))));
+
+            remaining_map = isl_map_intersect_domain(remaining_map,isl_set_copy(set_constant));
+
+            DEBUG(3, tiramisu::str_dump(" --> ---> remaining map with intersect : "+std::string(isl_map_to_str(remaining_map))));
+
+            isl_map * involved_map = isl_map_project_out(isl_map_from_basic_map(isl_basic_map_copy(dependency)),isl_dim_out,3,number_of_remaining_dims);
+            involved_map = isl_map_project_out(involved_map,isl_dim_in,3,number_of_remaining_dims);
+            involved_map = isl_map_project_out(involved_map,isl_dim_in,1,1);
+            involved_map = isl_map_project_out(involved_map,isl_dim_out,1,1);
+
+            DEBUG(3, tiramisu::str_dump(" --> ---> Applying deltas on map : "+std::string(isl_map_to_str(involved_map))));
+
+            isl_set * delta_result = isl_map_deltas(involved_map);
+
+            DEBUG(3, tiramisu::str_dump(" --> ---> Deltas of the dependency is: " + std::string(isl_set_to_str(delta_result))));
+
+            delta_result = isl_set_lexmin(delta_result);
+
+            DEBUG(3, tiramisu::str_dump(" --> ---> the Min Deltas of the dependency is: " + std::string(isl_set_to_str(delta_result))));
+            
+            // push the deltas of dependencies vector
+            isl_val * value1_ = isl_set_dim_min_val(isl_set_copy(delta_result), 0);
+            isl_val * value2_ = isl_set_dim_min_val(isl_set_copy(delta_result), 1);
+            int dep_delta_1 = static_cast<int>(isl_val_get_d(value1_));
+            int dep_delta_2 = static_cast<int>(isl_val_get_d(value2_));
+
+            isl_val_free(value1_);
+            isl_val_free(value2_);
+            if ((dep_delta_1 > 0) || (dep_delta_2 > 0)) {
+                dependencies_deltas_results.push_back(std::make_pair(dep_delta_1, dep_delta_2));
+            }
+
+            // treat the case where the deltas is variable and use lex_min of it
+            assert(isl_set_is_singleton(delta_result));
+
+            delta_result =  isl_set_apply(
+                    delta_result,
+                    isl_map_copy(normal_map_calculator)
+                );
+            
+
+            DEBUG(3, tiramisu::str_dump(" --> ---> normal deltas value : "+std::string(isl_set_to_str(delta_result))));
+
+            if(!isl_set_is_empty(delta_result))
+            {   //normal_map_calculator removes identity equations 
+
+                /**
+                 * Deciding weather to strongly solve or weakly solve this dependency
+                */
+        
+                if(isl_map_is_identity(remaining_map))
+                { // a case of a reflexive relations : strongly solved-> parallelism , weakly solved -> legality
+
+                    must_strongly_solved = false;
+                    DEBUG(3, tiramisu::str_dump(" --> --->  weakly solved because identity "));
+
+                }
+                else
+                {
+                    remaining_domain = isl_map_domain(isl_map_copy(remaining_map));
+                    remaining_range = isl_map_range(isl_map_copy(remaining_map));
+
+                    isl_map * remaining_solution = isl_set_lex_gt_set(
+                        remaining_domain,
+                        remaining_range
+                    );
+
+                    if(isl_map_is_empty(remaining_solution))
+                    { 
+
+                        must_strongly_solved = false;
+                        DEBUG(3, tiramisu::str_dump(" --> --->  can be weakly solved "));
+                    }
+                    else
+                    { // // dep must be strongly solved regardless
+                        must_strongly_solved = true;
+
+                        DEBUG(3, tiramisu::str_dump(" --> ---> must be strongly solved always "));
+
+                    }
+                    isl_map_free(remaining_solution);
+                }
+
+                /**
+                 * deciding weather this dependency involves upper domain or lower_domain
+                */
+
+                isl_val * value1 = isl_basic_set_dim_max_val( isl_basic_set_read_from_str(this->get_isl_ctx(),isl_set_to_str(delta_result)),0);
+                isl_val * value2 = isl_basic_set_dim_max_val( isl_basic_set_read_from_str(this->get_isl_ctx(),isl_set_to_str(delta_result)),1);
+                first_int = isl_val_get_d(value1);
+                second_int = isl_val_get_d(value2);
+
+                isl_val_free(value1);
+                isl_val_free(value2);
+
+                int first = (int)(first_int); 
+                int second = (int)(second_int); 
+
+                DEBUG(3, tiramisu::str_dump(" --> ---> first delta value "+std::to_string(first_int)));
+                DEBUG(3, tiramisu::str_dump(" --> ---> second delta value "+std::to_string(second_int)));
+
+                DEBUG(3, tiramisu::str_dump(" --> ---> first delta value "+std::to_string(first)));
+                DEBUG(3, tiramisu::str_dump(" --> ---> second delta value "+std::to_string(second)));
+
+                /**
+                 * adding the constraints for upper
+                */
+
+                if(must_strongly_solved)
+                {   //either dep is unsatisfied totally or fully satisfied
+
+                    //upper strongly solved
+
+                    isl_space * space = isl_basic_set_get_space(upper_legal_set_domain);
+                    isl_constraint * constraint = isl_constraint_alloc_inequality(isl_local_space_from_space(space));
+
+                    constraint = isl_constraint_set_coefficient_si(constraint,isl_dim_set,0, second);
+                    constraint = isl_constraint_set_coefficient_si(constraint,isl_dim_set,1, -first);
+                    constraint = isl_constraint_set_constant_si(constraint,-1);
+
+                    upper_legal_set_domain = isl_basic_set_add_constraint(upper_legal_set_domain, constraint);
+                    
+                }
+                else
+                {   //upper 2 cases
+
+                    isl_space * space = isl_basic_set_get_space(upper_legal_set_domain);
+                    isl_constraint * constraint = isl_constraint_alloc_inequality(isl_local_space_from_space(space));
+
+                    constraint = isl_constraint_set_coefficient_si(constraint,isl_dim_set,0, second );
+                    constraint = isl_constraint_set_coefficient_si(constraint,isl_dim_set,1, -first);
+
+                    isl_constraint * strong_constraint = isl_constraint_copy(constraint);
+                    strong_constraint = isl_constraint_set_constant_si(strong_constraint, -1);
+
+                    upper_legal_set_domain = isl_basic_set_add_constraint(upper_legal_set_domain, constraint);
+                }
+
+                DEBUG(3, tiramisu::str_dump(" --> ---> new upper strongly domain is "+std::string(isl_basic_set_to_str(upper_legal_set_domain))));
+
+                iteration++;
+            }
+           
+            
+            isl_set_free(delta_result);
+            isl_map_free(remaining_map);
+
+        }
+        isl_basic_map_free(dependency);
+        
+    }
+
+    isl_map_free(normal_map_calculator);
+    isl_map_free(equation_map);
+    isl_set_free(set_constant);
+    all_basic_maps.clear();
+
+    DEBUG(3, tiramisu::str_dump(" Final Legal Set is : "+std::string(isl_basic_set_to_str(upper_legal_set_domain))));
+
+    DEBUG_INDENT(-4);
+
+    return std::make_pair(dependencies_deltas_results, upper_legal_set_domain);
+}
+
 std::tuple<
     std::vector<std::pair<int, int>>,
     std::vector<std::pair<int, int>>,
