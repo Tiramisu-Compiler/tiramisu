@@ -4585,18 +4585,15 @@ std::pair<std::vector<std::pair<int,int>>, isl_basic_set*>  tiramisu::function::
 
     isl_set * remaining_range = NULL;
 
-    bool process_legal = true;
-
     bool must_strongly_solved = false;
 
-    double first_int=0.0;
-    double second_int=0.0;
-    double tan_value = 0.0;
+    double first_int = 0.0;
+    double second_int = 0.0;
 
     std::vector<std::pair<int, int>> dependencies_deltas_results;
 
 
-    std::string normal_map_str = "{ [0,j]->[1,0]: j>0; [i,0]->[0,1]: i!=0 ; [i,j]->[j,-i] : j>0 and i!=0 ; [i,j]->[-j,i] : j<0 and i!=0 }";
+    std::string normal_map_str = "{ [0,j]->[1,0]: j>0; [i,0]->[0,1]: i>0 ; [i,j]->[-j,i] : i>0 and j>0 ; [i,j]->[-j,i] :0<i and j<0}";
 
     isl_map * normal_map_calculator = isl_map_read_from_str(this->get_isl_ctx(),normal_map_str.c_str());
 
@@ -5141,6 +5138,100 @@ bool compute_gamma_sigma_values(isl_basic_set * legal_domain, std::tuple<int,int
     return true;
 }
 
+/**
+ * Given skewing parameters alpha & beta, this method computes the corresponding parameters for gamma and sigma
+ * to enforce the condition Det(A)=1 or Det(A)=-1 (it will try both) while also making the dependencies positive and enabling tiling.
+ * Legal_domain is the isl_set for the correct values of alpha and beta.
+ * This set is proven to be exactly the same for gamma and sigma 
+ * values is a tuple providing <alpha, beta, gamma, sigma> were will use alpha & beta given to fill gamma & sigma.
+*/
+void compute_gamma_sigma_values_twice(isl_basic_set * legal_domain, std::tuple<int,int,int,int>& values)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+    assert(!isl_basic_set_is_empty(legal_domain));
+
+    DEBUG(3, tiramisu::str_dump(" For alpha & beta  :" + std::to_string(std::get<0>(values)) + " & " +
+        std::to_string(std::get<1>(values))));
+
+    DEBUG(3, tiramisu::str_dump(" set of gamma & sigma  :"+std::string(isl_basic_set_to_str(legal_domain))));
+
+    isl_set * domain = isl_set_from_basic_set(isl_basic_set_copy(legal_domain));
+    // add constraint alpha*gamma - beta*sigma = 1
+    isl_space * space = isl_set_get_space(domain);
+
+    isl_constraint * constraint = isl_constraint_alloc_equality(isl_local_space_from_space(space));
+    constraint = isl_constraint_set_coefficient_si(constraint, isl_dim_set, 0, -std::get<1>(values));
+    constraint = isl_constraint_set_coefficient_si(constraint, isl_dim_set, 1, std::get<0>(values));
+    constraint = isl_constraint_set_constant_si(constraint, -1);
+    domain = isl_set_add_constraint(domain, constraint);
+
+    // extract the min parameters for gamma and sigma
+    isl_set * result = isl_set_lexmin(domain);
+
+    isl_basic_set * result_basic = isl_set_polyhedral_hull(result);
+
+    if(!isl_basic_set_is_empty(result_basic)){
+        
+        DEBUG(3, tiramisu::str_dump(" choosen gamma & sigma  :"+std::string(isl_basic_set_to_str(result_basic))));
+        
+        isl_val * gamma_val = isl_basic_set_dim_max_val(isl_basic_set_copy(result_basic), 0);
+        isl_val * sigma_val = isl_basic_set_dim_max_val(isl_basic_set_copy(result_basic), 1);
+
+        int gamma = isl_val_get_d(gamma_val);
+        int sigma = isl_val_get_d(sigma_val);
+
+        std::get<2>(values) = gamma;
+        std::get<3>(values) = sigma;
+
+        isl_basic_set_free(result_basic);
+        isl_val_free(gamma_val);
+        isl_val_free(sigma_val);
+
+    }
+    else {
+        // 2nd try with detA =-1
+
+        isl_basic_set_free(result_basic);
+
+        domain = isl_set_from_basic_set(isl_basic_set_copy(legal_domain));
+        // add constraint alpha*gamma - beta*sigma = 1
+        space = isl_set_get_space(domain);
+
+        isl_constraint * constraint = isl_constraint_alloc_equality(isl_local_space_from_space(space));
+        constraint = isl_constraint_set_coefficient_si(constraint, isl_dim_set, 0, -std::get<1>(values));
+        constraint = isl_constraint_set_coefficient_si(constraint, isl_dim_set, 1, std::get<0>(values));
+        constraint = isl_constraint_set_constant_si(constraint, 1);
+        domain = isl_set_add_constraint(domain, constraint);
+
+        // extract the min parameters for gamma and sigma
+        result = isl_set_lexmin(domain);
+
+        result_basic = isl_set_polyhedral_hull(result);
+
+        // can not be possible to gave detA = +/- 1 fail twice
+        assert(!isl_basic_set_is_empty(result_basic));
+
+        DEBUG(3, tiramisu::str_dump(" choosen gamma & sigma  :"+std::string(isl_basic_set_to_str(result_basic))));
+
+        isl_val * gamma_val = isl_basic_set_dim_max_val(isl_basic_set_copy(result_basic), 0);
+        isl_val * sigma_val = isl_basic_set_dim_max_val(isl_basic_set_copy(result_basic), 1);
+
+        int gamma = isl_val_get_d(gamma_val);
+        int sigma = isl_val_get_d(sigma_val);
+
+        std::get<2>(values) = gamma;
+        std::get<3>(values) = sigma;
+
+        isl_basic_set_free(result_basic);
+        isl_val_free(gamma_val);
+        isl_val_free(sigma_val);
+
+    }
+
+    DEBUG_INDENT(-4);
+}
+
 std::tuple<
       std::vector<std::tuple<int,int,int,int>>,
       std::vector<std::tuple<int,int,int,int>>,
@@ -5349,6 +5440,124 @@ std::tuple<
     DEBUG_INDENT(-4);
 
     return std::make_tuple(outermost,innermost,identity);
+
+}
+
+
+std::tuple<int,int,int,int> tiramisu::function::polyhedral_local_solver_positive(std::vector<tiramisu::computation *> fused_computations,
+                                                          int outer_variable, int inner_variable, bool parallel_enforced)
+
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(outer_variable < inner_variable);
+    assert(this->dep_read_after_write != NULL);
+    assert(this->dep_write_after_write != NULL);
+    assert(this->dep_write_after_read != NULL);
+    assert(fused_computations.size() > 0);
+
+    std::tuple<int, int, int, int> result;
+
+    auto result_vector = this->compute_legal_polyhedral_space(fused_computations, outer_variable, inner_variable);
+
+    std::vector<std::pair<int, int>> dependencies_deltas = result_vector.first;
+
+    isl_basic_set * legal_space_isl = result_vector.second;
+
+    if((legal_space_isl != NULL) && (!isl_basic_set_is_empty(legal_space_isl)))
+    {
+
+        // set is exactly similar to constraints for alpha and beta;
+        DEBUG(3, tiramisu::str_dump(" EXTRACTING Values of alpha & beta : "));
+
+        DEBUG(3, tiramisu::str_dump(" The domain of the parameters is : "+std::string(isl_basic_set_to_str(legal_space_isl))));
+
+        /**
+         * Solving locality
+        */
+
+        std::string parameters_inverter = "{[alpha, beta]->[beta, alpha]}";
+        isl_map * parameters_inverter_isl = isl_map_read_from_str(this->get_isl_ctx(), parameters_inverter.c_str());
+        isl_set * partial_cost = isl_set_apply(
+                        isl_set_from_basic_set(isl_basic_set_copy(legal_space_isl)),
+                        parameters_inverter_isl);
+        isl_set_insert_dims(partial_cost, isl_dim_set, 0, 1);
+
+        DEBUG(3, tiramisu::str_dump(" inverted + cost dimension : "+std::string(isl_set_to_str(partial_cost))));
+
+        std::string cost_function = "z=";
+        for (int i=0; i < dependencies_deltas.size(); i++) {
+            std::string first_str = std::to_string(dependencies_deltas[i].first);
+            std::string second_str = std::to_string(dependencies_deltas[i].second);
+            if (i != dependencies_deltas.size() - 1) {
+                cost_function += "max(" + first_str +"x + "+ second_str + "y, ";
+            }
+            else {
+                cost_function +=  first_str +"x + "+ second_str + "y";
+            }
+        }
+        for (int i=1; i < dependencies_deltas.size(); i++) {
+            cost_function += ")";
+        }
+
+        std::string full_cost_set = "{[z, y, x]: " + cost_function + "}";
+        DEBUG(3, tiramisu::str_dump(" the cost function is : " + full_cost_set));
+
+        isl_set * cost_function_isl = isl_set_read_from_str(this->get_isl_ctx(), full_cost_set.c_str());
+
+        DEBUG(3, tiramisu::str_dump(" cost function isl_set : "+std::string(isl_set_to_str(cost_function_isl))));
+
+        cost_function_isl = isl_set_intersect(cost_function_isl, partial_cost);
+
+        DEBUG(3, tiramisu::str_dump(" set of the solution is: "+std::string(isl_set_to_str(cost_function_isl))));
+
+        isl_set * solution = isl_set_lexmin(cost_function_isl);
+
+        DEBUG(3, tiramisu::str_dump(" choosen z, beta, alpha are : "+std::string(isl_set_to_str(solution))));
+        
+        isl_val * value_beta = isl_set_dim_min_val(isl_set_copy(solution), 1);
+        isl_val * value_alpha = isl_set_dim_min_val(solution, 2);
+
+        int beta_int = isl_val_get_d(value_beta);
+        int alpha_int = isl_val_get_d(value_alpha);
+
+        isl_val_free(value_beta);
+        isl_val_free(value_alpha);
+
+        std::tuple<int, int, int, int> result_parameters(alpha_int, beta_int, 0, 0);
+
+        // compute gamma & sigma for all produced alpha & beta
+        // it's possible not to find gamma & sigma for outmost parameters
+        // we know we will not be able to find gamma & sigma in the positive domain 
+        // while using these locality alpha & beta
+        compute_gamma_sigma_values_twice(legal_space_isl, result_parameters);
+
+        isl_basic_set_free(legal_space_isl);
+
+    }
+    else if (isl_basic_set_is_empty(legal_space_isl)) // no dependencies to be solved
+    {
+        isl_basic_set_free(legal_space_isl);
+        result = std::make_tuple(1, 0, 0, 1);
+    }
+    else
+    {
+        result = std::make_tuple(1, 0, 0, 1);
+    }
+
+    // TO-DO : add more accurate way to check if second skewing should be done
+    if (parallel_enforced && (dependencies_deltas.size() > 1)) {
+        // if there is more than 2 dependencies for sure the outer is not parallel
+        // so add another skewing x = x+y, y = y
+        std::get<0>(result) += std::get<2>(result);
+        std::get<1>(result) += std::get<3>(result);
+
+    }
+     
+    DEBUG_INDENT(-4);
+
+    return result;
 
 }
 
