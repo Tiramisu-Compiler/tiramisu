@@ -1473,7 +1473,7 @@ public:
      * 
      * \note in case no dependencies exists, or in case nothing can be done, identity transformation (1,0,0,1) is returned. 
     */
-    std::tuple<int,int,int,int> polyhedral_local_solver_positive(std::vector<tiramisu::computation *> fused_computations,
+    std::tuple<int,int,int,int> polyhedral_2d_local_solver_positive(std::vector<tiramisu::computation *> fused_computations,
                                                           int outer_variable, int inner_variable, bool parallel_enforced);
 
                         
@@ -1502,10 +1502,37 @@ public:
       std::vector<std::tuple<int,int,int,int,int,int,int,int,int>>> skewing_local_3D_solver_positive(
                                                   std::vector<tiramisu::computation *> fused_computations, tiramisu::var var_outer,
                                                   tiramisu::var var2, tiramisu::var var_inner);
+
+    /**
+     * Computes the best legal polyhedral transformation that optimizes the locality.
+     * The method relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
+     * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
+     * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
+     * 
+     * \param[in] parallelism_enforced when enabled it tries to enable parallism on either the first loop or the second if possible.
+     * \param[in] innermost_dimension number of innermost dimension 
+     * \param[in] outermost_dimension number of outermost dimension 
+     * 
+     * \note this method will solve the polyhedral locality scheduling problem for all dimension between innermost and outermost.
+     * it enables tiling on the sequence of loops between innermost and outermost.
+     * Furthermore, if parallelism_enforced is true, it will make sure either innermost_dimension (or innermost_dimension + 1) is parallel.
+     * \return one single list (its size is nb_dimensions * nb_dimensions) that represent the best transformation matrix for locality.
+    */
+    std::vector<int> polyhedral_full_solver_positive(
+                                                  std::vector<tiramisu::computation *> fused_computations,
+                                                  int outermost_dimension, int innermost_dimension, bool parallelism_enforced);
                                                           
     std::vector<int> extract_transformation_coeffcients(isl_basic_map * transformation, int position);
 
     std::tuple<int,int,int,int,int,int,int,int,int> extract_3d_skewing_params(isl_basic_map * transformation);
+
+    /***
+     * Extracts the transformation coefficients into a vector
+     * for instance in {[i,j]->[2i+j, i+j]} we would get [2,1,1,1]
+     * We get the coefficients of the first dimension then the second ...
+     * \param[in] nb_dimensions is the number of dimensions to extract
+    */
+    std::vector<int> extract_transformation_coefficient_from_map(isl_basic_map * map, int nb_dimensions);
 
     /**
      * for each computation, it computes potentiel canidate for vectorization, then it regroups it in result vector. 

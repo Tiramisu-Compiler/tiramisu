@@ -5444,7 +5444,7 @@ std::tuple<
 }
 
 
-std::tuple<int,int,int,int> tiramisu::function::polyhedral_local_solver_positive(std::vector<tiramisu::computation *> fused_computations,
+std::tuple<int,int,int,int> tiramisu::function::polyhedral_2d_local_solver_positive(std::vector<tiramisu::computation *> fused_computations,
                                                           int outer_variable, int inner_variable, bool parallel_enforced)
 
 {
@@ -5532,6 +5532,8 @@ std::tuple<int,int,int,int> tiramisu::function::polyhedral_local_solver_positive
         // we know we will not be able to find gamma & sigma in the positive domain 
         // while using these locality alpha & beta
         compute_gamma_sigma_values_twice(legal_space_isl, result_parameters);
+
+        result = result_parameters;
 
         isl_basic_set_free(legal_space_isl);
 
@@ -5796,6 +5798,153 @@ std::tuple<
     return std::make_tuple(outer_params,inner_params,tiling_params);
 }
 
+
+std::vector<int> tiramisu::function::polyhedral_full_solver_positive(
+                                                  std::vector<tiramisu::computation *> fused_computations,
+                                                  int outermost_dimension, int innermost_dimension, bool parallelism_enforced)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+    assert(innermost_dimension > outermost_dimension);
+    assert(!this->get_name().empty());
+    assert(this->dep_read_after_write != NULL);
+    assert(this->dep_write_after_write != NULL);
+    assert(this->dep_write_after_read != NULL);
+    assert(fused_computations.size() > 0);
+
+    
+    DEBUG(3, tiramisu::str_dump(" polyhedral scheduling for locality for all dimension between : " + std::to_string(outermost_dimension) + 
+        " and "+ std::to_string(innermost_dimension)));
+
+    std::vector<int> dimensions;
+    std::string dims_str = "";
+    for (int i= outermost_dimension; i <= innermost_dimension; i++) {
+        dimensions.push_back(i);
+        dims_str += " dim: " + std::to_string(i) + ", ";
+    }
+
+    DEBUG(3, tiramisu::str_dump(" polyhedral scheduling for locality for all dimension between : " + std::to_string(outermost_dimension) + 
+    " and "+ std::to_string(innermost_dimension)));
+    DEBUG(3, tiramisu::str_dump(" polyhedral scheduling for dimensions: " + std::to_string(outermost_dimension) + dims_str));
+
+
+    // backup all schedules of computations
+    std::vector<isl_map*> schedules_backups;
+
+    for(auto const& computation : fused_computations)
+    {
+        schedules_backups.push_back(isl_map_copy(computation->get_schedule()));
+    }
+
+    // results (would be filled if solutions were found)
+    std::vector<int> final_result;
+
+    std::string param_names = ""; // i0,i1,i2
+    std::string out_param_local = ""; // i_0,i_1,i_2
+
+    for (int i = outermost_dimension; i <= innermost_dimension; i++) {
+        param_names += "i" + std::to_string(i);
+        out_param_local += "i_" + std::to_string(i);
+        if (i != innermost_dimension) {
+            param_names += ",";
+            out_param_local += ",";
+        }
+    }
+    std::string parameters = "{["+ param_names +"]->["+ param_names +"]}";
+
+    // local transformation is {[i0,i1,i2]->[i_0,i_1,i_2]: ... }
+
+    isl_basic_map * parameters_map = isl_basic_map_read_from_str(this->get_isl_ctx(),parameters.c_str());
+
+    for (int j_inner = innermost_dimension; j_inner >= outermost_dimension + 1; j_inner --)
+    {
+        for (int i_outer = j_inner - 1; i_outer >= outermost_dimension; i_outer --)
+        {   
+            const bool parallel_solving = parallelism_enforced && (j_inner == outermost_dimension + 1);
+            // solve with parallel in last iteration
+            auto result_tmp = this->polyhedral_2d_local_solver_positive(
+                fused_computations, i_outer, j_inner, parallel_solving);
+            // special case for the last iteration
+            // (i_outer == 0) && (j_inner == 1) generates parallelism
+
+            // identity is stored as (1,0, 0,1)
+            int alpha = std::get<0>(result_tmp);
+            int beta = std::get<1>(result_tmp);
+            int gamma = std::get<2>(result_tmp);
+            int sigma = std::get<3>(result_tmp);
+
+            std::string i_outer_str = std::to_string(i_outer);
+            std::string j_inner_str = std::to_string(j_inner);
+
+            std::string transformation_cond = "i_" + i_outer_str + "=i" + i_outer_str +"*" + std::to_string(alpha) +
+                "+ i" + j_inner_str + "*" + std::to_string(beta) + " and i_"+j_inner_str + "=i" + i_outer_str + "*" + std::to_string(gamma) +
+                "+ i" + j_inner_str + "*" +std::to_string(sigma) ;
+
+            std::string identity_str = "";
+            if (outermost_dimension - innermost_dimension > 1) {
+                // at least 3d
+                for (int dim : dimensions) {
+                    if ((dim != i_outer) && (dim != j_inner)) {
+                        identity_str += "and i_" + std::to_string(dim) + "= i" + std::to_string(dim);
+                    }
+                }
+            }
+            transformation_cond += identity_str;
+            std::string transformation_in = "{["+param_names+"]->["+out_param_local+"]:" + transformation_cond + "}";
+
+            DEBUG(3, tiramisu::str_dump(" str transformation is: " + transformation_in));
+
+            isl_basic_map * transformation = isl_basic_map_read_from_str(this->get_isl_ctx(),transformation_in.c_str());
+
+            DEBUG(10, tiramisu::str_dump(" Current corresponding transformation :", isl_basic_map_to_str(transformation)));
+            parameters_map = isl_basic_map_apply_range(parameters_map, transformation);
+            DEBUG(10, tiramisu::str_dump(" Current overall transformation :", isl_basic_map_to_str(parameters_map)));
+
+            // apply the skewing and rename the variables
+            
+            for (auto& computation : fused_computations)
+            {
+                computation->skew(i_outer, j_inner, alpha, beta, gamma, sigma);
+            }
+
+            
+        }
+    }
+
+    DEBUG(10, tiramisu::str_dump(" Complete transformation :", isl_basic_map_to_str(parameters_map)));
+
+    std::vector<int> result_final = extract_transformation_coefficient_from_map(
+                                parameters_map, 1 - outermost_dimension + innermost_dimension);
+    
+    std::string parameters_skewing_str = "";
+
+    for (int i=0; i < result_final.size(); i++)
+    {   
+        if (i % (1 + innermost_dimension - outermost_dimension) == 0) {
+            parameters_skewing_str += " Alpha row : ";
+        }
+        parameters_skewing_str += std::to_string(result_final[i]) + ",";
+    }
+
+    DEBUG(10, tiramisu::str_dump(" Extracted returned parameters :" + parameters_skewing_str));
+
+    // Restore all computation schedules
+    assert(fused_computations.size() == schedules_backups.size());
+    int index = 0;
+    for(auto const& computation : fused_computations)
+    {   
+        isl_map_free(computation->get_schedule());
+        computation->set_schedule(schedules_backups[index]);
+        index ++;
+    }
+
+    isl_basic_map_free(parameters_map);
+    DEBUG_INDENT(-4);
+
+    return result_final;
+    
+}
+
 /**
  * Method made to extract coefficents from isl_basic_map
  * For instance {[i0,i1,i2]->[2i0+i2,i1,i2]} for first dimension i0 return {2,0,1}
@@ -5874,6 +6023,32 @@ std::tuple<int,int,int,int,int,int,int,int,int> tiramisu::function::extract_3d_s
                            v1[2],v2[2],v3[2]);
 }
 
+
+std::vector<int> tiramisu::function::extract_transformation_coefficient_from_map(isl_basic_map * map, int nb_dimensions)
+{
+    std::vector<std::vector<int>> matrix_raw;
+
+    for (int i=0; i < nb_dimensions; i++)
+    {
+        matrix_raw.push_back(this->extract_transformation_coeffcients(map, i));
+    }
+    std::vector<std::vector<int>> matrix_adjusted(matrix_raw);
+
+    for (int i=0; i < nb_dimensions; i++)
+    {
+        for (int j=0; j < nb_dimensions; j++)
+        {
+            matrix_adjusted[i][j] = matrix_raw[j][i];
+        }
+    }
+    std::vector<int> final_result;
+    for (auto& vec : matrix_adjusted)
+    {
+        final_result.insert(final_result.end(), vec.begin(), vec.end());
+    }
+    assert(final_result.size() == nb_dimensions * nb_dimensions);
+    return final_result;
+}
 
 std::vector<int> function::get_potentiel_vectorizable_loop_level(std::vector<tiramisu::computation *> involved_computations)
 {
