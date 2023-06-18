@@ -1225,8 +1225,24 @@ public:
 
     /**
      * Appends a group of clustered statements together to accelerate code generation.
+     * \warning the order must be defined when defined for the clustering to work (use after, then ..)
+     * \note for statement to be clustered the must be fused in the innermost loop level.
     */
     void append_clustered_statements(const std::vector<tiramisu::computation *> &statements);
+    /***
+     * Sorts the clusters after checking that they are legally set.
+     * The statements that are scheduled first are put in the first position of the cluster
+     *  \remark \p prepare_schedules_for_legality_checks() must be invoked before.
+     * (i.e. schedules must be aligned)
+    */
+    void sort_clustered_statements();
+
+    /***
+     * Check if a computation represent a cluster.
+     * If it is the case it return a vector or computation to add to the ast
+     * Otherwise it returns an empty vector
+    */
+    std::vector<tiramisu::computation*> get_the_cluster_represented_by_stmt(const tiramisu::computation& first) const;
 
     /**
      * \brief verifies that the declared clustered statements are share indeed 
