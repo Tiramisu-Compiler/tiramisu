@@ -1314,6 +1314,65 @@ bool tiramisu::function::check_clustered_statements_are_innermost()
     return global_inner_most;
 }
 
+void tiramisu::function::sort_clustered_statements()
+{   DEBUG_FCT_NAME(5);
+    DEBUG_INDENT(4);
+
+    assert(check_clustered_statements_are_innermost());
+
+    for(auto& cluster: this->clustered_statements)
+    {
+        DEBUG(5, tiramisu::str_dump("sorting the cluster :"));
+        std::map<int, tiramisu::computation *> beta_to_name;
+        for (auto& comp: cluster)
+        {
+            isl_map * schedule_copy = isl_map_copy(comp->get_schedule());
+            DEBUG(5, tiramisu::str_dump("the computation :" + comp->get_name() + " schedule is " 
+                    + std::string(isl_map_to_str(schedule_copy))));
+            
+            // get the value of the last beta dimension
+            isl_set * schedule_range = isl_map_range(schedule_copy);
+            int nb_dimension = isl_set_dim(schedule_range, isl_dim_set);
+
+            isl_val * last_beta = isl_set_dim_max_val(schedule_range, nb_dimension - 1);
+            int last_beta_value = static_cast<int>(isl_val_get_d(last_beta));
+
+            isl_val_free(last_beta);
+
+            DEBUG(5, tiramisu::str_dump("Schedule last beta dimension : " 
+                    + std::to_string(last_beta_value)));
+            beta_to_name[last_beta_value] = comp;
+
+        }
+        cluster.clear();
+        DEBUG(5, tiramisu::str_dump(" The established order is "));
+
+        for (auto& computation : beta_to_name)
+        {
+            DEBUG(5, tiramisu::str_dump(" The computation " + computation.second->get_name()));
+            cluster.push_back(computation.second);
+        }
+
+    }
+
+    DEBUG_INDENT(-4);
+}
+
+std::vector<tiramisu::computation*> function::get_the_cluster_represented_by_stmt(const tiramisu::computation& first) const
+{
+    for(int i=0; i < this->clustered_statements.size(); i++)
+    {
+        if (this->clustered_statements[i].size() > 0)
+        {
+            if (this->clustered_statements[i][0]->get_name() == first.get_name())
+            {
+                return this->clustered_statements[i];
+            }
+        }
+    }
+    return std::vector<tiramisu::computation*>();
+}
+
 void function::set_context_set(isl_set *context)
 {
     assert((context != NULL) && "Context is NULL");
@@ -1509,6 +1568,24 @@ void function::gen_isl_ast()
         }
 
         ast_build = isl_ast_build_set_iterators(ast_build, iterators);
+    }
+
+    // unschedule clustered computations
+    // only schedule thr first stmt of the cluster
+    bool first = true;
+    for (auto& cluster : clustered_statements)
+    {
+        first = true;
+        for (auto& comp : cluster)
+        {
+            if (first) 
+            {
+                first = false;
+            }
+            else {
+                comp->unschedule_this_computation();
+            }
+        }
     }
 
     // Intersect the iteration domain with the domain of the schedule.
