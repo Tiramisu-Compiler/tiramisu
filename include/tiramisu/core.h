@@ -97,17 +97,7 @@ enum xfer_attr {
     GPU2CPU,
     GPU2GPU
 };
-/**
- * Extraction of the bounds of a node that is either not a for loop, or the case where the set contains elements like the following:
- * [{NN]->{A_diag[i,l,m]: 0<=i<NN and l=i and 0<=m<i} 
- * This causes an error when trying to recover the bounds of l
- */
-struct NonForLoopBoundExtractionException : public std::exception {
-        const char * what () const throw ()
-            {
-                return "Trying to extract bounds from a node that is not a for loop.";
-            }
-    };
+
 struct xfer {
     tiramisu::send *s;
     tiramisu::recv *r;
@@ -5526,7 +5516,9 @@ public:
       */
      static int get_single_iterator_bound(isl_set *set, int dim);
     /**
-      * get constraints map
+      * Returns a map with the dimensions of the set and the values:
+      * True: if the dimension has at least two constraints in the constraints map
+      * False otherwise
       */
      static std::unordered_map<std::string, bool> get_constraints_map(isl_set *set);
     /**
@@ -5534,6 +5526,7 @@ public:
      * the dimension \p dim in \p set.  If \p upper is true
      * then this function returns the upper bound otherwise
      * it returns the lower bound.
+     * \p contains_static_dims is used to indicate if \p set contains static dimensions
      *
      * For example, assuming that
      *
@@ -5549,7 +5542,7 @@ public:
      *
      * would return min(N-1,M-1)
      */
-    static tiramisu::expr get_bound(isl_set *set, int dim, int upper);
+    static tiramisu::expr get_bound(isl_set *set, int dim, int upper, bool contains_static_dims = false);
 
     /**
      * Return the extent of the loop.

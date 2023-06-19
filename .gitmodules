@@ -16,3 +16,5 @@
 [submodule "3rdParty/isl"]
 	path = 3rdParty/isl
 	url = https://repo.or.cz/isl.git
+	branch = master
+

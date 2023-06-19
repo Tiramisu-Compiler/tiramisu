@@ -515,6 +515,9 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         // Apply all possible unrolling factors to all innermost iterators
         //test unrolling for all inner nodes until we find a valid
         bool result = true;
+        // In the case where complicated transformations are applied, we can't trust that the Tiramisu AST reflects all the changes
+        // Instead, we retrieve the accurate depth of the branch to be unrolling using the isl AST
+        int unrolling_depth = -1;
         for (ast_node *inner_most_node: innermost_nodes) {
             std::vector<tiramisu::computation *> involved_computations;
             inner_most_node->get_innermost_computations(involved_computations);
@@ -523,6 +526,10 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                 std::vector<tiramisu::computation *> involved_comp_first; 
                 involved_comp_first.push_back(comp);
                 std::string loop_name = loop_names[inner_most_node->depth];
+
+                // The index of the loop to unrolling is the number of for loops containing this computations - 1
+                // The number of loops containing the computation is the maximal AST depth - 1 (the compute_maximal_AST_depth counts the user node in the depth)
+                unrolling_depth = comp->compute_maximal_AST_depth() - 2;
                 result = result && (!inner_most_node->is_optimized_by_tag()) &&
                                 ast.fct->loop_unrolling_is_legal(var(loop_name), involved_comp_first);
             }
@@ -541,7 +548,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                         optim_info.nb_l = 1;
 
                         // When l0 is set to -1, unrolling is applied to all innermost levels, (1 to avoid that)
-                        optim_info.l0 = new_node->depth;
+                        optim_info.l0 = unrolling_depth;
                         optim_info.l0_fact = unrolling_fact;
                         // select this node
                         optim_info.node = new_node;
@@ -609,6 +616,8 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                 // select this node
                 optim_info.node = new_node;
 
+                // Please note that this variable will not be used to decide which loops will be parallelized in the generated code
+                // Check the apply_parallelization function for more details  
                 optim_info.comps = involved_computations;
                 new_ast->new_optims.push_back(optim_info);
                 states.push_back(new_ast);

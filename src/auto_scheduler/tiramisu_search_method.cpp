@@ -389,33 +389,23 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
                 }
                 
                 std::vector<float> measurements;
-                try{
-                        
-                        if(std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1){
-                            if ((*iterator)->can_set_default_evaluation()){ // if yes the child's evaluation is set to a default value
-                                measurements = {(*iterator)->evaluation};
-                            }else{
-                                measurements = exec_eval->get_measurements(**iterator, false, schedule_timeout);
-                            }
-                        }else{
-                            if ((*iterator)->can_set_default_evaluation()){ // if yes the child's evaluation is set to a default value
-                                measurements = {0.01};
-                            }else{
-                                std::string no_sched_json = schedules_annotations->at(0);
-                                measurements.push_back(eval_func->evaluate(*(*iterator), no_sched_json));
-                            }
-                            
-                        }
-                        
-                }
-                catch(NonForLoopBoundExtractionException e){ 
-                    // Remove all the optimizations
-                    exec_eval->fct->reset_schedules();
-                    measurements.clear();
-                    measurements.push_back(std::numeric_limits<float>::infinity());
-                    unrolling_exception_thrown = true;
+                                        
+                if(std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1){
+                    if ((*iterator)->can_set_default_evaluation()){ // if yes the child's evaluation is set to a default value
+                        measurements = {(*iterator)->evaluation};
+                    }else{
+                        measurements = exec_eval->get_measurements(**iterator, false, schedule_timeout);
+                    }
+                }else{
+                    if ((*iterator)->can_set_default_evaluation()){ // if yes the child's evaluation is set to a default value
+                        measurements = {0.01};
+                    }else{
+                        std::string no_sched_json = schedules_annotations->at(0);
+                        measurements.push_back(eval_func->evaluate(*(*iterator), no_sched_json));
+                    }
                     
                 }
+                        
              
                 (*iterator)->evaluation = min_eval(measurements);
                 parent_trace->add_child_path((*iterator), schedules_annotations->size());

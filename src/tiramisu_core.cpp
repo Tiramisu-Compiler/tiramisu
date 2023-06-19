@@ -5174,7 +5174,7 @@ bool computation::unrolling_is_legal(var l)
         int n_piece_max = isl_pw_aff_n_piece(max);
         int n_piece_min = isl_pw_aff_n_piece(min);
 
-        if ((n_piece_max == 1) && (n_piece_min == 1))
+        if ((n_piece_max == 1) && (n_piece_min == 1) && (is_number(min_string)) && ( is_number(max_string)))
         {
             DEBUG(3, tiramisu::str_dump(" max & min are both cst unrolling legal for "+this->get_name()));
         }
@@ -5186,8 +5186,7 @@ bool computation::unrolling_is_legal(var l)
         DEBUG_INDENT(-4);
 
         isl_set_free(normal_set);
-        // return ((n_piece_max == 1) && (n_piece_min == 1) && (is_number(min_string)) && ( is_number(max_string)) );
-        return ((n_piece_max == 1) && (n_piece_min == 1));
+        return ((n_piece_max == 1) && (n_piece_min == 1) && (is_number(min_string)) && ( is_number(max_string)) );
     }
 
 
@@ -6202,17 +6201,16 @@ int computation::compute_maximal_AST_depth()
  * - During the traversal, assert that the loop is fully nested.
  *
  */
-tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
+tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper, bool contains_static_dims)
 {
     DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
 
-    std::unordered_map<std::string, bool> constraints_map = utility::get_constraints_map(set);
     assert(set != NULL);
     assert(dim >= 0);
     assert(dim < isl_space_dim(isl_set_get_space(set), isl_dim_set));
     assert(isl_set_is_empty(set) == isl_bool_false);
-    // std::cout<<std::string("Getting the ") + (upper ? "upper" : "lower") + " bound on the dimension " + std::to_string(dim) + " of the set " + isl_set_to_str(set)<<std::endl;
+
     DEBUG(10, tiramisu::str_dump(std::string("Getting the ") + (upper ? "upper" : "lower") +
                                  " bound on the dimension " +
                                  std::to_string(dim) + " of the set ",
@@ -6271,11 +6269,39 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
 
     // Treating the case where the set we're extracting bounds from
     // either has one iteration or if conditions
-    // if the number of for levels is less or equal to the unrolled loop, skip the optimization (exception handled when getting measurements)
-    // if(cpt <= dim){std::cout<<"the case"<<std::endl;throw NonForLoopBoundExtractionException();}
+    int iterator_name_dim = dim;
+    // If the input set has static dimensions we get the dimension index from the input loop level 
+    if (contains_static_dims)
+        iterator_name_dim = loop_level_into_dynamic_dimension(dim);
+    
+    assert(isl_set_get_dim_name(set, isl_dim_set, iterator_name_dim) != NULL && "Dimension name couldn't be extracted.");
+    // Extract the constraints map for this set
+    // We use the map to determin if an iterator has only a single iteration
+    std::unordered_map<std::string, bool> constraints_map = utility::get_constraints_map(set);
+    
+    std::string dim_name = isl_set_get_dim_name(set, isl_dim_set, iterator_name_dim);
 
-    e = utility::extract_bound_expression(node, dim, upper);
-
+    // Check if the element exists in the constraints of the set
+    if (constraints_map.find(dim_name) != constraints_map.end() && constraints_map[dim_name] == true)
+    {
+        int offset = 0;
+        for (int o = 0; o < dim; o++)
+        {
+            if(!isl_set_has_dim_name(set, isl_dim_set, o))
+                continue;
+            
+            std::string current_dim_name = isl_set_get_dim_name(set, isl_dim_set, o);
+            if (constraints_map.find(current_dim_name) != constraints_map.end() && constraints_map[current_dim_name] == false)
+            {
+                offset = offset + 1;
+            }
+        }
+        e = utility::extract_bound_expression(node, dim - offset, upper);
+    }
+    else{
+        // Single value set case
+        e = tiramisu::expr(get_single_iterator_bound(set, dim));
+    }
     isl_ast_build_free(ast_build);
 
     assert(e.is_defined() && "The computed bound expression is undefined.");
@@ -6403,16 +6429,16 @@ bool computation::separateAndSplit(int L0, int v)
     int original_depth = this->compute_maximal_AST_depth();
 
     DEBUG(3, tiramisu::str_dump("Computing upper bound at loop level " + std::to_string(L0)));
-
+    // We set the contains_static_dims to true since we are calling get bound with the time processor domain
     tiramisu::expr loop_upper_bound =
         tiramisu::expr(o_cast, global::get_loop_iterator_data_type(),
-                       tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), L0, true));
+                       tiramisu::utility::get_bound(this->get_time_processor_domain(), L0, true, true));
 
     DEBUG(3, tiramisu::str_dump("Computing lower bound at loop level " + std::to_string(L0)));
-
+    // We set the contains_static_dims to true since we are calling get bound with the time processor domain
     tiramisu::expr loop_lower_bound =
         tiramisu::expr(o_cast, global::get_loop_iterator_data_type(),
-                       tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), L0, false));
+                       tiramisu::utility::get_bound(this->get_time_processor_domain(), L0, false, true));
 
     std::string lower_without_cast = loop_lower_bound.to_str();
     while (lower_without_cast.find("cast") != std::string::npos) // while there is a "cast" in the expression
