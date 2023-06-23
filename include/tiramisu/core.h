@@ -161,7 +161,10 @@ void performe_full_dependency_analysis();
  * 
  */
 void prepare_schedules_for_legality_checks(bool reset_static_dimesion = false);
-
+  /**
+ * Clear the schedule graph of the implicit function
+ */
+void clear_implicit_function_sched_graph();
  /**
      * Checks if the given fuzed computations could legally have their loop level \p i as parallel using dependence analysis and legality check.
      * It relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
@@ -934,10 +937,6 @@ protected:
        */
     void add_mapping(std::pair<std::string, tiramisu::buffer *> p);
     
-    /**
-     * \brief Clear any relation (defined by after, then or between) between computations.
-     */
-    void clear_sched_graph();
 
 public:
 
@@ -981,7 +980,12 @@ public:
       * or gen_time_processor_domain() are called.
       */
     void align_schedules();
-
+    
+    /**
+     * \brief Clear any relation (defined by after, then or between) between computations.
+     */
+    void clear_sched_graph();
+    
     /**
      * \brief Remove computations added by unrolling and reset the computation names.
      */

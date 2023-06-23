@@ -103,6 +103,10 @@ bool check_legality_of_function()
     return fct->check_legality_for_function() ;
 }
 
+void clear_implicit_function_sched_graph(){
+    function *fct = global::get_implicit_function();
+    fct->clear_sched_graph();
+}
 
 void performe_full_dependency_analysis()
 {
@@ -6281,16 +6285,23 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper, bool contain
     
     std::string dim_name = isl_set_get_dim_name(set, isl_dim_set, iterator_name_dim);
 
+    int dimension = -1;
     // Check if the element exists in the constraints of the set
     if (constraints_map.find(dim_name) != constraints_map.end() && constraints_map[dim_name] == true)
     {
         int offset = 0;
+        // Loop through the dynamic dimensions only and skip iterators that don't have constraints
         for (int o = 0; o < dim; o++)
         {
-            if(!isl_set_has_dim_name(set, isl_dim_set, o))
+            dimension = o;
+            // If the input has static dimensions, use the loop_level_into_dynamic_dimension to extract the position of the dynamic dimensions
+            if (contains_static_dims)
+                dimension = loop_level_into_dynamic_dimension(o);
+
+            if(!isl_set_has_dim_name(set, isl_dim_set, dimension))
                 continue;
             
-            std::string current_dim_name = isl_set_get_dim_name(set, isl_dim_set, o);
+            std::string current_dim_name = isl_set_get_dim_name(set, isl_dim_set, dimension);
             if (constraints_map.find(current_dim_name) != constraints_map.end() && constraints_map[current_dim_name] == false)
             {
                 offset = offset + 1;
