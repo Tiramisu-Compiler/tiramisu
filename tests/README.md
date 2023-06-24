@@ -62,3 +62,4 @@ test number `XX` in the file `tests/test_list.txt`.
 - .correcting_loop_fusion_with_shifting() + partial legality 189 190 191
 - custom allocation test : 197
 - positive skewing : 198 199
+- statements clustering 200

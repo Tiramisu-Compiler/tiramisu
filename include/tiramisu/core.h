@@ -180,6 +180,15 @@ void prepare_schedules_for_legality_checks(bool reset_static_dimesion = false);
   */
   bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
+/**
+ * Automatically detect statements that need to be clustered. Then clusters them.
+ * \note purpose of clustering is to speed up the code generation by merging the fused statements at innerMost levels.
+ * Meaning if 2 or more statements that share all their loops, they would be merged for the sake of code generation speed. Then in another step,
+ * the statements would be adjusted. The code generated is guaranteed to be the same with ou without clustering.
+ * \warning to correctly invoke and use this method \p prepare_schedules_for_legality_checks() must be invoked before.
+*/
+void cluster_statements_automatically();
+
 //*******************************************************
 
 /**
@@ -1224,11 +1233,27 @@ public:
     void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag, bool gen_python = false);
 
     /**
+    * Automatically detect the statements that can be clustered and cluster them.
+    * \note this method invokes internally \p prepare_schedules_for_legality_checks()
+    * Thus, the computations must be ordered (using after, then ...)
+    * */
+    void cluster_statement_automatically();
+    
+    /**
      * Appends a group of clustered statements together to accelerate code generation.
      * \warning the order must be defined when defined for the clustering to work (use after, then ..)
      * \note for statement to be clustered the must be fused in the innermost loop level.
     */
-    void append_clustered_statements(const std::vector<tiramisu::computation *> &statements);
+    void append_clustered_statements(const std::vector<tiramisu::computation *>& cluster);
+
+    /**
+     * Check that the clustered statements are indeed viable and correct.
+     * In case a cluster is not valid, it gets removed from the clusters.
+     * \remark \p prepare_schedules_for_legality_checks() must be invoked before.
+     * (i.e. schedules must be aligned)
+    */
+    void filter_out_invalid_clusters();
+
     /***
      * Sorts the clusters after checking that they are legally set.
      * The statements that are scheduled first are put in the first position of the cluster
@@ -1250,7 +1275,7 @@ public:
      * \remark \p prepare_schedules_for_legality_checks() must be invoked before.
      * (i.e. schedules must be aligned)
     */
-    bool check_clustered_statements_are_innermost();
+    bool check_clustered_statements_are_innermost(const std::vector<tiramisu::computation *> &statements);
 
     /**
      * \brief Set the context of the function.
