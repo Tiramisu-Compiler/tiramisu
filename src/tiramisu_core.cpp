@@ -150,6 +150,14 @@ bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computat
     return fct->loop_vectorization_is_legal(i,fuzed_computations);
 }
 
+void cluster_statements_automatically()
+{
+    function *fct = global::get_implicit_function();
+    fct->cluster_statement_automatically();
+    fct->filter_out_invalid_clusters();
+}
+
+
 
 //********************************************************
 

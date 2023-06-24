@@ -60,3 +60,5 @@ test number `XX` in the file `tests/test_list.txt`.
 - unrolling check : 186
 - vectorization check : 188
 - .correcting_loop_fusion_with_shifting() + partial legality 189 190 191 
+- statements clustering 200
+
