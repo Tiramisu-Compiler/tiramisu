@@ -156,15 +156,13 @@ void apply_parallelization(ast_node* node)
     {
         std::vector<tiramisu::computation*> involved_computations;
         node->get_all_computations(involved_computations);
-        // For parallelization, we only add one of the computations of the loop nest
-        // Calling tag_parallel_level on multiple computations in the same loop nest causes undefined behavior
-        involved_computations.at(0)->tag_parallel_level(node->depth);
+        for (tiramisu::computation* comp: involved_computations)
+            comp->tag_parallel_level(node->depth);
     }
     for (ast_node *child : node->children)
         apply_parallelization(child);
 
 }
-
 void print_optim(optimization_info optim)
 {
     switch(optim.type) {

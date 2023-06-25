@@ -5411,6 +5411,7 @@ protected:
       *     - a \p node,
       *     - \p level represents the current loop level being traversed (0 means the outer level.
       *     - \p is_a_child_block indicates whether the block that is ging to be
+      *     - \p stmts_map a map inidicating all the statements contained in an isl_ast_node. Use create_stmts_map to obtain this map.
       *     generated is a child block for an other block. In such a case, allocate
       *     and let statements should not be generate. Allocate and let statements
       *     should only be generated in non-child blocks so that their scope reaches
@@ -5419,7 +5420,7 @@ protected:
     static Halide::Internal::Stmt halide_stmt_from_isl_node(const tiramisu::function &fct, isl_ast_node *node,
                                                             int level,
                                                             std::vector<std::pair<std::string, std::string>> &tagged_stmts,
-                                                            bool is_a_child_block);
+                                                            bool is_a_child_block, std::map<std::string, std::vector<std::string>> stmts_map);
 
     // TODO doc
     static Halide::Internal::Stmt make_halide_block(const Halide::Internal::Stmt &first,
