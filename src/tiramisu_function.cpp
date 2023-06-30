@@ -1300,14 +1300,16 @@ void tiramisu::function::cluster_statement_automatically()
         else
         {
             // they are not in the same cluster -> flush the cluster
-            std::string cluster_str = "";
-            for (auto const& stmt : cluster)
-            {
-                cluster_str += stmt->get_name() + " ";
+            if (!cluster.empty()) {
+                std::string cluster_str = "";
+                for (auto const& stmt : cluster)
+                {
+                    cluster_str += stmt->get_name() + " ";
+                }
+                DEBUG(3, tiramisu::str_dump(" flushing the cluster " + cluster_str));
+                this->append_clustered_statements(cluster);
+                cluster.clear();
             }
-            DEBUG(3, tiramisu::str_dump(" flushing the cluster " + cluster_str));
-            this->append_clustered_statements(cluster);
-            cluster.clear();
         }
         // next link
         iterator_computation = target_computation;
