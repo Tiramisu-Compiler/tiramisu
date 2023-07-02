@@ -1,27 +1,13 @@
-import warnings
-import logging
-import numpy as np
 from os import environ
-import sys
 import json
 
 from hier_lstm import Model_Recursive_LSTM_v2
 from json_to_tensor import *
-import random
-import time
-
-import os
 
 environ["MKL_THREADING_LAYER"] = "GNU"
 
-
-# model_path = '/data/scratch/mmerouani/tiramisu2/tiramisu/tutorials/tutorial_autoscheduler/model/multi_model_all_data_12+4+1.3.pkl'
-# model_path = '/data/scratch/hbenyamina/bidirection_with_final_matrix.pt'
-# model_path = '/data/scratch/mmerouani/tiramisu2/tiramisu/tutorials/tutorial_autoscheduler/model/best_model_bidirectional_new_data_fixed_inversed_matrices_98c0.pt'
-# model_path = '/data/scratch/mmerouani/tiramisu2/tiramisu/tutorials/tutorial_autoscheduler/model/MAPE_base_13+4+2.6_22.7.pkl'
-# model_path = '/data/scratch/hbenyamina/best_model_bidirectional_new_data_static_input_paper_4cb2.pt'
 model_path = (
-    "/home/afif/multi/tiramisu/tutorials/tutorial_autoscheduler/model/model_release_version.pt"
+    "/path/to/model/weights"
 )
 
 MAX_DEPTH = 5
@@ -33,7 +19,7 @@ with torch.no_grad():
     environ["layers"] = "600 350 200 180"
     environ["dropouts"] = "0.05 " * 4
 
-    input_size = 890 #1056
+    input_size = 846 #1056
     output_size = 1
 
     layers_sizes = list(map(int, environ.get("layers", "600 350 200 180").split()))
@@ -44,7 +30,7 @@ with torch.no_grad():
         comp_embed_layer_sizes=layers_sizes,
         drops=drops,
         loops_tensor_size=8,
-        train_device="cpu",
+        device="cpu",
     )
     model.load_state_dict(torch.load(model_path, map_location="cpu"))
     
@@ -64,23 +50,19 @@ with torch.no_grad():
                 sched_json = json.loads(sched_json)
                 no_sched_json = json.loads(no_sched_json)
                 (
-                    prog_tree,
-                    comps_repr_templates_list,
-                    loops_repr_templates_list,
-                    comps_placeholders_indices_dict,
-                    loops_placeholders_indices_dict,
-                    comps_expr_tensor,
-                    comps_expr_lengths,
-                ) = get_representation_template(program_json, no_sched_json, MAX_DEPTH)
-                comps_tensor, loops_tensor = get_schedule_representation(
+                prog_tree,
+                comps_repr_templates_list,
+                loops_repr_templates_list,
+                comps_placeholders_indices_dict,
+                loops_placeholders_indices_dict
+                )  = get_representation_template(program_json, no_sched_json)
+                comps_tensor, loops_tensor, comps_expr_repr = get_schedule_representation(
                     program_json,
-                    no_sched_json,
                     sched_json,
                     comps_repr_templates_list,
                     loops_repr_templates_list,
                     comps_placeholders_indices_dict,
-                    loops_placeholders_indices_dict,
-                    max_depth=5,
+                    loops_placeholders_indices_dict
                 )
                 
                 x = comps_tensor
@@ -96,7 +78,7 @@ with torch.no_grad():
                 
                 third_part = third_part.view(batch_size, num_comps, -1)
                 
-                tree_tensor = (prog_tree, first_part, vectors, third_part, loops_tensor, comps_expr_tensor, comps_expr_lengths)
+                tree_tensor = (prog_tree, first_part, vectors, third_part, loops_tensor, comps_expr_repr)
 
                 speedup = model.forward(tree_tensor)
                 print(float(speedup.item()))
