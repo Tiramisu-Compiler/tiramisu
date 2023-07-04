@@ -189,6 +189,15 @@ void clear_implicit_function_sched_graph();
   */
   bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
 
+/**
+ * Automatically detect statements that need to be clustered. Then clusters them.
+ * \note purpose of clustering is to speed up the code generation by merging the fused statements at innerMost levels.
+ * Meaning if 2 or more statements that share all their loops, they would be merged for the sake of code generation speed. Then in another step,
+ * the statements would be adjusted. The code generated is guaranteed to be the same with ou without clustering.
+ * \warning to correctly invoke and use this method \p prepare_schedules_for_legality_checks() must be invoked before.
+*/
+void cluster_statements_automatically();
+
 //*******************************************************
 
 /**
@@ -379,6 +388,14 @@ private:
       * schedule.
       */
     std::vector<computation *> body;
+
+    /**
+      * The grouped statements of the function (a vector of vector of computations).
+      * This structure is only used when optimizing the code generation.
+      * The statements that are grouped together must have the same loop iterators
+      * and fused in the innermost level.
+      */
+    std::vector<std::vector<computation *>> clustered_statements;    
 
     /**
       * A Halide statement that represents the whole function.
@@ -1238,6 +1255,51 @@ public:
      */
     void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
     void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag);
+
+    /**
+    * Automatically detect the statements that can be clustered and cluster them.
+    * \note this method invokes internally \p prepare_schedules_for_legality_checks()
+    * Thus, the computations must be ordered (using after, then ...)
+    * */
+    void cluster_statement_automatically();
+    
+    /**
+     * Appends a group of clustered statements together to accelerate code generation.
+     * \warning the order must be defined when defined for the clustering to work (use after, then ..)
+     * \note for statement to be clustered the must be fused in the innermost loop level.
+    */
+    void append_clustered_statements(const std::vector<tiramisu::computation *>& cluster);
+
+    /**
+     * Check that the clustered statements are indeed viable and correct.
+     * In case a cluster is not valid, it gets removed from the clusters.
+     * \remark \p prepare_schedules_for_legality_checks() must be invoked before.
+     * (i.e. schedules must be aligned)
+    */
+    void filter_out_invalid_clusters();
+
+    /***
+     * Sorts the clusters after checking that they are legally set.
+     * The statements that are scheduled first are put in the first position of the cluster
+     *  \remark \p prepare_schedules_for_legality_checks() must be invoked before.
+     * (i.e. schedules must be aligned)
+    */
+    void sort_clustered_statements();
+
+    /***
+     * Check if a computation represent a cluster.
+     * If it is the case it return a vector or computation to add to the ast
+     * Otherwise it returns an empty vector
+    */
+    std::vector<tiramisu::computation*> get_the_cluster_represented_by_stmt(const tiramisu::computation& first) const;
+
+    /**
+     * \brief verifies that the declared clustered statements are share indeed 
+     * the same iterators and are fused in the innermost level.
+     * \remark \p prepare_schedules_for_legality_checks() must be invoked before.
+     * (i.e. schedules must be aligned)
+    */
+    bool check_clustered_statements_are_innermost(const std::vector<tiramisu::computation *> &statements);
 
     /**
      * \brief Set the context of the function.
