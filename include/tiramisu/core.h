@@ -4785,6 +4785,30 @@ public:
     //@}
 
     /**
+     * Expand a computation S[i,j] it means to allocate a buffer as big as the iteration domain (i,j)
+     * To store the computation. The goal is to eliminate as much dependencies as possible by providing extra memory.
+     * \param[in] update_dependencies default true, it recomputes the dependencies after the expansion.
+     * \note Only computations mapped to temporary buffers can be expanded.
+     * \remark This method expends the entire iteration domain of the computation.
+     * \warning This methods updates the legality check results if it was already computed
+    */
+    virtual void expand(bool update_dependencies = true);
+
+    /**
+     * Checks if a computation can be expanded.
+     * A computation can be expanded if it is mapped to temporary buffer (not input or output, so that the tiramisu's function stays the same).
+     * And also if there is room for expansion; if the computation is mapped to a buffer with a lesser dimensionality than the iteration domain.
+    */
+    bool expandable();
+
+    /**
+     * Checks for every dimension of the iteration domain if it can be expanded.
+     * A dimension can be expanded if it is not already mapped to the access buffer.
+    */
+    std::vector<bool> compute_expandable_domain_dimensions();
+
+
+    /**
       * Vectorize the loop level \p L.  Use the vector length \p v.
       *
       * The difference between this function and the function
