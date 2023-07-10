@@ -2749,6 +2749,20 @@ void computation::set_loop_level_names(std::vector<int> loop_levels,
     DEBUG_INDENT(-4);
 }
 
+void computation::tile(int L0, int sizeX)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert((sizeX > 0) );
+    assert(this->get_iteration_domain() != NULL);
+    this->check_dimensions_validity({L0});
+
+    this->split(L0, sizeX);
+
+    DEBUG_INDENT(-4);
+}
+
 void computation::tile(int L0, int L1, int sizeX, int sizeY)
 {
     DEBUG_FCT_NAME(3);

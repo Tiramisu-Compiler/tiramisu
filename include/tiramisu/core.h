@@ -4642,7 +4642,13 @@ public:
                       var L0_outer, var L1_outer, var L2_outer, var L0_inner,
                       var L1_inner, var L2_inner);
     // @}
-
+    /**
+      * Tile a single loop level \p L0 with rectangular
+      * tiling. \p sizeX represents the tile size.
+      */
+    // @{
+    virtual void tile(int L0, int sizeX);
+    // @}
     /**
       * Tile the two loop levels \p L0 and \p L1 with rectangular
       * tiling. \p sizeX and \p sizeY represent the tile size.
