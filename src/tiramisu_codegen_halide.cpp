@@ -2288,8 +2288,8 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                             tttt++;
                         }
                         break;
-                    } else if (tagged_stmts[tt].second == "map_to_gpu_thread" &&
-                               fct.should_map_to_gpu_thread(tagged_stmts[tt].first, level)) {
+                    } else if (tagged_stmts[tt].second == "map_to_gpu_thread" && isl_node_contains_stmt(node, tagged_stmts[tt].first, stmts_map) 
+                    && fct.should_map_to_gpu_thread(tagged_stmts[tt].first, level)) {
                         fortype = Halide::Internal::ForType::GPUThread;
                         dev_api = Halide::DeviceAPI::OpenCL;
                         std::string gpu_iter = fct.get_gpu_thread_iterator(tagged_stmts[tt].first, level);
@@ -2306,8 +2306,8 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                         // tagged statements so that it does not get treated again later.
                         tagged_stmts[tt].first = "";
                         break;
-                    } else if (tagged_stmts[tt].second == "map_to_gpu_block" &&
-                               fct.should_map_to_gpu_block(tagged_stmts[tt].first, level)) {
+                    } else if (tagged_stmts[tt].second == "map_to_gpu_block" && isl_node_contains_stmt(node, tagged_stmts[tt].first, stmts_map)
+                    && fct.should_map_to_gpu_block(tagged_stmts[tt].first, level)) {
                         assert(false);
                         fortype = Halide::Internal::ForType::GPUBlock;
                         dev_api = Halide::DeviceAPI::OpenCL;
