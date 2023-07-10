@@ -1521,6 +1521,273 @@ void computation::expand(bool update_dependencies)
 
 }
 
+bool is_buffer_access_one_variable_access(isl_map * access)
+{
+    int output_access = isl_map_dim(access, isl_dim_out);
+
+    isl_set * range = isl_map_range(isl_map_copy(access));
+
+    bool result;
+    // case when we have the access S0[i]->buffer1[0]
+    if (isl_set_is_singleton(range) && (output_access == 1)) {
+        result = true;
+    }
+    else
+    {
+        result = false;
+    }
+    isl_set_free(range);
+    return result;
+}
+
+void computation::expand(int L, bool update_dependencies)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+    DEBUG(3, tiramisu::str_dump(" Expanding the level "+ std::to_string(L) +" of the iteration domain of the computations " + this->get_name()));
+    assert(L < this->get_iteration_domain_dimensions_number());
+    DEBUG(3, tiramisu::str_dump(" The original buffer sizes are : " + this->get_buffer()->buffer_dimensions_as_string()));
+
+    std::vector<bool> extensible = this->compute_expandable_domain_dimensions();
+
+    bool can_expand = this->expandable() && extensible[L];
+
+    if (can_expand)
+    {
+        if (is_buffer_access_one_variable_access(this->get_access_relation()))
+        {
+            // add one dimension to the new buffer since he had no previous dimension
+            std::vector<tiramisu::expr> computation_dim_sizes = this->compute_buffer_size();
+
+            tiramisu::expr buffer_new_dimension = computation_dim_sizes[L];
+            std::vector<tiramisu::expr> dim_sizes = {buffer_new_dimension};
+
+            std::string buffer_name = "_" + this->name + "_E_" + global::generate_new_buffer_name();
+            buffer *new_buffer = new tiramisu::buffer(buffer_name,
+                                                    dim_sizes,
+                                                    this->get_data_type(),
+                                                    argument_t::a_temporary,
+                                                    this->get_function());
+            // map the access to the new dimension
+            tiramisu::expr access_expr = this->get_iteration_variables()[L];
+            this->store_in(new_buffer,{access_expr});
+        }
+        else
+        {
+            // modify the existing buffer
+            isl_map * access = this->get_access_relation();
+
+            buffer * current_buffer = this->get_buffer();
+
+            DEBUG(3, tiramisu::str_dump(" The access function is " + std::string(isl_map_to_str(access))));
+
+            // tag as extended E
+            std::vector<tiramisu::expr> buffer_auto_dimensions = this->compute_buffer_size();
+            tiramisu::expr access_expr = buffer_auto_dimensions[L];
+            std::vector<tiramisu::expr>& buffer_sizes = this->get_buffer()->dim_sizes;
+
+            // we insert the new dimension in pos
+            // pos is the number of non-extensible iteration domain dimension that exists before L
+            int pos = 0;
+            for (int i = 0; i < L; i++)
+            {
+                if (extensible[i] == false)
+                {
+                    pos ++;
+                }
+            }
+            // TO-DO: safely remove current_buffer from the function
+            // pos must be at most the last in the new buffer
+            int nb_access = isl_map_dim(access, isl_dim_out);
+            pos = std::min(pos, nb_access);
+            
+            buffer_sizes.insert(buffer_sizes.begin() + pos, access_expr);
+
+            buffer *new_buffer = new tiramisu::buffer(current_buffer->get_name() + "_E_",
+                                                    buffer_sizes,
+                                                    this->get_data_type(),
+                                                    argument_t::a_temporary,
+                                                    this->get_function());
+
+            // add constraint between L and the newly inserted dimension
+            access = isl_map_insert_dims(access, isl_dim_out, pos, 1);
+            isl_space *sp = isl_map_get_space(access);
+            isl_local_space *lsp =
+                isl_local_space_from_space(isl_space_copy(sp));
+            isl_constraint *cst = isl_constraint_alloc_equality(lsp);
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, pos, 1);
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_in, L, -1);
+            access = isl_map_add_constraint(access, cst);
+            isl_map_set_tuple_name(access, isl_dim_out, new_buffer->get_name().c_str());
+
+            DEBUG(3, tiramisu::str_dump(" The expanded access function is " + std::string(isl_map_to_str(access))));
+
+            DEBUG(3, tiramisu::str_dump(" The expanded buffer sizes are : " + new_buffer->buffer_dimensions_as_string()));
+
+            std::string new_access = std::string(isl_map_to_str(access));
+            isl_map_free(access);
+
+            this->set_access(new_access);
+            
+        }
+
+        // update the legality check if needed
+        if (update_dependencies)
+        {
+            prepare_schedules_for_legality_checks();
+            performe_full_dependency_analysis();
+        }
+    }
+    else {
+        DEBUG(3, tiramisu::str_dump(" Can not expand this computation "));
+    }
+
+    DEBUG_INDENT(-4);
+
+}
+
+
+void computation::expand(const std::vector<int>& Levels, bool update_dependencies)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+    std::string levels_str = "";
+    int last_lvl = -1;
+    for (auto& lvl : Levels)
+    {
+        assert(lvl < this->get_iteration_domain_dimensions_number());
+        // must be sorted from smallest to biggest
+        assert(lvl > last_lvl);
+        last_lvl = lvl;
+        levels_str += std::to_string(lvl) +", ";
+    }
+    DEBUG(3, tiramisu::str_dump(" Expanding the level "+ levels_str +" of the iteration domain of the computations " + this->get_name()));
+    DEBUG(3, tiramisu::str_dump(" The original buffer sizes are : " + this->get_buffer()->buffer_dimensions_as_string()));
+
+    std::vector<tiramisu::expr> buffer_auto_dimensions = this->compute_buffer_size();
+
+    std::vector<bool> extensible = this->compute_expandable_domain_dimensions();
+
+    tiramisu::buffer * new_buffer = NULL;
+
+    // expand all assigned loop levels
+    for (int lvl : Levels)
+    {
+        if (this->expandable())
+        {
+            // already expanded dimension
+            if (extensible[lvl] == false)
+            {
+                DEBUG(3, tiramisu::str_dump(" Can not expand the dimension " + std::to_string(lvl)));
+                continue;
+            }
+            else
+            {
+                // to be expanded
+                extensible[lvl] = false;
+            }
+            
+            if (is_buffer_access_one_variable_access(this->get_access_relation()))
+            {
+                // add one dimension to the new buffer since he had no previous dimension
+                std::vector<tiramisu::expr> computation_dim_sizes = this->compute_buffer_size();
+
+                tiramisu::expr buffer_new_dimension = computation_dim_sizes[lvl];
+                std::vector<tiramisu::expr> dim_sizes = {buffer_new_dimension};
+
+                std::string buffer_name = "_" + this->name + "_E_" + global::generate_new_buffer_name();
+                new_buffer = new tiramisu::buffer(buffer_name,
+                                                        dim_sizes,
+                                                        this->get_data_type(),
+                                                        argument_t::a_temporary,
+                                                        this->get_function());
+                // map the access to the new dimension
+                tiramisu::expr access_expr = this->get_iteration_variables()[lvl];
+                this->store_in(new_buffer,{access_expr});
+            }
+            else
+            {
+            
+                isl_map * access = this->get_access_relation();
+
+                buffer * current_buffer = this->get_buffer();
+
+                DEBUG(3, tiramisu::str_dump(" The access function is " + std::string(isl_map_to_str(access))));
+
+                // tag as extended E
+                
+                tiramisu::expr access_expr = buffer_auto_dimensions[lvl];
+
+                // we insert the new dimension in pos
+                // pos is the number of non-extensible iteration domain dimension that exists before L
+                int pos = 0;
+                for (int i = 0; i < lvl; i++)
+                {
+                    if (extensible[i] == false)
+                    {
+                        pos ++;
+                    }
+                }
+                // pos must be at most the last in the new buffer
+                int nb_access = isl_map_dim(access, isl_dim_out);
+                pos = std::min(pos, nb_access);
+                
+                // reuse the same buffer for all the expansions
+                if (new_buffer == NULL) {
+                    std::vector<tiramisu::expr>& buffer_sizes = this->get_buffer()->dim_sizes;
+                    buffer_sizes.insert(buffer_sizes.begin() + pos, access_expr);
+
+                    new_buffer = new tiramisu::buffer(current_buffer->get_name() + "_E_",
+                                    buffer_sizes,
+                                    this->get_data_type(),
+                                    argument_t::a_temporary,
+                                    this->get_function());
+                }
+                else
+                {
+                    std::vector<tiramisu::expr>& new_buffer_sizes = new_buffer->dim_sizes;
+                    new_buffer_sizes.insert(new_buffer_sizes.begin() + pos, access_expr);
+                }
+
+                access = isl_map_insert_dims(access, isl_dim_out, pos, 1);
+
+                // add constraint between L and the newly inserted dimension
+                isl_space *sp = isl_map_get_space(access);
+                isl_local_space *lsp =
+                    isl_local_space_from_space(isl_space_copy(sp));
+                isl_constraint *cst = isl_constraint_alloc_equality(lsp);
+                cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, pos, 1);
+                cst = isl_constraint_set_coefficient_si(cst, isl_dim_in, lvl, -1);
+                access = isl_map_add_constraint(access, cst);
+                isl_map_set_tuple_name(access, isl_dim_out, new_buffer->get_name().c_str());
+
+                DEBUG(3, tiramisu::str_dump(" The expanded access function is " + std::string(isl_map_to_str(access))));
+
+                DEBUG(3, tiramisu::str_dump(" The expanded buffer sizes are : " + new_buffer->buffer_dimensions_as_string()));
+
+                std::string new_access = std::string(isl_map_to_str(access));
+                isl_map_free(access);
+                this->set_access(new_access);
+                
+            }
+        }
+        else
+        {
+            DEBUG(3, tiramisu::str_dump(" Can not expand no more this computation "));
+            break;
+        }
+    
+    }
+    
+    if (update_dependencies)
+    {
+        prepare_schedules_for_legality_checks();
+        performe_full_dependency_analysis();
+    }
+
+    DEBUG_INDENT(-4);
+}
+
 bool computation::expandable()
 {
     // if the access is not defined we can not expand
@@ -7315,6 +7582,17 @@ tiramisu::primitive_t buffer::get_elements_type() const
 const std::vector<tiramisu::expr> &buffer::get_dim_sizes() const
 {
     return dim_sizes;
+}
+
+std::string buffer::buffer_dimensions_as_string() const
+{
+    std::string res = "Buffer " + this->get_name()+" has {";
+    for (const auto &size : this->dim_sizes)
+    {
+        res += size.to_str()+",";
+    }
+    res += "}";
+    return res;
 }
 
 void tiramisu::buffer::dump(bool exhaustive) const

@@ -1801,6 +1801,11 @@ public:
     void dump(bool exhaustive) const;
 
     /**
+     * \brief returns a string of the dimensions of this buffer
+    */
+    std::string buffer_dimensions_as_string() const;
+
+    /**
       * \brief If this buffer is an argument to a tiramisu::function,
       * return the type of the argument
       *
@@ -4793,6 +4798,24 @@ public:
      * \warning This methods updates the legality check results if it was already computed
     */
     virtual void expand(bool update_dependencies = true);
+
+    /**
+     * \brief Expand one iteration dimension of the computation
+     * \param[in] L iteration domain level to expand in this current computation.
+     *\param[in] update_dependencies default true, it recomputes the dependencies after the expansion.
+     * \note Only computations mapped to temporary buffers can be expanded
+     * \warning This methods updates the legality check results if it was already computed
+    */
+    virtual void expand(int L, bool update_dependencies = true);
+
+    /**
+     * \brief Expand a list of iteration dimensions of this computation
+     * \param[in] Levels List of iteration domain dimensions' level to expand in this current computation.
+     * \param[in] update_dependencies default true, it recomputes the dependencies after the expansion.
+     * \note Only computations mapped to temporary buffers can be expanded
+     * \warning This methods updates the legality check results if it was already computed
+    */
+    virtual void expand(const std::vector<int>& Levels, bool update_dependencies = true);
 
     /**
      * Checks if a computation can be expanded.
