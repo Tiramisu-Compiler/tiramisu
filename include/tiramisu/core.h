@@ -4687,7 +4687,16 @@ public:
       * \overload
       */
     computation &then(computation &next_computation, int L=computation::root_dimension);
-
+    /**
+      * Tile a single loop level \p L0 with rectangular
+      * tiling. \p sizeX represents the tile size.
+      * \p L0_outer, \p L0_inner
+      * are the names of the new dimensions created after tiling.
+      */
+    // @{
+    virtual void tile(var L0, int sizeX,
+                      var L0_outer, var L0_inner);
+    // @}
     /**
       * Tile the two loop levels \p L0 and \p L1 with rectangular
       * tiling. \p sizeX and \p sizeY represent the tile size.
@@ -4699,6 +4708,7 @@ public:
     virtual void tile(var L0, var L1, int sizeX, int sizeY);
     virtual void tile(var L0, var L1, int sizeX, int sizeY,
                       var L0_outer, var L1_outer, var L0_inner, var L1_inner);
+
     virtual void tile(var L0, var L1, var L2, int sizeX, int sizeY, int sizeZ);
     virtual void tile(var L0, var L1, var L2, int sizeX, int sizeY, int sizeZ,
                       var L0_outer, var L1_outer, var L2_outer, var L0_inner,

@@ -91,6 +91,7 @@ public:
               var L0_outer, var L1_outer, var L2_outer, var L0_inner,
               var L1_inner, var L2_inner) override;
     void tile(int L0, int L1, int sizeX, int sizeY) override;
+    void tile(int L0, int sizeX) override;
     void tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ) override;
     void unroll(var L, int fac) override;
     void unroll(var L, int fac, var L_outer, var L_inner) override;

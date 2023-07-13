@@ -377,12 +377,40 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
         //shared nodes minus last shared node
         shared_nodes = node->collect_shared_nodes_from_head();
+        // If there is a single shared node only, explore 1D tiling
+        // Disable loop splitting for now until support for the schedule json is added
+        if (shared_nodes.size() == 1 && false){
+            // Copy the AST and add tiling with 2 dimensions to the list of optimizations
+            ast_node* node = shared_nodes[0];
+            for (int tiling_size : tiling_factors_list)
+            {
+                // Check if tiling_size splits this iterator
+                if (can_split_iterator_sup(node->up_bound, node->low_bound, tiling_size))
+                {
+                    // Copy the AST and add tiling with 1 dimension to the list of optimizations
+                    syntax_tree *new_ast = new syntax_tree();
+                    ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
+                    involved_computations = {};
+                    node->get_all_computations(involved_computations);
+                    optimization_info optim_info;
+                    optim_info.type = optimization_type::TILING;
+                    optim_info.node = new_node;
+                    optim_info.nb_l = 1;
+                    optim_info.l0 = node->depth;
+                    optim_info.l1 = -1;
+                    optim_info.l0_fact = tiling_size;
+                    optim_info.l1_fact = -1;
+                    optim_info.comps = involved_computations;
+                    new_ast->new_optims.push_back(optim_info);
+                    states.push_back(new_ast);
+                }
+            }
+        }
+        // Explore 2D and 3D tiling
         shared_nodes.pop_back(); // remove the last because we can't start a tiling from the last iterator
 
         if (!shared_nodes.empty())
             shared_nodes[0]->get_all_computations(involved_computations); // since we are trying tilings on the shared nodes, we can directly get the involved comps from here.
-        if (ast.optim_already_applied_on_comps(involved_computations,optimization_type::TILING)) // check if one of the involved computations is already tiled
-            return states;
 
         // use nb try as to count if we reached last commun possible node (to disable 3layers tiling);
         nb_try = 0;

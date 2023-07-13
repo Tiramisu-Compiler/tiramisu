@@ -679,9 +679,89 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
     ast_node *node = opt.node;
 
     stage_isl_states();
-    
+    // 1 level tiling
+    if (opt.nb_l == 1)
+    {
+        // Create the new loop structure
+        ast_node *i_outer = node;
+            
+        ast_node *i_inner = new ast_node();
+            
+        // Chain the nodes
+        for(auto& states : i_outer->children)
+        {
+            i_inner->children.push_back(states);
+        }
+
+        for(auto states : i_outer->isl_states)
+        {
+            i_inner->isl_states.push_back(states);
+        }
+        
+
+        i_inner->computations = i_outer->computations;
+
+        i_outer->children.clear();
+        i_outer->isl_states.clear();
+        i_outer->computations.clear();
+
+        i_outer->children.push_back(i_inner);
+
+        for (auto child : i_inner->children)
+            child->parent = i_inner;
+
+        
+        i_inner->parent = i_outer;
+        
+        // Rename the nodes
+        i_inner->name = i_outer->name + "_inner";
+        i_outer->name = i_outer->name + "_outer";
+            
+        // Set lower and upper bounds
+        i_outer->low_bound = "0";
+        if(check_if_number(i_outer->get_extent())){
+            i_outer->up_bound =  std::to_string((int)ceil((double)stoi(i_outer->get_extent()) / (double)opt.l0_fact) - 1);
+        }else{
+            i_outer->up_bound =  i_outer->get_extent() + "/" + std::to_string((double)opt.l0_fact - 1);
+        }
+            
+        i_inner->low_bound = "0";
+        i_inner->up_bound = std::to_string(opt.l0_fact - 1);
+
+        /**
+         * Applying tiling to the nodes schedule and states
+        */
+        if(change_isl_states){
+            // Transform the computations schedule to check the legality of the transformations
+            std::vector<computation_info*> all_data;
+            
+            //collect computations to tile
+            i_inner->collect_all_computation(all_data);
+
+            for(computation_info* info:all_data)
+            {
+                std::vector<std::string> loop_names = info->comp_ptr->get_loop_level_names();
+                
+                std::string outer_name = loop_names[i_outer->depth];
+                std::string ii_outer = outer_name+"_outer";
+                std::string ii_inner = outer_name+"_inner";
+
+                std::string f = "";
+                for(auto& str:loop_names)
+                {
+                    f+=str+" ";
+                }
+                
+                info->comp_ptr->tile(var(outer_name),
+                                    opt.l0_fact,
+                                    var(ii_outer),var(ii_inner));
+            
+            
+            }
+        }
+    }
     // 2 level tiling
-    if (opt.nb_l == 2)
+    else if (opt.nb_l == 2)
     {
         // Create the new loop structure
         ast_node *i_outer = node;
@@ -902,7 +982,8 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
                 info->comp_ptr->tile(var(outer_name_1),var(outer_name_2),var(inner_name_3)
                                     ,opt.l0_fact,opt.l1_fact,opt.l2_fact,
                                     var(ii_outer),var(jj_outer),var(kk_outer),var(ii_inner),var(jj_inner),var(kk_inner));
-            
+                               
+                // TODO: Remove this unused variable
                 std::string f = "";
                 for(auto& str:loop_names)
                 {

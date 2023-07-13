@@ -56,7 +56,10 @@ void apply_optimizations(optimization_info const& optim_info)
     switch (optim_info.type)
     {
         case optimization_type::TILING:
-            if (optim_info.nb_l == 2)
+            if (optim_info.nb_l == 1)
+                block.tile(optim_info.l0, 
+                           optim_info.l0_fact);
+            else if (optim_info.nb_l == 2)
                 block.tile(optim_info.l0, optim_info.l1, 
                            optim_info.l0_fact, optim_info.l1_fact);
                 
@@ -197,7 +200,9 @@ void print_optim(optimization_info optim)
             break;
 
         case optimization_type::TILING:
-            std::cout << "Tiling" << " L" << optim.l0 << " " << optim.l0_fact << " L" << optim.l1 << " " << optim.l1_fact;
+            std::cout << "Tiling" << " L" << optim.l0 << " " << optim.l0_fact;
+            if (optim.nb_l == 2)
+                std::cout << " L" << optim.l1 << " " << optim.l1_fact;
             if (optim.nb_l == 3)
                 std::cout << " L" << optim.l2 << " " << optim.l2_fact;
             std::cout<<" { ";

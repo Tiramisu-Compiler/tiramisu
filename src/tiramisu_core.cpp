@@ -2999,6 +2999,38 @@ void computation::tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2,
     DEBUG_INDENT(-4);
 }
 
+void computation::tile(tiramisu::var L0,
+      int sizeX,
+      tiramisu::var L0_outer,
+      tiramisu::var L0_inner)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L0.get_name().length() > 0);
+    assert(L0_outer.get_name().length() > 0);
+    assert(L0_inner.get_name().length() > 0);
+
+    std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    this->assert_names_not_assigned({L0_outer.get_name(),
+                                     L0_inner.get_name()});
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({L0.get_name()});
+    assert(dimensions.size() == 1);
+
+    DEBUG(3, tiramisu::str_dump("The loop level that corresponds to " +
+                                L0.get_name() + " is " + std::to_string(dimensions[0])));
+
+    this->tile(dimensions[0], sizeX);
+
+    // Replace the original dimension name with new dimension names
+    this->update_names(original_loop_level_names, {L0_outer.get_name(), L0_inner.get_name()}, dimensions[0], 1);
+
+    DEBUG_INDENT(-4);
+}
+
 void computation::tile(tiramisu::var L0, tiramisu::var L1,
       int sizeX, int sizeY,
       tiramisu::var L0_outer, tiramisu::var L1_outer,
