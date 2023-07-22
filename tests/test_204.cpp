@@ -16,10 +16,10 @@ void generate_function(std::string name, int size0, int size1, int val0)
     var i("i", 0, size0), i1("i1", 0, size1), j("j", 0, size1);
     
     tiramisu::input A("A", {i1, j}, p_uint8);
+    
     computation comp00({i, i1}, A(0, i1));
     computation comp01({i, i1, j}, A(j, i1));
-	// computation comp00("{comp00[i, i1]: 0<=i<3 and 0<=i1<32}",  A(0, i1), true, p_uint8, global::get_implicit_function());
-	// computation comp01("{comp01[i, i1, j]:  0<=i<3 and 0<=i1<32 and 0<=j<32}", A(j, i1), true, p_uint8, global::get_implicit_function());
+
 	comp00.then(comp01,1);
 	buffer buf00("buf00", {size1}, p_uint8, a_output);
 	buffer buf01("buf01", {size1, size1}, p_uint8, a_output);
