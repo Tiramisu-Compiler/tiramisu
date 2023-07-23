@@ -2419,55 +2419,6 @@ std::string syntax_tree::get_schedule_str()
     return schedule_str;
 }
 
-bool syntax_tree::schedule_is_prunable()
-{
-    if (std::atoi(read_env_var("PRUNE_SLOW_SCHEDULES"))!=1){
-        return false;
-    }
-    // The following filtering rules are selected after a statistical analysis of inefficient schedule patterns
-    std::string schedule_str = get_schedule_str();
-
-    std::vector<int> depths(this->get_computations().size());
-    int min ;
-    for (optimization_info optim: new_optims){
-            if(optim.type == optimization_type::MATRIX){
-                for(int i=0;i<optim.comps.size();i++){
-                    depths.at(this->get_computation_index(optim.comps.at(i))) = optim.matrix.size();
-                }  
-            }
-            min= *std::min_element(depths.begin(), depths.end());
-            // Only get the depths from identity matrices
-            if(min>0) break;
-        }
-    std::string reg = "";
-    for(int i=0;i<depths.size();i++){
-        reg += ".*P\\(\\{(C[0-9],)*C" + std::to_string(i) + "(,C[0-9])*\\},L"+ std::to_string(depths.at(i)-1)+"\\)U.*|"; 
-    }
-    if(depths.size()>0){
-        reg.pop_back();
-    }
-
-    
-    std::regex regexp(reg);
-    
-    if (std::regex_search(schedule_str, regexp))
-        return true;
-    
-    reg = "";
-    for(int i=0;i<depths.size();i++){
-        reg += ".*P\\(\\{(C[0-9],)*C" + std::to_string(i) + "(,C[0-9])*\\},L"+ std::to_string(depths.at(i)-1)+"\\)T2\\(\\{(C[0-9],)*C" + std::to_string(i)+ "(,C[0-9])*\\},L"+std::to_string(depths.at(i)-3)+",L"+std::to_string(depths.at(i)-2)+".*|"; 
-    }
-    if(depths.size()>0){
-        reg.pop_back();
-    }
-    
-    std::regex regexpt(reg);
-    
-    if (std::regex_search(schedule_str, regexpt))
-        return true;
-
-    return false;
-}
 bool syntax_tree::ast_is_prunable()
 {
     std::vector<int> optims(this->get_computations().size());
@@ -2482,52 +2433,6 @@ bool syntax_tree::ast_is_prunable()
     int max = *std::max_element(optims.begin(), optims.end());
     // compare the maximum number of applied matrices on any computation with MAX_MAT_DEPTH+1 (the plus 1 is to take into considiration the identity matrix)
     if(max>MAX_MAT_DEPTH+1) return true;
-
-    return false;
-}
-bool syntax_tree::can_set_default_evaluation()
-{
-    if (std::atoi(read_env_var("SET_DEFAULT_EVALUATION"))!=1){
-        return false;
-    }
-    std::vector<int> depths(this->get_computations().size());
-    int min;
-    for (optimization_info optim: new_optims){
-            
-            if(optim.type == optimization_type::MATRIX){
-                for(int i=0;i<optim.comps.size();i++){
-                    depths.at(this->get_computation_index(optim.comps.at(i))) = optim.matrix.size();
-                }  
-            }
-
-            min= *std::min_element(depths.begin(), depths.end());
-            // Only get the depths from identity matrices
-            if(min>0) break;
-        }
-
-    std::string schedule_str = get_schedule_str();
-    
-    //check if innermost loop is parallelized, if yes set the speedup to 0.001 
-    std::string reg = "";
-    for(int i=0;i<depths.size();i++){
-        // we only set a default evaluation for loops that have 3 nested loops or more
-        if(depths.at(i)>2){
-            reg += ".*P\\(\\{(C[0-9],)*C" + std::to_string(i) + "(,C[0-9])*\\},L"+ std::to_string(depths.at(i)-1)+"\\)$|"; 
-        }
-    }
-    if(depths.size()>0){
-        reg.pop_back();
-    }
-    std::regex regexp(reg);
-    
-
-    if (std::regex_search(schedule_str,regexp))
-    {
-        evaluation =  std::atof(read_env_var("INIT_EXEC_TIME"))*1000;
-        return true;
-    }
-    
-    
 
     return false;
 }

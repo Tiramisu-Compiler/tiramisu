@@ -54,17 +54,9 @@ int get_beam_size(){
     }
 }
 
-int get_max_depth(){
-    if (std::getenv("MAX_DEPTH")!=NULL)
-        return std::stoi(std::getenv("MAX_DEPTH"));
-    else{
-        std::cerr<<"error: Environment Variable MAX_DEPTH not declared"<<std::endl;
-        exit(1);
-    }
-}
 
 void declare_memory_usage(){
-    setenv("MEM_SIZE", std::to_string((double)18*18*18*2*8/1024/1024).c_str(), true); // This value was set by the Code Generator
+    setenv("MEM_SIZE", std::to_string((double)2100*8/1024/1024).c_str(), true); // This value was set by the Code Generator
 }
 
 int get_nb_exec(){
@@ -75,5 +67,19 @@ int get_nb_exec(){
     }
 }
 
+int get_exploration_mode(){
+    if (std::getenv("EXPLORE_BY_EXECUTION")!=NULL)
+        return std::stoi(std::getenv("EXPLORE_BY_EXECUTION"));
+    else{
+        return 0;
+    }
+}
+std::string get_tiramisu_root_path(){
+    if (std::getenv("TIRAMISU_ROOT")!=NULL)
+        return std::getenv("TIRAMISU_ROOT");
+    else{
+        return "/TIRAMISU/ROOT/IS/NOT/DEFINED";
+    }
+}
 
 #endif

@@ -865,9 +865,8 @@ public:
     std::string get_schedule_str();
 
     /**
-     * Predicts if the schedule applied to the ast is worth evaluating and exploring further.
+     * Predicts if the schedule applied to the ast surpasses the max number of affine transformations set by the user
      */
-    bool schedule_is_prunable();
     bool ast_is_prunable();
 
     /**
@@ -875,11 +874,6 @@ public:
      * In case the computation_index is -1, it will bring all the computation within the node.
     */
     void get_previous_computations(std::vector<computation*>& result,ast_node*& node, int computation_index);
-
-    /**
-     * Checks if the AST's evaluation can be predicted using manual engineered rules
-     */
-    bool can_set_default_evaluation();
 
     /**
      * Initialize the search state with potentiel alternatives for the specified optimisation.

@@ -5,9 +5,9 @@ from hier_lstm import Model_Recursive_LSTM_v2
 from json_to_tensor import *
 
 environ["MKL_THREADING_LAYER"] = "GNU"
-
+TIRAMISU_ROOT = environ["TIRAMISU_ROOT"]
 model_path = (
-    "/path/to/model/weights"
+    f"{TIRAMISU_ROOT}/tutorials/tutorial_autoscheduler/model/cost_model_weights.pt"
 )
 
 MAX_DEPTH = 5

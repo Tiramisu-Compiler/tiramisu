@@ -110,14 +110,10 @@ protected:
      */
     int beam_size;
     
-    /**
-     * The maximum depth of the search tree.
-     */
-    int max_depth;
     
 public:
-    beam_search(int beam_size, int max_depth = DEFAULT_MAX_DEPTH, evaluation_function *eval_func = nullptr, schedules_generator *scheds_gen = nullptr)
-        : search_method(eval_func, scheds_gen), beam_size(beam_size), max_depth(max_depth) {}
+    beam_search(int beam_size, evaluation_function *eval_func = nullptr, schedules_generator *scheds_gen = nullptr)
+        : search_method(eval_func, scheds_gen), beam_size(beam_size) {}
         
     virtual ~beam_search() {}
 

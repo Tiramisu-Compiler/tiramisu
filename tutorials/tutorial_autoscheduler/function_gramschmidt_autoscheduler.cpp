@@ -4,9 +4,10 @@
 #include "function_gramschmidt_wrapper.h"
 
 
-
-const std::string py_cmd_path = "/data/scratch/mmerouani/anaconda/envs/base-tig/bin/python";
-const std::string py_interface_path = "/data/scratch/mmerouani/tiramisu4/tiramisu/tutorials/tutorial_autoscheduler/model/main.py";
+const std::string TIRAMISU_ROOT = get_tiramisu_root_path();
+// const std::string py_cmd_path = "/path/to/bin/python";
+const std::string py_cmd_path = "/home/kb4083/anaconda3/envs/cost_model_env/bin/python3.10";
+const std::string py_interface_path = TIRAMISU_ROOT + "/tutorials/tutorial_autoscheduler/model/main.py";
 
 
 
@@ -22,13 +23,13 @@ int main(int argc, char **argv)
 
     //Iteration variables    
     var i("i", 0, 20), j("j", 0, 30), k("k", 0, 30), l("l"), m("m");
-    
+
     //inputs
     input A("A", {i, k}, p_float64);
     input Q("Q", {i, k}, p_float64);
     input R("R", {j, j}, p_float64);
     input nrm("nrm", {}, p_float64);
-    
+
     //Computations
     computation nrm_init("{nrm_init[k]: 0<=k<30}", expr(), true, p_float64, global::get_implicit_function());
     nrm_init.set_expression(0.000001);
@@ -50,7 +51,7 @@ int main(int argc, char **argv)
 
     computation A_out("{A_out[k,j,i]: 0<=k<30 and k+1<=j<30 and 0<=i<20}", expr(), true, p_float64, global::get_implicit_function());
     A_out.set_expression(A(i,j) - Q(i,k) * R(k, j));
-
+        
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
@@ -75,7 +76,7 @@ int main(int argc, char **argv)
     Q.store_in(&b_Q);    
     R.store_in(&b_R);    
     nrm.store_in(&b_nrm);
-    
+
     //Store computations
     nrm_init.store_in(&b_nrm, {});
     nrm_comp.store_in(&b_nrm, {});
@@ -88,21 +89,30 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Code Generation
     // -------------------------------------------------------
-    	prepare_schedules_for_legality_checks();
-	performe_full_dependency_analysis();
+    prepare_schedules_for_legality_checks();
+    performe_full_dependency_analysis();
 
-	const int beam_size = get_beam_size();
-	const int max_depth = get_max_depth();
-	declare_memory_usage();
+    const int beam_size = get_beam_size();
+    declare_memory_usage();
 
-	auto_scheduler::schedules_generator *scheds_gen = new auto_scheduler::ml_model_schedules_generator();
-	auto_scheduler::evaluate_by_execution *exec_eval = new auto_scheduler::evaluate_by_execution({&b_A, &b_Q, &b_R}, "function_gramschmidt.o", "./function_gramschmidt_wrapper");
-	auto_scheduler::search_method *bs = new auto_scheduler::beam_search(beam_size, max_depth, exec_eval, scheds_gen);
-	auto_scheduler::auto_scheduler as(bs, exec_eval);
-	as.set_exec_evaluator(exec_eval);
-	as.sample_search_space("./function_gramschmidt_explored_schedules.json", true);
-	delete scheds_gen;
-	delete exec_eval;
-	delete bs;
-	return 0;
+    auto_scheduler::schedules_generator *scheds_gen = new auto_scheduler::ml_model_schedules_generator();
+    auto_scheduler::evaluate_by_execution *exec_eval = new auto_scheduler::evaluate_by_execution({&b_A, &b_Q, &b_R}, "function_gramschmidt.o", "./function_gramschmidt_wrapper");
+
+    int explore_by_execution =  get_exploration_mode();
+    if (explore_by_execution){
+        auto_scheduler::search_method *bs = new auto_scheduler::beam_search(beam_size, exec_eval, scheds_gen);
+        auto_scheduler::auto_scheduler as(bs, exec_eval);
+        as.set_exec_evaluator(exec_eval);
+        as.sample_search_space("./function_gramschmidt_explored_schedules.json", true);
+    }else{
+        auto_scheduler::evaluation_function *model_eval = new auto_scheduler::evaluate_by_learning_model(py_cmd_path, {py_interface_path});
+        auto_scheduler::search_method *bs = new auto_scheduler::beam_search(beam_size, model_eval, scheds_gen);
+        auto_scheduler::auto_scheduler as(bs, model_eval);
+        as.set_exec_evaluator(exec_eval);
+        as.sample_search_space("./function_gramschmidt_explored_schedules.json", true);
+    }
+
+    delete scheds_gen;
+    delete exec_eval;
+    return 0;
 }

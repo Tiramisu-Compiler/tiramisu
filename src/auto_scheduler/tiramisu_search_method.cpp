@@ -346,105 +346,78 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
     auto iterator = children.begin();
     while (iterator != children.end())
     {
-        bool unrolling_exception_thrown = false;
-        if ((*iterator)->schedule_is_prunable()){
-        
+        (*iterator)->transform_ast();
+        if ((*iterator)->ast_is_legal() == false) {
+            // print deleted Ast
+
             if (std::atoi(read_env_var("AS_VERBOSE"))==1){
-                // print deleted Ast
                 (*iterator)->print_previous_optims();
                 std::cout << "\n-----------" << std::endl;
                 (*iterator)->print_new_optims();
                 (*iterator)->print_ast();
-                std::cout << "\n<Schedule pruned>\n";
+                (*iterator)->print_isl_states();
+                std::cout << "\n<illegal>\n";
             }
             delete (*iterator);
             iterator = children.erase(iterator);
+            
+        }
+        else {
 
-        }else{
-            (*iterator)->transform_ast();
-            if ((*iterator)->ast_is_legal() == false) {
-                // print deleted Ast
-
-                if (std::atoi(read_env_var("AS_VERBOSE"))==1){
-                    (*iterator)->print_previous_optims();
-                    std::cout << "\n-----------" << std::endl;
-                    (*iterator)->print_new_optims();
-                    (*iterator)->print_ast();
-                    (*iterator)->print_isl_states();
-                    std::cout << "\n<illegal>\n";
-                }
-                delete (*iterator);
-                iterator = children.erase(iterator);
-                
+            // evaluate and print Ast
+            if (std::atoi(read_env_var("AS_VERBOSE"))==1){
+                (*iterator)->print_previous_optims();
+                std::cout << "\n-----------" << std::endl;
+                (*iterator)->print_new_optims();
+                (*iterator)->print_ast();
+                std::cout << "\n<legal>\n";
             }
-            else {
-
-                // evaluate and print Ast
-                if (std::atoi(read_env_var("AS_VERBOSE"))==1){
-                    (*iterator)->print_previous_optims();
-                    std::cout << "\n-----------" << std::endl;
-                    (*iterator)->print_new_optims();
-                    (*iterator)->print_ast();
-                    std::cout << "\n<legal>\n";
-                }
-                
-                std::vector<float> measurements;
-                                        
-                if(std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1){
-                    if ((*iterator)->can_set_default_evaluation()){ // if yes the child's evaluation is set to a default value
-                        measurements = {(*iterator)->evaluation};
-                    }else{
-                        measurements = exec_eval->get_measurements(**iterator, false, schedule_timeout);
-                    }
-                }else{
-                    if ((*iterator)->can_set_default_evaluation()){ // if yes the child's evaluation is set to a default value
-                        measurements = {0.01};
-                    }else{
-                        std::string no_sched_json = schedules_annotations->at(0);
-                        measurements.push_back(eval_func->evaluate(*(*iterator), no_sched_json));
-                    }
+            
+            std::vector<float> measurements;
+                                    
+            if(std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1){
+                measurements = exec_eval->get_measurements(**iterator, false, schedule_timeout);
+            }else{
+                std::string no_sched_json = schedules_annotations->at(0);
+                measurements.push_back(eval_func->evaluate(*(*iterator), no_sched_json));
+            }
                     
-                }
-                        
-             
-                (*iterator)->evaluation = min_eval(measurements);
-                parent_trace->add_child_path((*iterator), schedules_annotations->size());
+            
+            (*iterator)->evaluation = min_eval(measurements);
+            parent_trace->add_child_path((*iterator), schedules_annotations->size());
 
-                std::string schedule_annot = evaluate_by_learning_model::get_schedule_json(*(*iterator));
+            std::string schedule_annot = evaluate_by_learning_model::get_schedule_json(*(*iterator));
 
-                //remove the last two characters }\n
-                schedule_annot.pop_back();
-                schedule_annot.pop_back();
+            //remove the last two characters }\n
+            schedule_annot.pop_back();
+            schedule_annot.pop_back();
 
-                if (std::isfinite((*iterator)->evaluation)) // the evaluation is not finite mean that the schedule didn't run
-                    schedule_annot += ", \n\"execution_times\" : " + measurements_to_str(measurements) + "\n}\n";
-                else
-                    schedule_annot += ", \n\"execution_times\" : null\n}\n";
+            if (std::isfinite((*iterator)->evaluation)) // the evaluation is not finite mean that the schedule didn't run
+                schedule_annot += ", \n\"execution_times\" : " + measurements_to_str(measurements) + "\n}\n";
+            else
+                schedule_annot += ", \n\"execution_times\" : null\n}\n";
 
-                if(!unrolling_exception_thrown){
-                    schedules_annotations->push_back(schedule_annot);
+            schedules_annotations->push_back(schedule_annot);
 
-                    std::cout << "Schedule number "<< schedules_annotations->size() << std::endl;
-                    std::cout << "Evaluation : " << (*iterator)->evaluation << std::endl;
-                    std::cout << "Number of measurements : " << measurements.size() << std::endl;
-                    std::cout << "===================================" << std::endl << std::endl;
+            std::cout << "Schedule number "<< schedules_annotations->size() << std::endl;
+            std::cout << "Evaluation : " << (*iterator)->evaluation << std::endl;
+            std::cout << "Number of measurements : " << measurements.size() << std::endl;
+            std::cout << "===================================" << std::endl << std::endl;
 
-                    if (std::isinf((*iterator)->evaluation))
-                        std::cerr<< "Evaluation of schedule "<< schedules_annotations->size() <<" failed "<< std::endl;
+            if (std::isinf((*iterator)->evaluation))
+                std::cerr<< "Evaluation of schedule "<< schedules_annotations->size() <<" failed "<< std::endl;
 
-                    if ((*iterator)->evaluation < best_evaluation)
-                    {
-                        best_evaluation = (*iterator)->evaluation;
-                        best_ast = (*iterator);
-                    }
-                }
-                
-                ++iterator;
-
+            if ((*iterator)->evaluation < best_evaluation)
+            {
+                best_evaluation = (*iterator)->evaluation;
+                best_ast = (*iterator);
             }
+            
+            ++iterator;
+
+        }
 
             nb_explored_schedules++;
-        }
     }
 
     // Add the current AST to the list of children

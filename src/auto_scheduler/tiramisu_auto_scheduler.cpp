@@ -28,6 +28,8 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     }else{
         // If we're exploring using the model, the speed up for the original schedule is 1.
         initial_measurements = {1};
+        // The exploraton assumes that the schedules are reset and especially that the scheduling graph has been cleared before the candidate generation
+        fct->reset_schedules();
     }
     initial_exec_time = min_eval(initial_measurements);
     if (std::isinf(initial_exec_time)){
@@ -76,7 +78,6 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
                   "\n\t\"node_name\" : \"" + read_env_var("SLURMD_NODENAME") + "\"," +
                   "\n\t\"parameters\" : {" +
                   "\n\t\t\"beam_size\" : " + read_env_var("BEAM_SIZE") + ", " +
-                  "\n\t\t\"max_depth\" : " + read_env_var("MAX_DEPTH") +
 //                  "\n\t\t\"nb_exec\" : " + nb_exec +
                   "\n\t}, " +
                   "\n\t\"program_annotation\" : " + program_json + ", " +
