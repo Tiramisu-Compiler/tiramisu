@@ -443,9 +443,11 @@ ast_node* syntax_tree::get_last_shared_parent(ast_node* node1, ast_node* node2) 
 void syntax_tree::transform_ast()
 {
     if (new_optims.size() == 0)
-        return ;
-        
-    transform_ast(new_optims.back());
+        return;
+    
+    for(auto opt : new_optims){
+        transform_ast(opt);
+    }
 }
 void syntax_tree::transform_initial_ast()
 {
@@ -498,14 +500,6 @@ void syntax_tree::transform_ast(optimization_info const& opt)
 {
     switch(opt.type)
     {
-        /*case optimization_type::FUSION:
-            transform_ast_by_fusion(opt);
-            break;
-            
-        case optimization_type::UNFUSE:
-            transform_ast_by_unfuse(opt);
-            break;
-            */
         case optimization_type::MATRIX:
             transform_ast_by_matrix(opt, true);
             break;
@@ -650,7 +644,7 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt, bool cha
         stage_isl_states(); 
         std::vector<ast_node *> all_nodes;
         opt.node->get_all_nodes(all_nodes);
-                
+        
         for(ast_node* node1 : all_nodes ){
             for(computation_info info : node1->computations)
             {   
@@ -671,7 +665,6 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt, bool cha
     {
         this->transform_ast_by_skewing(opt);
     }
-    
 }
 
 void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool change_isl_states)
@@ -679,7 +672,7 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
     ast_node *node = opt.node;
 
     stage_isl_states();
-    // 1 level tiling
+    // 1 level tiling (loop spliting)
     if (opt.nb_l == 1)
     {
         // Create the new loop structure
@@ -732,27 +725,15 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
          * Applying tiling to the nodes schedule and states
         */
         if(change_isl_states){
-            // Transform the computations schedule to check the legality of the transformations
-            std::vector<computation_info*> all_data;
-            
-            //collect computations to tile
-            i_inner->collect_all_computation(all_data);
-
-            for(computation_info* info:all_data)
+            for(computation* comp : opt.comps)
             {
-                std::vector<std::string> loop_names = info->comp_ptr->get_loop_level_names();
+                std::vector<std::string> loop_names = comp->get_loop_level_names();
                 
                 std::string outer_name = loop_names[i_outer->depth];
                 std::string ii_outer = outer_name+"_outer";
                 std::string ii_inner = outer_name+"_inner";
 
-                std::string f = "";
-                for(auto& str:loop_names)
-                {
-                    f+=str+" ";
-                }
-                
-                info->comp_ptr->tile(var(outer_name),
+                comp->tile(var(outer_name),
                                     opt.l0_fact,
                                     var(ii_outer),var(ii_inner));
             
@@ -771,9 +752,7 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
         ast_node *j_inner = new ast_node();
             
         // Chain the nodes
-
         i_inner->children.push_back(j_inner);
-        //i_outer->children[0] = j_outer;
 
         for(auto& states:j_outer->children)
         {
@@ -833,15 +812,9 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
          * Applying tiling to the nodes schedule and states
         */
         if(change_isl_states){
-            // Transform the computations schedule to check the legality of the transformations
-            std::vector<computation_info*> all_data;
-            
-            //collect computations to tile
-            j_inner->collect_all_computation(all_data);
-
-            for(computation_info* info:all_data)
+            for(computation* comp : opt.comps)
             {
-                std::vector<std::string> loop_names = info->comp_ptr->get_loop_level_names();
+                std::vector<std::string> loop_names = comp->get_loop_level_names();
                 
                 std::string outer_name = loop_names[i_outer->depth];
                 std::string inner_name = loop_names[i_outer->depth+1];
@@ -850,15 +823,8 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
                 std::string jj_outer = inner_name+"_outer";
                 std::string ii_inner = outer_name+"_inner";
                 std::string jj_inner = inner_name+"_inner";
-
-                std::string f = "";
-                for(auto& str:loop_names)
-                {
-                    f+=str+" ";
-                }
                 
-                
-                info->comp_ptr->tile(var(outer_name),var(inner_name)
+                comp->tile(var(outer_name),var(inner_name)
                                     ,opt.l0_fact,opt.l1_fact,
                                     var(ii_outer),var(jj_outer),var(ii_inner),var(jj_inner));
             
@@ -959,14 +925,9 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
         */
         if(change_isl_states){
             // Transform the computations schedule to check the legality of the transformations
-            std::vector<computation_info*> all_data;
-            
-            //collect computations to tile
-            j_inner->collect_all_computation(all_data);
-
-            for(computation_info* info:all_data)
+            for(computation* comp : opt.comps)
             {
-                std::vector<std::string> loop_names = info->comp_ptr->get_loop_level_names();
+                std::vector<std::string> loop_names = comp->get_loop_level_names();
                 
                 std::string outer_name_1 = loop_names[i_outer->depth];
                 std::string outer_name_2 = loop_names[i_outer->depth+1];
@@ -979,21 +940,13 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
                 std::string jj_inner = outer_name_2+"_inner";
                 std::string kk_inner = inner_name_3+"_inner";
                 
-                info->comp_ptr->tile(var(outer_name_1),var(outer_name_2),var(inner_name_3)
+                comp->tile(var(outer_name_1),var(outer_name_2),var(inner_name_3)
                                     ,opt.l0_fact,opt.l1_fact,opt.l2_fact,
                                     var(ii_outer),var(jj_outer),var(kk_outer),var(ii_inner),var(jj_inner),var(kk_inner));
-                               
-                // TODO: Remove this unused variable
-                std::string f = "";
-                for(auto& str:loop_names)
-                {
-                    f+=str+" ";
-                }
             }
         }
 
     }
-
     node->update_depth(node->depth);
 
     recover_isl_states();
@@ -1653,6 +1606,52 @@ void ast_node::get_all_nodes(std::vector<ast_node*>& nodes)
     nodes.push_back(this);   
     for (ast_node *child : children)
         child->get_all_nodes(nodes);
+}
+
+int ast_node::get_ast_height(){
+
+    if (this->children.size() == 0)
+        return 1;
+    
+    int max_child_depth = 0;
+    for (ast_node *child : children){
+        int child_height = child->get_ast_height();
+        if (child_height > max_child_depth)
+            max_child_depth = child_height;
+    }
+    return max_child_depth + 1;
+}
+
+std::vector<ast_node*> ast_node::get_nodes_by_depth(int depth){
+
+    assert(depth>= 0 && "calling get_nodes_by_depth with a negative depth");
+
+    if (depth == 0)
+        return {this};
+    
+    std::vector<ast_node*> nodes;
+
+    for (ast_node *child : children){
+        std::vector<ast_node*> child_nodes = child->get_nodes_by_depth(depth-1);
+        if (child_nodes.size()>0)
+            // Add the child nodes to the final result
+            nodes.insert(nodes.end(), child_nodes.begin(), child_nodes.end());
+    }
+    return nodes;
+}
+std::vector<tiramisu::computation*> ast_node::get_computations_by_depth(int depth){
+
+    assert(depth>= 0 && "calling get_nodes_by_depth with a negative depth");
+
+    std::vector<ast_node*> depth_nodes = this->get_nodes_by_depth(depth);
+
+    std::vector<tiramisu::computation*> comps;
+    for(ast_node *node : depth_nodes)
+        if (node->computations.size()>0)
+            for (auto comp_info: node->computations)
+                comps.push_back(comp_info.comp_ptr);
+
+    return comps;
 }
 int ast_node::get_loop_levels_chain_depth() const
 {
@@ -2671,6 +2670,12 @@ void syntax_tree::move_to_next_head()
 
 bool syntax_tree::optim_already_applied_on_comp(tiramisu::computation *comp, tiramisu::auto_scheduler::optimization_type opt_type) {
     for (auto opt_info:new_optims) {
+        if (opt_info.type != opt_type) //if different optimization, skip to next
+            continue;
+        if (std::find(opt_info.comps.begin(), opt_info.comps.end(), comp) != opt_info.comps.end()) // if comp in computations list
+            return true;
+    }
+    for (auto opt_info:previous_optims) {
         if (opt_info.type != opt_type) //if different optimization, skip to next
             continue;
         if (std::find(opt_info.comps.begin(), opt_info.comps.end(), comp) != opt_info.comps.end()) // if comp in computations list

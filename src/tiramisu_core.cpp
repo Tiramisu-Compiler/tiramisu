@@ -5539,16 +5539,32 @@ bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::c
     return overall_corectness;
 }
 bool is_number(const std::string& s)
-    {   
-        std::string delimiter = "{ [(";
-        std::string expr = s.substr(s.find(delimiter)+4, s.size());
-        std::string delimiter1 = ")] :";
-        expr = expr.substr(0,expr.find(delimiter1));
+{   
+    std::string delimiter = "{ [(";
+    std::string expr = s.substr(s.find(delimiter)+4, s.size());
+    std::string delimiter1 = ")] :";
+    expr = expr.substr(0,expr.find(delimiter1));
 
-        std::string::const_iterator it = expr.begin();
-        while (it != expr.end() && std::isdigit(*it)) ++it;
-        return !expr.empty() && it == expr.end();
-    }
+    std::string::const_iterator it = expr.begin();
+    while (it != expr.end() && std::isdigit(*it)) ++it;
+    return !expr.empty() && it == expr.end();
+}
+
+int extract_bound_from_string(const std::string& s)
+{   
+    std::string delimiter = "{ [(";
+    std::string expr = s.substr(s.find(delimiter)+4, s.size());
+    std::string delimiter1 = ")] :";
+    expr = expr.substr(0,expr.find(delimiter1));
+
+    // Make sure that the string contains the number only
+    bool is_number = !expr.empty() && std::find_if(expr.begin(), 
+        expr.end(), [](unsigned char c) { return !std::isdigit(c); }) == expr.end();
+    assert(is_number && "Calling extract_bound_from_string on a string that contains a non-integer bound");
+
+    return stoi(expr);
+}
+
 bool computation::unrolling_is_legal(var l)
     {
 
@@ -5652,7 +5668,9 @@ bool computation::unrolling_is_legal(var l)
         DEBUG_INDENT(-4);
 
         isl_set_free(normal_set);
-        return ((n_piece_max == 1) && (n_piece_min == 1) && (is_number(min_string)) && ( is_number(max_string)) );
+
+        // We add a special case for when both bounds are integers but both are 0. This happens in some cases where the extracted set does not match the real bounds.
+        return ((n_piece_max == 1) && (n_piece_min == 1) && (is_number(min_string)) && ( is_number(max_string)) && (extract_bound_from_string(max_string) != 0 && extract_bound_from_string(min_string) != 0));
     }
 
 

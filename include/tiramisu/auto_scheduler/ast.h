@@ -425,6 +425,22 @@ public:
     int get_loop_levels_chain_depth() const;
 
     /**
+     * Starting from this node, get the maximum depth of the tree.
+     * The height of the root is 1. 
+     */
+    int get_ast_height();
+
+    /**
+     * Starting from this node, get the all the nodes that are at the depth \p depth.
+     */
+    std::vector<ast_node*> get_nodes_by_depth(int depth);
+
+    /**
+     * Starting from this node, get the all the computations included in the nodes that are at the depth \p depth.
+     */
+    std::vector<tiramisu::computation*> get_computations_by_depth(int depth);
+
+    /**
      * Print the subtree rooted at this node.
      */
     void print_node() const;
@@ -618,12 +634,12 @@ public:
     int nb_explored_optims = 0;
     
     /**
-     *
+     * Contains all the transformations that are already applied on the ast 
      */
     std::vector<optimization_info> previous_optims;
     
     /**
-     *
+     * Contains the transformations that are to be applied on the ast
      */
     std::vector<optimization_info> new_optims;
     
@@ -935,12 +951,12 @@ public:
     int get_computation_index(computation *comp);
 
     /**
-     * Checks whether the optimization type opt_type is  already applied to computation comp (searches in new_optims)
+     * Checks whether the optimization type opt_type is already applied to computation comp
      */
-     bool optim_already_applied_on_comp(tiramisu::computation* comp,tiramisu::auto_scheduler::optimization_type opt_type);
+     bool optim_already_applied_on_comp(tiramisu::computation* comp, tiramisu::auto_scheduler::optimization_type opt_type);
 
      /**
-     * Checks whether the optimization type opt_type is  already applied to at least one computation from comp_list (searches in new_optims)
+     * Checks whether the optimization type opt_type is already applied to at least one computation from comp_list
      */
      bool optim_already_applied_on_comps(const std::vector<tiramisu::computation *>comp_list, tiramisu::auto_scheduler::optimization_type opt_type);
 };

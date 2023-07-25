@@ -25,6 +25,9 @@ void beam_search::explore_schedules(syntax_tree &ast, std::vector<std::string> *
         while(!exploration_queue.empty()){
             
             syntax_tree *ast_to_explore = exploration_queue.front();
+
+            // Clear new optims to explore new optimizations
+            ast_to_explore->clear_new_optimizations();
             exploration_queue.pop();
             std::vector<syntax_tree*> intermediate_schedules ;
             
@@ -118,13 +121,13 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
                     optimization_info optim_info;
                     optim_info.type = optimization_type::MATRIX;
                     node->get_node_computations(optim_info.comps);
-
+                    optim_info.node = node;
                     // for the original schedule, the transformation matrix is the identity
                     optim_info.matrix = get_identity(node->depth+1);
                     ast.new_optims.push_back(optim_info);
                 }   
             }
-        }    
+        }  
     }
     // add the hash of this tree to avoid exploring the same schedules twice
     hashes.push_back(hasher(ast.get_schedule_str()));
@@ -132,7 +135,6 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
     {
         // schedule generation based on generator_state attribute in the AST.
         auto new_children = scheds_gen->generate_matrices(ast);
-        
         for(auto& child:new_children)
             child->move_to_next_head();
         
@@ -151,7 +153,7 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
 
     // if no candidates were generated, return an empty list
     if (children.size() == 0) return children;
- 
+
     // hash the parent 
     std::size_t parent_hash=hasher(ast.get_schedule_str());
 
@@ -168,9 +170,8 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
             if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                     // print deleted Ast
                     child->print_previous_optims();
-                    std::cout << "\n-----------" << std::endl;
+                    std::cout << "-----------" << std::endl;
                     child->print_new_optims();
-                    
                     child->print_ast();
                     child->print_isl_states();
                     std::cout << "\n<surpassed MAX_MAT_DEPTH>\n";
@@ -182,7 +183,7 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
                 if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                     // print deleted Ast
                     child->print_previous_optims();
-                    std::cout << "\n-----------" << std::endl;
+                    std::cout << "-----------" << std::endl;
                     child->print_new_optims();
                     
                     child->print_ast();
@@ -214,7 +215,7 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
                 // print and evaluate Ast
                 if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                     child->print_previous_optims();
-                    std::cout << "\n-----------" << std::endl;
+                    std::cout << "-----------" << std::endl;
                     child->print_new_optims();
                     child->print_ast();
                     child->print_isl_states();
@@ -352,7 +353,7 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
 
             if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                 (*iterator)->print_previous_optims();
-                std::cout << "\n-----------" << std::endl;
+                std::cout << "-----------" << std::endl;
                 (*iterator)->print_new_optims();
                 (*iterator)->print_ast();
                 (*iterator)->print_isl_states();
@@ -367,7 +368,7 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
             // evaluate and print Ast
             if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                 (*iterator)->print_previous_optims();
-                std::cout << "\n-----------" << std::endl;
+                std::cout << "-----------" << std::endl;
                 (*iterator)->print_new_optims();
                 (*iterator)->print_ast();
                 std::cout << "\n<legal>\n";
@@ -499,7 +500,7 @@ void beam_search::search(syntax_tree& ast)
 
             // evaluate and print Ast
             (*iterator)->print_previous_optims();
-            std::cout << "\n-----------" << std::endl;
+            std::cout << "-----------" << std::endl;
             (*iterator)->print_new_optims();
             (*iterator)->print_ast();
 

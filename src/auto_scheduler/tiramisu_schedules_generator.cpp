@@ -405,84 +405,48 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                     states.push_back(new_ast);
                 }
             }
-        }
-        // Explore 2D and 3D tiling
-        shared_nodes.pop_back(); // remove the last because we can't start a tiling from the last iterator
-
-        if (!shared_nodes.empty())
-            shared_nodes[0]->get_all_computations(involved_computations); // since we are trying tilings on the shared nodes, we can directly get the involved comps from here.
-
-        // use nb try as to count if we reached last commun possible node (to disable 3layers tiling);
-        nb_try = 0;
+        }     
 
         for (auto &node_iterator : shared_nodes)
         {
-            for (int tiling_size1 : tiling_factors_list)
-            {
-                // Check if tiling_size1 splits perfectly this iterator
-                if (can_split_iterator_sup(node_iterator->up_bound, node_iterator->low_bound, tiling_size1))
-                {
-                    for (int tiling_size2 : tiling_factors_list)
-                    {
-                        if (can_split_iterator_sup(node_iterator->children[0]->up_bound, node_iterator->children[0]->low_bound, tiling_size2))
-                        {
-                            // Copy the AST and add tiling with 2 dimensions to the list of optimizations
-                            syntax_tree *new_ast = new syntax_tree();
-                            ast_node *new_node = ast.copy_and_return_node(*new_ast, node_iterator);
-                            involved_computations = {};
-                            node_iterator->get_all_computations(involved_computations);
-                            optimization_info optim_info;
-                            optim_info.type = optimization_type::TILING;
-                            optim_info.node = new_node;
-                            optim_info.nb_l = 2;
-                            optim_info.l0 = node_iterator->depth;
-                            optim_info.l1 = node_iterator->depth + 1;
-                            optim_info.l0_fact = tiling_size1;
-                            optim_info.l1_fact = tiling_size2;
-                            optim_info.comps = involved_computations;
-                            new_ast->new_optims.push_back(optim_info);
-                            states.push_back(new_ast);
+            // We wil push multiple optimizations to support the tiling of imperfectly-nested loops
+            int ast_height = node_iterator->get_ast_height();
+            // Explore all the tiling sizes
+            for (int tiling_size : tiling_factors_list){
+                if (can_split_iterator_sup(node_iterator->up_bound, node_iterator->low_bound, tiling_size)){
+                    // Copy the AST to add the tiling
+                    syntax_tree *new_ast = new syntax_tree();
+                    ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
+                    // For each depth in this subtree
+                    for( int i =0; i< ast_height; i++){
 
-                            // Cannot apply tiling with 3 dimensions,
-                            // continue to apply tiling with 2 dimensions.
-                            /*if ((nb_try + 2) >= shared_nodes.size())
-                                continue;*/
+                        std::vector<tiramisu::computation *> depth_computations = node_iterator->get_computations_by_depth(i);
+                        // Check that there are computations at this level to be tiled
+                        if (depth_computations.size() == 0)
+                            continue;
+                        
+                        optimization_info optim_info;
+                        optim_info.type = optimization_type::TILING;
+                        optim_info.node = new_node;
+                        optim_info.nb_l = i+1;
+                        optim_info.l0 = node_iterator->depth;
+                        optim_info.l1 = optim_info.l0+1;
+                        optim_info.l2 = optim_info.l1+1;
+                        
+                        // Add tiling factors
+                        optim_info.l0_fact = tiling_size;
+                        optim_info.l1_fact = tiling_size;
+                        optim_info.l2_fact = tiling_size;
 
-                            if ((nb_try + 1) < shared_nodes.size())
-                            {
-                                for (int tiling_size3 : tiling_factors_list)
-                                {
-                                    if (can_split_iterator_sup(node_iterator->children[0]->children[0]->up_bound, node_iterator->children[0]->children[0]->low_bound, tiling_size3))
-                                    {
-                                        // Copy the AST and add tiling with 3 dimensions to the list of optimizations
-                                        syntax_tree *new_ast = new syntax_tree();
-                                        ast_node *new_node = ast.copy_and_return_node(*new_ast, node_iterator);
-
-                                        optimization_info optim_info;
-                                        optim_info.type = optimization_type::TILING;
-                                        optim_info.node = new_node;
-
-                                        optim_info.nb_l = 3;
-                                        optim_info.l0 = node_iterator->depth;
-                                        optim_info.l1 = node_iterator->depth + 1;
-                                        optim_info.l2 = node_iterator->depth + 2;
-
-                                        optim_info.l0_fact = tiling_size1;
-                                        optim_info.l1_fact = tiling_size2;
-                                        optim_info.l2_fact = tiling_size3;
-
-                                        optim_info.comps = involved_computations;
-                                        new_ast->new_optims.push_back(optim_info);
-                                        states.push_back(new_ast);
-                                    }
-                                }
-                            }
-                        }
+                        // Add involved computations
+                        optim_info.comps = depth_computations;
+                        // Add the optimization to the ast
+                        new_ast->new_optims.push_back(optim_info);
                     }
-                }
-            }
-
-            nb_try++;
+                    // Add this AST to the generated candidates
+                    states.push_back(new_ast);
+                }   
+            }    
         }
         break;
 
@@ -543,6 +507,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         // Apply all possible unrolling factors to all innermost iterators
         //test unrolling for all inner nodes until we find a valid
         bool result = true;
+
         // In the case where complicated transformations are applied, we can't trust that the Tiramisu AST reflects all the changes
         // Instead, we retrieve the accurate depth of the branch to be unrolling using the isl AST
         int unrolling_depth = -1;
@@ -550,14 +515,15 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
             std::vector<tiramisu::computation *> involved_computations;
             inner_most_node->get_innermost_computations(involved_computations);
             for (auto comp: involved_computations){
+
                 std::vector<std::string> loop_names = comp->get_loop_level_names();
                 std::vector<tiramisu::computation *> involved_comp_first; 
                 involved_comp_first.push_back(comp);
-                std::string loop_name = loop_names[inner_most_node->depth];
 
                 // The index of the loop to unrolling is the number of for loops containing this computations - 1
                 // The number of loops containing the computation is the maximal AST depth - 1 (the compute_maximal_AST_depth counts the user node in the depth)
                 unrolling_depth = comp->compute_maximal_AST_depth() - 2;
+                std::string loop_name = loop_names[unrolling_depth];
                 result = result && (!inner_most_node->is_optimized_by_tag()) &&
                                 ast.fct->loop_unrolling_is_legal(var(loop_name), involved_comp_first);
             }
