@@ -201,7 +201,7 @@ void print_optim(optimization_info optim)
 
         case optimization_type::TILING:
             std::cout << "Tiling" << " L" << optim.l0 << " " << optim.l0_fact;
-            if (optim.nb_l == 2)
+            if (optim.nb_l > 1)
                 std::cout << " L" << optim.l1 << " " << optim.l1_fact;
             if (optim.nb_l == 3)
                 std::cout << " L" << optim.l2 << " " << optim.l2_fact;

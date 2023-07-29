@@ -416,7 +416,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                 if (can_split_iterator_sup(node_iterator->up_bound, node_iterator->low_bound, tiling_size)){
                     // Copy the AST to add the tiling
                     syntax_tree *new_ast = new syntax_tree();
-                    ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
+                    ast_node *new_node = ast.copy_and_return_node(*new_ast, node_iterator);
                     // For each depth in this subtree
                     for( int i =0; i< ast_height; i++){
 

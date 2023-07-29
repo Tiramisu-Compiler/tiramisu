@@ -285,6 +285,11 @@ public:
     bool parallelized = false;
 
     /**
+     * True if the loop level has been tiled
+     */
+    bool tiled = false;
+
+    /**
     * True if the loop level has been skewed
     */
     bool skewed = false;
