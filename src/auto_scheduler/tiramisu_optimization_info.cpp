@@ -37,11 +37,11 @@ void apply_optimizations(syntax_tree const& ast)
     }
         
 
-    // Fusion is a particular case, and we use apply_fusions() to apply it.
-    // apply_fusions() uses the structure of the AST to correctly order the computations.
+    // Fusion is a particular case, and we use order_computations_from_ast() to apply it.
+    // order_computations_from_ast() uses the structure of the AST to correctly order the computations.
     // The structure of the program is only represented abstractly even when fusion is not applied.
-    // We need to call apply_fusion on all ASTs to go from the abstract representation of the structure to changing the actual order of computations using the .after command
-    apply_fusions(ast);
+    // We need to call order_computations_from_ast on all ASTs to go from the abstract representation of the structure to changing the actual order of computations using the .after command
+    order_computations_from_ast(ast);
 
     // Parallelization needs to be applied after the other transformations in order to have the accurate loop depth of
     // the tagged ast_nodes
@@ -114,37 +114,36 @@ void apply_optimizations(optimization_info const& optim_info)
     }
 }
 
-    void apply_fusions(syntax_tree const& ast)
+void order_computations_from_ast(syntax_tree const& ast)
+{
+    // Use the "after" scheduling command to replicate the structure of the AST
+    // on the computations order.
+    tiramisu::computation *previous_comp = nullptr;
+
+    for (tiramisu::computation* current_comp : ast.computations_list) // iterate over the ordered computations list
     {
-        // Use the "after" scheduling command to replicate the structure of the AST
-        // on the computations order.
-
-        tiramisu::computation *previous_comp = nullptr;
-
-        for (tiramisu::computation* current_comp : ast.computations_list) // iterate over the ordered computations list
+        if (previous_comp == nullptr) // if current comp is the first computation
         {
-            if (previous_comp == nullptr) // if current comp is the first computation
-            {
-                previous_comp = current_comp;
-                continue;
-            }
-
-            ast_node *current_comp_node = ast.computations_mapping.at(current_comp);
-            ast_node *previous_comp_node = ast.computations_mapping.at(previous_comp);
-            ast_node *last_shared_parent = ast.get_last_shared_parent(current_comp_node, previous_comp_node);
-
-            int fusion_level;
-            if (last_shared_parent != nullptr){
-                fusion_level = last_shared_parent->depth;
-            }else
-                fusion_level = tiramisu::computation::root_dimension;
-
-            current_comp->after(*previous_comp, fusion_level);
             previous_comp = current_comp;
-
+            continue;
         }
 
+        ast_node *current_comp_node = ast.computations_mapping.at(current_comp);
+        ast_node *previous_comp_node = ast.computations_mapping.at(previous_comp);
+        ast_node *last_shared_parent = ast.get_last_shared_parent(current_comp_node, previous_comp_node);
+
+        int fusion_level;
+        if (last_shared_parent != nullptr){
+            fusion_level = last_shared_parent->depth;
+        }else
+            fusion_level = tiramisu::computation::root_dimension;
+        
+        current_comp->after(*previous_comp, fusion_level);
+        previous_comp = current_comp;
+
     }
+
+}
 
 void apply_parallelization(syntax_tree const& ast)
 {

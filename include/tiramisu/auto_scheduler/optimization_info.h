@@ -108,12 +108,12 @@ void apply_optimizations(optimization_info const& optim_info);
 /**
  * Schedule the computations so as to be in the order specified by the AST.
  */
-void apply_fusions(syntax_tree const& ast);
+void order_computations_from_ast(syntax_tree const& ast);
     
 /**
- * A recursive subroutine used by apply_fusions(syntax_tree const& ast).
+ * A recursive subroutine used by order_computations_from_ast(syntax_tree const& ast).
  */
-//tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, int dimension);
+//tiramisu::computation* order_computations_from_ast(ast_node *node, tiramisu::computation *last_comp, int dimension);
 
 /**
  * Apply parallelization through tiramisu API to the loop levels that correspond to the ast_nodes that are tagged for

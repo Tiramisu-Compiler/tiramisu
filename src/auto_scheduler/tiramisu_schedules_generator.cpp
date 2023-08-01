@@ -424,7 +424,8 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                         // Check that there are computations at this level to be tiled
                         if (depth_computations.size() == 0)
                             continue;
-                        
+                        if (ast.optim_already_applied_on_comps(depth_computations, optimization_type::TILING)) // check if one of the involved computations is already tiled
+                            continue;;
                         optimization_info optim_info;
                         optim_info.type = optimization_type::TILING;
                         optim_info.node = new_node;
@@ -443,8 +444,9 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                         // Add the optimization to the ast
                         new_ast->new_optims.push_back(optim_info);
                     }
-                    // Add this AST to the generated candidates
-                    states.push_back(new_ast);
+                    if(new_ast->new_optims.size() > 0)
+                        // Add this AST to the generated candidates
+                        states.push_back(new_ast);
                 }   
             }    
         }
@@ -514,18 +516,19 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         for (ast_node *inner_most_node: innermost_nodes) {
             std::vector<tiramisu::computation *> involved_computations;
             inner_most_node->get_innermost_computations(involved_computations);
-            for (auto comp: involved_computations){
-
-                std::vector<std::string> loop_names = comp->get_loop_level_names();
-                std::vector<tiramisu::computation *> involved_comp_first; 
-                involved_comp_first.push_back(comp);
-
-                // The index of the loop to unrolling is the number of for loops containing this computations - 1
-                // The number of loops containing the computation is the maximal AST depth - 1 (the compute_maximal_AST_depth counts the user node in the depth)
-                unrolling_depth = comp->compute_maximal_AST_depth() - 2;
+            tiramisu::computation * first_comp = involved_computations.at(0);
+            std::vector<std::string> loop_names = first_comp->get_loop_level_names();
+            // The index of the loop to unrolling is the number of for loops containing this computations - 1
+            // The number of loops containing the computation is the maximal AST depth - 1 (the compute_maximal_AST_depth counts the user node in the depth)
+            unrolling_depth = first_comp->compute_maximal_AST_depth() - 2;
+            if(unrolling_depth < 0){
+                // In the case where a computation is not contained by any loops, the maximal_AST_depth will be one and the unrolling depth will be negative
+                // Since the computation has no loops, there are no loops to unroll.
+                result = false;
+            }else{
                 std::string loop_name = loop_names[unrolling_depth];
-                result = result && (!inner_most_node->is_optimized_by_tag()) &&
-                                ast.fct->loop_unrolling_is_legal(var(loop_name), involved_comp_first);
+                result = (!inner_most_node->is_optimized_by_tag()) &&
+                            ast.fct->loop_unrolling_is_legal(var(loop_name), involved_computations);
             }
             if (result) // unrollable: test all possible values
             {
@@ -558,7 +561,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         }
         ast.recover_isl_states();
     }
-        break;
+    break;
 
     case optimization_type::PARALLELIZE:
 
