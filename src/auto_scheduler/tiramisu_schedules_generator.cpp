@@ -565,7 +565,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
             std::vector<tiramisu::computation *> involved_computations;
             inner_most_node->get_innermost_computations(involved_computations);
             tiramisu::computation * first_comp = involved_computations.at(0);
-            std::vector<std::string> loop_names = first_comp->get_loop_level_names();
+            
             // The index of the loop to unrolling is the number of for loops containing this computations - 1
             // The number of loops containing the computation is the maximal AST depth - 1 (the compute_maximal_AST_depth counts the user node in the depth)
             unrolling_depth = first_comp->compute_maximal_AST_depth() - 2;
@@ -574,9 +574,13 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                 // Since the computation has no loops, there are no loops to unroll.
                 result = false;
             }else{
-                std::string loop_name = loop_names[unrolling_depth];
-                result = (!inner_most_node->is_optimized_by_tag()) &&
-                            ast.fct->loop_unrolling_is_legal(var(loop_name), involved_computations);
+                // The legality of unrolling can be checked by checking if unrolling each of the computations in this node is legal
+                for (auto computation : involved_computations){
+                    std::vector<std::string> loop_names = computation->get_loop_level_names();
+                    std::string loop_name = loop_names[unrolling_depth];
+                    result = result && (!inner_most_node->is_optimized_by_tag()) &&
+                                ast.fct->loop_unrolling_is_legal(var(loop_name), {computation});
+                }
             }
             if (result) // unrollable: test all possible values
             {

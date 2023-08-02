@@ -702,16 +702,46 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
 
             ast_node *i_inner = new ast_node();
                 
-            // Add the new node to the begenning of this subtree since it represents a computation
-            i_outer->children.insert(i_outer->children.begin(), i_inner);
 
             for(auto states : i_outer->isl_states)
             {
                 i_inner->isl_states.push_back(states);
             }
             
+            bool move_children;
+            // Moving the children of i_outer to i_inner if necessary
+            if(i_outer->children.size()>0){
+                // If there are children to move
+                // Get all the computations included in j_outer
+                std::vector<computation*> i_outer_comps;
+                i_outer->get_all_computations(i_outer_comps);
+                move_children = i_outer_comps.size() == opt.comps.size();
+                for(auto comp: i_outer_comps){
+                    if (std::find(opt.comps.begin(), opt.comps.end(), comp) == opt.comps.end()){
+                        move_children = false;
+                        break;
+                    }
+                }
+                if(move_children){
+                    for(auto& child : i_outer->children)
+                        i_inner->children.push_back(child);
+
+                    for (auto child : i_inner->children)
+                        child->parent = i_inner;
+                    
+                    i_outer->children.clear();
+                }
+            }
 
             i_inner->computations = i_outer->computations;
+
+            // Add the new node to the begenning of this subtree since it represents a computation
+            // First check that the newly created nest willl have either computations of children
+            if(move_children || i_outer->computations.size() > 0)
+                // In the case where this tiling is only called for computations contain in dummy_iterators
+                // Node chaining will be treated sepratly
+                i_outer->children.insert(i_outer->children.begin(), i_inner);
+
             i_outer->isl_states.clear();
             i_outer->computations.clear();
             
@@ -787,14 +817,14 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
             {
                 j_inner->isl_states.push_back(states);
             }
-
+            bool move_children;
             // Moving the children of j_outer to j_inner if necessary
             if(j_outer->children.size()>0){
                 // If there are children to move
                 // Get all the computations included in j_outer
                 std::vector<computation*> j_outer_comps;
                 j_outer->get_all_computations(j_outer_comps);
-                bool move_children = j_outer_comps.size() == opt.comps.size();
+                move_children = j_outer_comps.size() == opt.comps.size();
                 for(auto comp: j_outer_comps){
                     if (std::find(opt.comps.begin(), opt.comps.end(), comp) == opt.comps.end()){
                         move_children = false;
@@ -814,10 +844,16 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
 
             j_inner->computations = j_outer->computations;
 
+            // Chain the newly created nodes with the old ones
+            // First check that the newly created nest willl have either computations of children
+            if(move_children || j_outer->computations.size() > 0)
+                // In the case where this tiling is only called for computations contain in dummy_iterators
+                // Node chaining will be treated sepratly
+                j_outer->children.insert(j_outer->children.begin(), i_inner);
+            
             j_outer->isl_states.clear();
             j_outer->computations.clear();
 
-            j_outer->children.insert(j_outer->children.begin(), i_inner);
             i_inner->parent = j_outer;
             j_inner->parent = i_inner;
 
@@ -953,14 +989,14 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
                 {
                     k_inner->isl_states.push_back(states);
                 }
-
+                bool move_children;
                 // Moving the children of k_outer to K_inner if necessary
                 if(k_outer->children.size() > 0){
                     // If there are children to move
                     // Get all the computations included in j_outer
                     std::vector<computation*> k_outer_comps;
                     k_outer->get_all_computations(k_outer_comps);
-                    bool move_children = k_outer_comps.size() == opt.comps.size();
+                    move_children = k_outer_comps.size() == opt.comps.size();
                     for(auto comp: k_outer_comps){
                         if (std::find(opt.comps.begin(), opt.comps.end(), comp) == opt.comps.end()){
                             move_children = false;
@@ -977,12 +1013,16 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
                         k_outer->children.clear();
                     }
                 }
+                // Chain the newly created nodes with the old ones
+                // First check that the newly created nest willl have either computations of children
+                if(move_children || k_outer->computations.size() > 0)
+                    // In the case where this tiling is only called for computations contain in dummy_iterators
+                    // Node chaining will be treated sepratly
+                    k_outer->children.insert(k_outer->children.begin(), i_inner);
 
                 k_inner->computations = k_outer->computations;
                 k_outer->isl_states.clear();
                 k_outer->computations.clear();
-
-                k_outer->children.insert(k_outer->children.begin(), i_inner);
 
                 i_inner->parent = k_outer;
                 j_inner->parent = i_inner;
