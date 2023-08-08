@@ -138,7 +138,7 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
         
         children.insert(children.end(), new_children.begin(), new_children.end()); // concatenate
 
-        if  (ast.search_state.is_current_optimization_fully_explored() && !children.empty()) {
+        if  (ast.search_state.is_current_optimization_fully_explored()) {
             // move to next optimization
             // explores next optimization/alternative
             ast.move_to_next_head();
@@ -150,7 +150,7 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
     }
 
     // if no candidates were generated, return an empty list
-    if (children.size() == 0) return children;
+    // if (children.size() == 0) return children;
  
     // hash the parent 
     std::size_t parent_hash=hasher(ast.get_schedule_str());
