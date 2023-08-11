@@ -7,7 +7,7 @@ To be able to use the model, you will need to install a conda environment and ac
 conda env create -f ./model/environment.yml
 ```
 
-This should create an environment called `cost_model_env`. There is no need to activate this environment since we will specify the path to its python version in the `function_autoscheduler.cpp` file.
+This should create an environment called `cost_model_env`. There is no need to activate this environment since we will specify the path to its python version in the `autoschedule.sh` script.
 # Program file strcuture
 To run the autoscheduler on an input program, please respect the following file structure. Assuming **function** is the name of the program:
 
@@ -32,7 +32,7 @@ This is the main file that will launch the autoscheduler. It has the same functi
 ```c++
 // Record program dependencies
 prepare_schedules_for_legality_checks();
-performe_full_dependency_analysis();
+perform_full_dependency_analysis();
 
 // Define search parameters
 const int beam_size = get_beam_size();
@@ -76,6 +76,7 @@ Given this structure, you can run the autoschedling for a program using the ```a
 
 Some parameters that are set in this script include:
 * `TIRAMISU_ROOT`: Absolute path to the Tiramisu directory
+* `PYTHON_PATH`: Absolute path to python
 * `BEAM_SIZE`: This is a search method parameter specific to beam search. It determines how many of the best partial solutions to continue exploring. 
 * `EXPLORE_BY_EXECUTION`: Measure the real execution time of explored schedules. If set to 0, the exploration will be done using the cost model.
 * `AS_VERBOSE`: Output varies steps in the autoscheduling process to stdout.
@@ -87,7 +88,7 @@ Some parameters that are set in this script include:
 To run the autoscheduler:
 1. Open a terminal in this directory (`tutorials_Atuoscheduler`).  
 2. Change the `TIRAMISU_ROOT` environment variable in the `autoschedule.sh` script. 
-3. Specify the path to Python in the autoscheduler file. Please use the version installed in the first step. The path should end with `anaconda3/envs/cost_model_env/bin/python3.10`. You can use the command `whereis python` to find the path of all your installed Python versions.
+3. Change the `PYTHON_PATH` environment variable in the `autoschedule.sh` script. Please use the version installed in the first step. The path should end with `anaconda3/envs/cost_model_env/bin/python3.10`. You can use the command `whereis python` to find the path of all your installed Python versions.
 4. Call the script using the function name. (`function_gramschmidt` in this case)
 
 ```bash

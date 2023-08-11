@@ -45,7 +45,7 @@ void generate_function(std::string name, int size, int val0)
     B_out_2.store_in(&b_A, {i,j});
 
 
-    tiramisu::performe_full_dependency_analysis();
+    tiramisu::perform_full_dependency_analysis();
 
     //tests
 

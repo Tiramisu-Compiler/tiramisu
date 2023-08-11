@@ -5,8 +5,7 @@
 
 
 const std::string TIRAMISU_ROOT = get_tiramisu_root_path();
-// const std::string py_cmd_path = "/path/to/bin/python";
-const std::string py_cmd_path = "/home/kb4083/anaconda3/envs/cost_model_env/bin/python3.10";
+const std::string py_cmd_path = get_python_bin_path();
 const std::string py_interface_path = TIRAMISU_ROOT + "/tutorials/tutorial_autoscheduler/model/main.py";
 
 
@@ -90,7 +89,7 @@ int main(int argc, char **argv)
     // Code Generation
     // -------------------------------------------------------
     prepare_schedules_for_legality_checks();
-    performe_full_dependency_analysis();
+    perform_full_dependency_analysis();
 
     const int beam_size = get_beam_size();
     declare_memory_usage();

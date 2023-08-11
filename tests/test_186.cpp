@@ -26,7 +26,7 @@ void generate_function(std::string name, int size, int val0)
     result.store_in(&buff_A);
 
     // analysis
-    performe_full_dependency_analysis();     
+    perform_full_dependency_analysis();     
 
     // legality check of function
     prepare_schedules_for_legality_checks();

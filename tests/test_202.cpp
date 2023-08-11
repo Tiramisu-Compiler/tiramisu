@@ -51,7 +51,7 @@ void generate_function(std::string name, int size, int val0)
     assert(addition.expandable());
 
     prepare_schedules_for_legality_checks();
-    performe_full_dependency_analysis();
+    perform_full_dependency_analysis();
 
     tiramisu::function * fct = global::get_implicit_function();
 

@@ -29,7 +29,7 @@ void generate_function(std::string name, int size, int val0)
 
     //skewing (1,1) with loop reversal on j valide skewing(3,3) = skewing(1,1)
      
-    performe_full_dependency_analysis() ;
+    perform_full_dependency_analysis() ;
  
     result.skew(i, j, 1, 1, ni, nj);
     result.loop_reversal(nj,nj2) ;

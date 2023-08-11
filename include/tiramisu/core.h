@@ -140,16 +140,16 @@ void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string
 
 /**
  * Full check of schedule legality for this function using dependency analysis 
- * must be used after invoking : performe_full_dependency_analysis()
+ * must be used after invoking : perform_full_dependency_analysis()
  */
 bool check_legality_of_function();
 
 
 /**
- * Performe a full dependency analysis RAW/WAR/WAW. The result is stored in the function's attributes
+ * Perform a full dependency analysis RAW/WAR/WAW. The result is stored in the function's attributes
  * Before invoking this method, the user must call tiramisu::prepare_schedules_for_legality_checks() and must define the buffer associated with each computation.
  */
-void performe_full_dependency_analysis();
+void perform_full_dependency_analysis();
 
 
 /**
@@ -167,7 +167,7 @@ void prepare_schedules_for_legality_checks(bool reset_static_dimesion = false);
 void clear_implicit_function_sched_graph();
  /**
      * Checks if the given fuzed computations could legally have their loop level \p i as parallel using dependence analysis and legality check.
-     * It relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * It relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
   */
@@ -1323,7 +1323,7 @@ public:
     void set_context_set(isl_set *context);
 
     /**
-      * Computes flow and performe data analysis for this function with all it's computations.
+      * Computes flow and perform data analysis for this function with all it's computations.
       * This includes Reads after write, Write after write, Write after read, live_out_access, and live_in_access.
       * The moment of the call, the computations order and their buffers must be defined, the schedules must be the default ones with no optimizations applied. 
       * So this method should be invoked directly after mapping computations to their buffers.
@@ -1333,11 +1333,11 @@ public:
       * This method also computes live_out and live_in access for this function.
       * After the call the user is free to change & optimize the schedules.
       */
-    void performe_full_dependency_analysis();
+    void perform_full_dependency_analysis();
   
     /**
      *  Uses the dependency analysis to check if the current schedules of all computations are legal
-     *  must be invoked after the correct call to \p performe_full_dependency_analysis()
+     *  must be invoked after the correct call to \p perform_full_dependency_analysis()
     */
     bool check_legality_for_function();
 
@@ -1360,7 +1360,7 @@ public:
 
     /**
      * Checks if the given fuzed computations could legally have their loop level \p i as parallel using dependence analysis and legality check.
-     * It relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * It relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
     */
@@ -1421,7 +1421,7 @@ public:
      * with the vector of computations \p previous_computations if it is possible.
      * This method return a vector of tuples mapping each variable with the required shifting if the fusion is possible, and an empty vector otherwise(impossible fusion).
      * Note: In case where the fusion is legal and doesn't require shifting, the vector of tuples would map the variable to 0.
-     * The method relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * The method relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
      * The shifting parameters given are always superior or equal to zero. This is an additional internal condition.
@@ -1431,7 +1431,7 @@ public:
     /**
      * Uses the dependency analysis to check if the specified schedules of computations are legal.
      * This method only tests the dependencies between the computations specified in the input and ignore the rest.
-     * must be invoked after the correct call to \p performe_full_dependency_analysis()
+     * must be invoked after the correct call to \p perform_full_dependency_analysis()
     */
     bool check_partial_legality_in_function(std::vector<tiramisu::computation * > involved_computations);
 
@@ -4520,7 +4520,7 @@ public:
      * Checks the correctness of a subset of dependencies after applying changes on the schedules (e.g., tiling, skewing, and shifting).
      * The checked subset of dependencies is the set of dependencies mapping from this computation (this) to second computation (second).
      * This methods returns a boolean: True if this subset of dependencies is respected, otherwise False.
-     * It relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * It relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
     */

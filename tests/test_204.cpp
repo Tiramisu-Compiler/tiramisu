@@ -31,7 +31,7 @@ void generate_function(std::string name, int size0, int size1, int val0)
     // legality check of function
     prepare_schedules_for_legality_checks();
     // analysis
-    performe_full_dependency_analysis();     
+    perform_full_dependency_analysis();     
 
     // Tile both computations at level 1
     comp00.tile(1, 4);

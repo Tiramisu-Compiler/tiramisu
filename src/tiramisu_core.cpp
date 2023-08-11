@@ -108,10 +108,10 @@ void clear_implicit_function_sched_graph(){
     fct->clear_sched_graph();
 }
 
-void performe_full_dependency_analysis()
+void perform_full_dependency_analysis()
 {
     function *fct = global::get_implicit_function();
-    fct->performe_full_dependency_analysis() ;
+    fct->perform_full_dependency_analysis() ;
 }
 
 void prepare_schedules_for_legality_checks(bool reset_static_dimesion)
@@ -1509,7 +1509,7 @@ void computation::expand(bool update_dependencies)
         if (update_dependencies)
         {
             prepare_schedules_for_legality_checks();
-            performe_full_dependency_analysis();
+            perform_full_dependency_analysis();
         }
 
     }
@@ -1635,7 +1635,7 @@ void computation::expand(int L, bool update_dependencies)
         if (update_dependencies)
         {
             prepare_schedules_for_legality_checks();
-            performe_full_dependency_analysis();
+            perform_full_dependency_analysis();
         }
     }
     else {
@@ -1782,7 +1782,7 @@ void computation::expand(const std::vector<int>& Levels, bool update_dependencie
     if (update_dependencies)
     {
         prepare_schedules_for_legality_checks();
-        performe_full_dependency_analysis();
+        perform_full_dependency_analysis();
     }
 
     DEBUG_INDENT(-4);

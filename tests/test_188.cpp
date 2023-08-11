@@ -28,7 +28,7 @@ void generate_function(std::string name, int size, int val0)
     // legality check of function
     prepare_schedules_for_legality_checks();
     // analysis
-    performe_full_dependency_analysis();     
+    perform_full_dependency_analysis();     
 
 
     assert(loop_vectorization_is_legal(i,{&result}) == false);

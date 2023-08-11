@@ -3,9 +3,11 @@ export NB_EXEC=1
 export AS_VERBOSE=1
 # Set the exploration to use the model. Change to 1 for exploration by execution.
 export EXPLORE_BY_EXECUTION=0
+export PYTHON_PATH=/path/to/bin/python
 export SAVE_BEST_SCHED_IN_FILE=0
 export EXECUTE_BEST_AND_INITIAL_SCHED=0
 export TIRAMISU_ROOT=/absolute/path/to/Tiramisu
+
 
 
 # Compile the autoscheduler

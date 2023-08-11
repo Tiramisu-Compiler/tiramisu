@@ -81,5 +81,11 @@ std::string get_tiramisu_root_path(){
         return "/TIRAMISU/ROOT/IS/NOT/DEFINED";
     }
 }
-
+std::string get_python_bin_path(){
+    if (std::getenv("PYTHON_PATH")!=NULL)
+        return std::getenv("PYTHON_PATH");
+    else{
+        return "/PYTHON/PATH/IS/NOT/DEFINED";
+    }
+}
 #endif

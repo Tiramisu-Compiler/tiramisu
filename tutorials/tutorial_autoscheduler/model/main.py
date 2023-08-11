@@ -1,6 +1,6 @@
 from os import environ
 import json
-
+import numpy as np
 from hier_lstm import Model_Recursive_LSTM_v2
 from json_to_tensor import *
 

@@ -2879,7 +2879,7 @@ const std::vector<std::string> tiramisu::function::get_invariant_names() const
     return inv_str;
 }
 
-void tiramisu::function::performe_full_dependency_analysis()
+void tiramisu::function::perform_full_dependency_analysis()
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
