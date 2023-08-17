@@ -5670,7 +5670,7 @@ bool computation::unrolling_is_legal(var l)
         isl_set_free(normal_set);
 
         // We add a special case for when both bounds are integers but both are 0. This happens in some cases where the extracted set does not match the real bounds.
-        return ((n_piece_max == 1) && (n_piece_min == 1) && (is_number(min_string)) && ( is_number(max_string)) && (extract_bound_from_string(max_string) != 0 && extract_bound_from_string(min_string) != 0));
+        return ((n_piece_max == 1) && (n_piece_min == 1) && (is_number(min_string)) && ( is_number(max_string)) && (extract_bound_from_string(max_string) != 0 || extract_bound_from_string(min_string) != 0));
     }
 
 
