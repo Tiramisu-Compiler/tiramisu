@@ -1697,6 +1697,74 @@ void function::gen_isl_ast()
     DEBUG_INDENT(-4);
 }
 
+/**
+ * Print the function as an isl AST representation.
+ * This function prints the iterators and the computations only in the following format
+ * for iterrators:
+ * <iterator_level>|iterator|<iterator_name>|<lower_bound>|<iterator_condition>|<iterator_increment>
+ * and for computations:
+ * <computation_level>|computation|<computation_name>
+ */
+void function::print_isl_ast_representation(isl_ast_node *node, int level)
+{
+    if (node == NULL)
+    {
+        node = this->ast;
+    }
+
+    if (isl_ast_node_get_type(node) == isl_ast_node_block)
+    {
+        // iterate over the children of the block and construct their representation
+        isl_ast_node_list *list = isl_ast_node_block_get_children(node);
+        for (int i = 0; i < isl_ast_node_list_n_ast_node(list); i++)
+        {
+            isl_ast_node *child = isl_ast_node_list_get_ast_node(list, i);
+            print_isl_ast_representation(child, level);
+            isl_ast_node_free(child);
+        }
+        isl_ast_node_list_free(list);
+    }
+    else if (isl_ast_node_get_type(node) == isl_ast_node_for)
+    {
+        // construct string of iterator from the isl_ast_node
+        std::string iterator_string_repr = std::to_string(level) + "|iterator|" + std::string(isl_ast_expr_to_C_str(isl_ast_node_for_get_iterator(node))) + "|" + std::string(isl_ast_expr_to_C_str(isl_ast_node_for_get_init(node))) + "|" +
+                            std::string(isl_ast_expr_to_C_str(isl_ast_node_for_get_cond(node))) + "|" +
+                            std::string(isl_ast_expr_to_C_str(isl_ast_node_for_get_inc(node)));
+        std::cout << iterator_string_repr << std::endl;
+
+        // recurse on the body of the for loop while incrementing the level
+        isl_ast_node *body = isl_ast_node_for_get_body(node);
+        print_isl_ast_representation(body, level + 1);
+        isl_ast_node_free(body);
+    }
+    else if (isl_ast_node_get_type(node) == isl_ast_node_user)
+    {
+        // Get the computation name from the isl_ast_node
+        isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
+        isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
+        isl_id *id = isl_ast_expr_get_id(arg);
+        isl_ast_expr_free(expr);
+        isl_ast_expr_free(arg);
+        std::string computation_name(isl_id_get_name(id));
+
+        // construct string of computation from the isl_ast_node
+        std::string computation_string_repr = std::to_string(level) + "|computation|" + computation_name;
+        isl_id_free(id);
+        std::cout << computation_string_repr << std::endl;
+    }
+    else if (isl_ast_node_get_type(node) == isl_ast_node_if)
+    {
+        // if we find an if node we construct both its then and else branches
+        print_isl_ast_representation(isl_ast_node_if_get_then(node), level);
+
+        // if the if node has an else branch we construct it
+        if (isl_ast_node_if_has_else(node))
+        {
+            print_isl_ast_representation(isl_ast_node_if_get_else(node), level);
+        }
+    }
+}
+
 void tiramisu::function::allocate_and_map_buffers_automatically()
 {
     DEBUG_FCT_NAME(3);

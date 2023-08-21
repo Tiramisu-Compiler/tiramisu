@@ -1219,6 +1219,16 @@ public:
     void gen_isl_ast();
 
     /**
+     * Print the function as an isl AST representation.
+     * This function prints the iterators and the computations only in the following format
+     * for iterrators:
+     * <iterator_level>|iterator|<iterator_name>|<lower_bound>|<iterator_condition>|<iterator_increment>
+     * and for computations:
+     * <computation_level>|computation|<computation_name>
+     */
+    void print_isl_ast_representation(isl_ast_node *node, int level);
+
+    /**
       * Generate the time-space domain of the function.
       *
       * In this representation, the logical time of execution and the
