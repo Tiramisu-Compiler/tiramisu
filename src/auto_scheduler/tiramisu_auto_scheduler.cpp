@@ -77,7 +77,7 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     output_json = "{\n\t\"filename\" : \"" + filename + "\"," +
                   "\n\t\"node_name\" : \"" + read_env_var("SLURMD_NODENAME") + "\"," +
                   "\n\t\"parameters\" : {" +
-                  "\n\t\t\"beam_size\" : " + read_env_var("BEAM_SIZE") + ", " +
+                  "\n\t\t\"beam_size\" : " + read_env_var("BEAM_SIZE") +
 //                  "\n\t\t\"nb_exec\" : " + nb_exec +
                   "\n\t}, " +
                   "\n\t\"program_annotation\" : " + program_json + ", " +
