@@ -188,7 +188,7 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
                     
                     child->print_ast();
                     child->print_isl_states();
-                    std::cout << "\n<illegal>\n";
+                    std::cout << "\n<illegal>" << std::endl << std::endl;;
                 }
                 delete child;
                 iterator = children.erase(iterator);
@@ -357,7 +357,7 @@ std::vector<syntax_tree*> beam_search::search_save(syntax_tree& ast, std::vector
                 (*iterator)->print_new_optims();
                 (*iterator)->print_ast();
                 (*iterator)->print_isl_states();
-                std::cout << "\n<illegal>\n";
+                std::cout << "\n<illegal>" << std::endl << std::endl;
             }
             delete (*iterator);
             iterator = children.erase(iterator);

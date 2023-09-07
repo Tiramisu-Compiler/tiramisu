@@ -1380,21 +1380,19 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
     recover_isl_states();
 }
 
-void syntax_tree::transform_ast_by_shifting(const optimization_info &info, bool change_isl_states){
+void syntax_tree::transform_ast_by_shifting(const optimization_info &opt, bool change_isl_states){
 
-    ast_node *node_1 = info.node;
+    ast_node *node_1 = opt.node;
     node_1->shifted = true;
     if(change_isl_states){
         // Transform the computations schedule to check the legality of the transformations
         stage_isl_states(); 
         std::vector<ast_node *> all_nodes;
-        info.node->get_all_nodes(all_nodes);
+        opt.node->get_all_nodes(all_nodes);
                 
-        for(ast_node* node1 : all_nodes ){
-            for(computation_info comp : node1->computations)
-            {   
-                comp.comp_ptr->shift(info.l0, info.l0_fact);
-            }
+        for(computation* comp : opt.comps)
+        {  
+                comp->shift(opt.l0, opt.l0_fact);
         }
         recover_isl_states();
     }
