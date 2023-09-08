@@ -427,6 +427,12 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
                     break;
                 case optimization_type::TILING:
                     tiled = true;
+                    if (optim_info.nb_l == 1)
+                    {
+                        tile_nb_l = 1;
+                        tile_l0 = optim_info.l0;
+                        tile_l0_fact = optim_info.l0_fact;
+                    }
                     if (optim_info.nb_l == 2)
                     {
                         tile_nb_l = 2;
@@ -509,7 +515,22 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
         
         if (tiled)
         {
-            if (tile_nb_l == 2)
+            if (tile_nb_l == 1)
+            {
+                comp_sched_json += "\"tiling_depth\" : 1,";
+                comp_sched_json += "\"tiling_dims\" : [";
+                
+                comp_sched_json += "\"" + iterators_list[tile_l0].name + "\"";
+                
+                comp_sched_json += "],";
+                
+                comp_sched_json += "\"tiling_factors\" : [";
+                
+                comp_sched_json += "\"" + std::to_string(tile_l0_fact) + "\"";
+                
+                comp_sched_json += "]";
+            }
+            else if (tile_nb_l == 2)
             {
                 comp_sched_json += "\"tiling_depth\" : 2,";
                 comp_sched_json += "\"tiling_dims\" : [";
@@ -541,7 +562,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
                 comp_sched_json += "]";
             }
         }
-        
+
         comp_sched_json += "},";
         
         // JSON for unrolling

@@ -443,9 +443,11 @@ ast_node* syntax_tree::get_last_shared_parent(ast_node* node1, ast_node* node2) 
 void syntax_tree::transform_ast()
 {
     if (new_optims.size() == 0)
-        return ;
-        
-    transform_ast(new_optims.back());
+        return;
+    
+    for(auto opt : new_optims){
+        transform_ast(opt);
+    }
 }
 void syntax_tree::transform_initial_ast()
 {
@@ -498,14 +500,6 @@ void syntax_tree::transform_ast(optimization_info const& opt)
 {
     switch(opt.type)
     {
-        /*case optimization_type::FUSION:
-            transform_ast_by_fusion(opt);
-            break;
-            
-        case optimization_type::UNFUSE:
-            transform_ast_by_unfuse(opt);
-            break;
-            */
         case optimization_type::MATRIX:
             transform_ast_by_matrix(opt, true);
             break;
@@ -642,6 +636,26 @@ void update_node(std::vector<ast_node *> shared_nodes, std::vector<std::vector<i
     }
     
 }
+/**
+ * check if this node is concerned by the optimization opt
+ * i.e. if at least one of its computations is in opt.comps
+ */
+bool check_if_node_should_be_optimized(ast_node* node, const optimization_info &opt){
+    if (node->name.compare("dummy_iter") == 0)
+        return false;
+
+    bool should_be_tiled = false;
+    std::vector<computation *> j_outer_comps;
+    node->get_all_computations(j_outer_comps);
+    for (auto opt_comp: opt.comps){
+        if(std::find(j_outer_comps.begin(), j_outer_comps.end(), opt_comp) != j_outer_comps.end()){
+            should_be_tiled = true;
+            break;
+        }
+    }
+    return should_be_tiled;
+}
+
 void syntax_tree::transform_ast_by_matrix(const optimization_info &opt, bool change_isl_states)
 {
 
@@ -650,7 +664,7 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt, bool cha
         stage_isl_states(); 
         std::vector<ast_node *> all_nodes;
         opt.node->get_all_nodes(all_nodes);
-                
+        
         for(ast_node* node1 : all_nodes ){
             for(computation_info info : node1->computations)
             {   
@@ -671,7 +685,6 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt, bool cha
     {
         this->transform_ast_by_skewing(opt);
     }
-    
 }
 
 void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool change_isl_states)
@@ -679,106 +692,264 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
     ast_node *node = opt.node;
 
     stage_isl_states();
-    
-    // 2 level tiling
-    if (opt.nb_l == 2)
+    // 1 level tiling (loop spliting)
+    if (opt.nb_l == 1)
     {
-        // Create the new loop structure
-        ast_node *i_outer = node;
-        ast_node *j_outer = node->children[0];
-            
-        ast_node *i_inner = new ast_node();
-        ast_node *j_inner = new ast_node();
-            
-        // Chain the nodes
+        // Only apply the tiling to the ast if it hasn't been applied yet
+        if( !node->tiled ){
+            // Create the new loop structure
+            ast_node *i_outer = node;
 
-        i_inner->children.push_back(j_inner);
-        //i_outer->children[0] = j_outer;
+            ast_node *i_inner = new ast_node();
+                
 
-        for(auto& states:j_outer->children)
-        {
-            j_inner->children.push_back(states);
+            for(auto states : i_outer->isl_states)
+            {
+                i_inner->isl_states.push_back(states);
+            }
+            
+            bool move_children;
+            // Moving the children of i_outer to i_inner if necessary
+            if(i_outer->children.size()>0){
+                // If there are children to move
+                // Get all the computations included in j_outer
+                std::vector<computation*> i_outer_comps;
+                i_outer->get_all_computations(i_outer_comps);
+                move_children = i_outer_comps.size() == opt.comps.size();
+                for(auto comp: i_outer_comps){
+                    if (std::find(opt.comps.begin(), opt.comps.end(), comp) == opt.comps.end()){
+                        move_children = false;
+                        break;
+                    }
+                }
+                if(move_children){
+                    for(auto& child : i_outer->children)
+                        i_inner->children.push_back(child);
+
+                    for (auto child : i_inner->children)
+                        child->parent = i_inner;
+                    
+                    i_outer->children.clear();
+                }
+            }
+
+            i_inner->computations = i_outer->computations;
+
+            // Add the new node to the begenning of this subtree since it represents a computation
+            // First check that the newly created nest willl have either computations of children
+            if(move_children || i_outer->computations.size() > 0)
+                // In the case where this tiling is only called for computations contain in dummy_iterators
+                // Node chaining will be treated sepratly
+                i_outer->children.insert(i_outer->children.begin(), i_inner);
+
+            i_outer->isl_states.clear();
+            i_outer->computations.clear();
+            
+            i_inner->parent = i_outer;
+            
+            // Rename the nodes
+            i_inner->name = i_outer->name + "_inner";
+                
+            // Set lower and upper bounds
+            i_outer->low_bound = "0";
+            if(check_if_number(i_outer->get_extent())){
+                i_outer->up_bound =  std::to_string((int)ceil((double)stoi(i_outer->get_extent()) / (double)opt.l0_fact) - 1);
+            }else{
+                i_outer->up_bound =  i_outer->get_extent() + "/" + std::to_string((double)opt.l0_fact - 1);
+            }
+                
+            i_inner->low_bound = "0";
+            i_inner->up_bound = std::to_string(opt.l0_fact - 1);
+
+            i_outer->tiled = true;
+            i_inner->tiled = true;
+
+            // Transform computations in dummy iterators
+            for (auto child: i_outer->children){
+                if (child->name.compare("dummy_iter") != 0)
+                    continue;
+                child->name = i_inner->name;
+                child->low_bound = i_inner->low_bound;
+                child->up_bound = i_inner->up_bound;
+                child->tiled = true;
+            }
+            // rename the outer node
+            i_outer->name = i_outer->name + "_outer";
         }
-
-        for(auto states:j_outer->isl_states)
-        {
-            j_inner->isl_states.push_back(states);
-        }
-        
-
-        j_inner->computations = j_outer->computations;
-
-        j_outer->children.clear();
-        j_outer->isl_states.clear();
-        j_outer->computations.clear();
-
-        j_outer->children.push_back(i_inner);
-        for (auto child:j_inner->children)
-            child->parent = j_inner;
-
-        
-        j_outer->parent = i_outer;
-        i_inner->parent = j_outer;
-        j_inner->parent = i_inner;
-            
-        // Rename the nodes
-        i_inner->name = i_outer->name + "_inner";
-        i_outer->name = i_outer->name + "_outer";
-            
-        j_inner->name = j_outer->name + "_inner";
-        j_outer->name = j_outer->name + "_outer";
-            
-        // Set lower and upper bounds
-        i_outer->low_bound = "0";
-        if(check_if_number(i_outer->get_extent())){
-            i_outer->up_bound =  std::to_string((int)ceil((double)stoi(i_outer->get_extent()) / (double)opt.l0_fact) - 1);
-        }else{
-            i_outer->up_bound =  i_outer->get_extent() + "/" + std::to_string((double)opt.l0_fact - 1);
-        }
-            
-        j_outer->low_bound = "0";
-        if(check_if_number(j_outer->get_extent())){
-            j_outer->up_bound =  std::to_string((int)ceil((double)stoi(j_outer->get_extent()) / (double)opt.l1_fact) - 1);
-        }else{
-            j_outer->up_bound =  j_outer->get_extent() + "/" + std::to_string((double)opt.l1_fact - 1);
-        }
-            
-        i_inner->low_bound = "0";
-        i_inner->up_bound = std::to_string(opt.l0_fact - 1);
-            
-        j_inner->low_bound = "0";
-        j_inner->up_bound = std::to_string(opt.l1_fact - 1);
 
         /**
          * Applying tiling to the nodes schedule and states
         */
         if(change_isl_states){
-            // Transform the computations schedule to check the legality of the transformations
-            std::vector<computation_info*> all_data;
-            
-            //collect computations to tile
-            j_inner->collect_all_computation(all_data);
-
-            for(computation_info* info:all_data)
+            for(computation* comp : opt.comps)
             {
-                std::vector<std::string> loop_names = info->comp_ptr->get_loop_level_names();
+                std::vector<std::string> loop_names = comp->get_loop_level_names();
                 
-                std::string outer_name = loop_names[i_outer->depth];
-                std::string inner_name = loop_names[i_outer->depth+1];
+                std::string outer_name = loop_names[opt.l0];
+                std::string ii_outer = outer_name+"_outer";
+                std::string ii_inner = outer_name+"_inner";
+
+                comp->tile(var(outer_name),
+                                    opt.l0_fact,
+                                    var(ii_outer),var(ii_inner));
+            
+            
+            }
+        }
+    }
+    // 2 level tiling
+    else if (opt.nb_l == 2)
+    {
+        // Create the new loop structure
+        ast_node *i_outer = node;
+        for (auto j_outer: i_outer->children){
+
+            if(!check_if_node_should_be_optimized(j_outer, opt))
+                continue;
+
+            ast_node *i_inner = new ast_node();
+            ast_node *j_inner = new ast_node();
+                
+            // Chain the nodes
+            i_inner->children.push_back(j_inner);
+
+            for(auto states:j_outer->isl_states)
+            {
+                j_inner->isl_states.push_back(states);
+            }
+            bool move_children;
+            // Moving the children of j_outer to j_inner if necessary
+            if(j_outer->children.size()>0){
+                // If there are children to move
+                // Get all the computations included in j_outer
+                std::vector<computation*> j_outer_comps;
+                j_outer->get_all_computations(j_outer_comps);
+                move_children = j_outer_comps.size() == opt.comps.size();
+                for(auto comp: j_outer_comps){
+                    if (std::find(opt.comps.begin(), opt.comps.end(), comp) == opt.comps.end()){
+                        move_children = false;
+                        break;
+                    }
+                }
+                if(move_children){
+                    for(auto& child : j_outer->children)
+                        j_inner->children.push_back(child);
+
+                    for (auto child : j_inner->children)
+                        child->parent = j_inner;
+                    
+                    j_outer->children.clear();
+                }
+            }
+
+            j_inner->computations = j_outer->computations;
+
+            // Chain the newly created nodes with the old ones
+            // First check that the newly created nest willl have either computations of children
+            if(move_children || j_outer->computations.size() > 0)
+                // In the case where this tiling is only called for computations contain in dummy_iterators
+                // Node chaining will be treated sepratly
+                j_outer->children.insert(j_outer->children.begin(), i_inner);
+            
+            j_outer->isl_states.clear();
+            j_outer->computations.clear();
+
+            i_inner->parent = j_outer;
+            j_inner->parent = i_inner;
+
+            if (!i_outer->tiled){
+            
+                i_inner->name = i_outer->name;
+                i_outer->name = i_outer->name + "_outer";
+            
+            }else{
+                int pos = i_outer->name.find("_outer");
+                i_inner->name = i_outer->name.substr(0, pos);
+            }  
+
+            i_inner->name = i_inner->name + "_inner";
+
+            if (!j_outer->tiled){
+            
+                j_inner->name = j_outer->name;
+                j_outer->name = j_outer->name + "_outer";
+            
+            }else{
+                int pos = j_outer->name.find("_outer");
+                j_inner->name = j_outer->name.substr(0, pos);
+            }  
+
+            j_inner->name = j_inner->name + "_inner";
+
+            
+            if(!i_outer->tiled){
+                // Set lower and upper bounds
+                i_outer->low_bound = "0";
+                if(check_if_number(i_outer->get_extent())){
+                    i_outer->up_bound =  std::to_string((int)ceil((double)stoi(i_outer->get_extent()) / (double)opt.l0_fact) - 1);
+                }else{
+                    i_outer->up_bound =  i_outer->get_extent() + "/" + std::to_string((double)opt.l0_fact - 1);
+                }
+            }
+            if(!j_outer->tiled){    
+                j_outer->low_bound = "0";
+                if(check_if_number(j_outer->get_extent())){
+                    j_outer->up_bound =  std::to_string((int)ceil((double)stoi(j_outer->get_extent()) / (double)opt.l1_fact) - 1);
+                }else{
+                    j_outer->up_bound =  j_outer->get_extent() + "/" + std::to_string((double)opt.l1_fact - 1);
+                }
+            }
+
+            i_inner->low_bound = "0";
+            i_inner->up_bound = std::to_string(opt.l0_fact - 1);
+                
+            j_inner->low_bound = "0";
+            j_inner->up_bound = std::to_string(opt.l1_fact - 1);
+            
+            // Transform computations in dummy iterators
+            for (auto child: j_outer->children){
+                if (child->name.compare("dummy_iter") != 0)
+                    continue;
+                child->name = i_inner->name;
+                child->low_bound = i_inner->low_bound;
+                child->up_bound = i_inner->up_bound;
+                child->tiled = true;
+
+                ast_node *child_j_inner = new ast_node();
+                child_j_inner->name = j_inner->name;
+                child_j_inner->low_bound = j_inner->low_bound;
+                child_j_inner->up_bound = j_inner->up_bound;
+                child_j_inner->tiled = true;
+
+                child_j_inner->parent = child;
+                child->children.push_back(child_j_inner);
+                child_j_inner->computations = child->computations;
+                child->computations.clear();
+            }
+
+            i_inner->tiled = true;
+            j_inner->tiled = true;
+            i_outer->tiled = true;
+            j_outer->tiled = true;
+        }
+
+        /**
+         * Applying tiling to the nodes schedule and states
+        */
+        if(change_isl_states){
+            for(computation* comp : opt.comps)
+            {
+                std::vector<std::string> loop_names = comp->get_loop_level_names();
+                
+                std::string outer_name = loop_names[opt.l0];
+                std::string inner_name = loop_names[opt.l0+1];
 
                 std::string ii_outer = outer_name+"_outer";
                 std::string jj_outer = inner_name+"_outer";
                 std::string ii_inner = outer_name+"_inner";
                 std::string jj_inner = inner_name+"_inner";
-
-                std::string f = "";
-                for(auto& str:loop_names)
-                {
-                    f+=str+" ";
-                }
                 
-                
-                info->comp_ptr->tile(var(outer_name),var(inner_name)
+                comp->tile(var(outer_name),var(inner_name)
                                     ,opt.l0_fact,opt.l1_fact,
                                     var(ii_outer),var(jj_outer),var(ii_inner),var(jj_inner));
             
@@ -794,103 +965,192 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
     {
         // Create the new loop structure
         ast_node *i_outer = node;
-        ast_node *j_outer = node->children[0];
-        ast_node *k_outer = j_outer->children[0];
-            
-        ast_node *i_inner = new ast_node();
-        ast_node *j_inner = new ast_node();
-        ast_node *k_inner = new ast_node();
- 
-        // Chain the nodes
-
-        i_inner->children.push_back(j_inner);
-        j_inner->children.push_back(k_inner);
-
-        for(auto& states:k_outer->children)
-        {
-            k_inner->children.push_back(states);
-        }
-
-        for(auto states:k_outer->isl_states)
-        {
-            k_inner->isl_states.push_back(states);
-        }
         
-        k_inner->computations = k_outer->computations;
+        for(auto j_outer: i_outer->children){
+            
+            if(!check_if_node_should_be_optimized(j_outer, opt))
+                continue;
 
-        k_outer->children.clear();
-        k_outer->isl_states.clear();
-        k_outer->computations.clear();
+            for(auto k_outer: j_outer->children){
+                
+                if(!check_if_node_should_be_optimized(k_outer, opt))
+                    continue;
 
-        k_outer->children.push_back(i_inner);
-        for (auto child:k_inner->children)
-            child->parent = k_inner;
+                ast_node *i_inner = new ast_node();
+                ast_node *j_inner = new ast_node();
+                ast_node *k_inner = new ast_node();
         
-        j_outer->parent = i_outer;
-        k_outer->parent = j_outer;
-        i_inner->parent = k_outer;
-        j_inner->parent = i_inner;
-        k_inner->parent = j_inner;
+                // Chain the nodes
 
-            
-        // Rename the nodes
-        i_inner->name = i_outer->name + "_inner";
-        i_outer->name = i_outer->name + "_outer";
-            
-        j_inner->name = j_outer->name + "_inner";
-        j_outer->name = j_outer->name + "_outer";
-            
-        k_inner->name = k_outer->name + "_inner";
-        k_outer->name = k_outer->name + "_outer";
-            
-        // Set lower and upper bounds
-        i_outer->low_bound = "0";
-        if(check_if_number(i_outer->get_extent())){
-            i_outer->up_bound =  std::to_string((int)ceil((double)stoi(i_outer->get_extent()) / (double)opt.l0_fact) - 1);
-        }else{
-            i_outer->up_bound =  i_outer->get_extent() + "/" + std::to_string((double)opt.l0_fact - 1);
-        }
-            
-        j_outer->low_bound = "0";
-        if(check_if_number(j_outer->get_extent())){
-            j_outer->up_bound =  std::to_string((int)ceil((double)stoi(j_outer->get_extent()) / (double)opt.l1_fact) - 1);
-        }else{
-            j_outer->up_bound =  j_outer->get_extent() + "/" + std::to_string((double)opt.l1_fact - 1);
-        }
-            
-        k_outer->low_bound = "0";
-        if(check_if_number(k_outer->get_extent())){
-            k_outer->up_bound =  std::to_string((int)ceil((double)stoi(k_outer->get_extent()) / (double)opt.l2_fact) - 1);
-        }else{
-            k_outer->up_bound =  k_outer->get_extent() + "/" + std::to_string((double)opt.l2_fact - 1);
-        }
-            
-        i_inner->low_bound = "0";
-        i_inner->up_bound = std::to_string(opt.l0_fact - 1);
-            
-        j_inner->low_bound = "0";
-        j_inner->up_bound = std::to_string(opt.l1_fact - 1);
-            
-        k_inner->low_bound = "0";
-        k_inner->up_bound = std::to_string(opt.l2_fact - 1);
+                i_inner->children.push_back(j_inner);
+                j_inner->children.push_back(k_inner);
 
+                for(auto states:k_outer->isl_states)
+                {
+                    k_inner->isl_states.push_back(states);
+                }
+                bool move_children;
+                // Moving the children of k_outer to K_inner if necessary
+                if(k_outer->children.size() > 0){
+                    // If there are children to move
+                    // Get all the computations included in j_outer
+                    std::vector<computation*> k_outer_comps;
+                    k_outer->get_all_computations(k_outer_comps);
+                    move_children = k_outer_comps.size() == opt.comps.size();
+                    for(auto comp: k_outer_comps){
+                        if (std::find(opt.comps.begin(), opt.comps.end(), comp) == opt.comps.end()){
+                            move_children = false;
+                            break;
+                        }
+                    }
+                    if(move_children){
+                        for(auto& child : k_outer->children)
+                            k_inner->children.push_back(child);
+
+                        for (auto child : k_inner->children)
+                            child->parent = k_inner;
+                        
+                        k_outer->children.clear();
+                    }
+                }
+                // Chain the newly created nodes with the old ones
+                // First check that the newly created nest willl have either computations of children
+                if(move_children || k_outer->computations.size() > 0)
+                    // In the case where this tiling is only called for computations contain in dummy_iterators
+                    // Node chaining will be treated sepratly
+                    k_outer->children.insert(k_outer->children.begin(), i_inner);
+
+                k_inner->computations = k_outer->computations;
+                k_outer->isl_states.clear();
+                k_outer->computations.clear();
+
+                i_inner->parent = k_outer;
+                j_inner->parent = i_inner;
+                k_inner->parent = j_inner;
+                    
+                if (!i_outer->tiled){
+                    
+                    i_inner->name = i_outer->name;
+                    i_outer->name = i_outer->name + "_outer";
+                
+                }else{
+                    int pos = i_outer->name.find("_outer");
+                    i_inner->name = i_outer->name.substr(0, pos);
+                }  
+
+                i_inner->name = i_inner->name + "_inner";
+
+                if (!j_outer->tiled){
+                    
+                    j_inner->name = j_outer->name;
+                    j_outer->name = j_outer->name + "_outer";
+                
+                }else{
+                    int pos = j_outer->name.find("_outer");
+                    j_inner->name = j_outer->name.substr(0, pos);
+                }  
+
+                j_inner->name = j_inner->name + "_inner";
+
+                if (!k_outer->tiled){
+                    
+                    k_inner->name = k_outer->name;
+                    k_outer->name = k_outer->name + "_outer";
+                
+                }else{
+                    int pos = k_outer->name.find("_outer");
+                    k_inner->name = k_outer->name.substr(0, pos);
+                }  
+
+                k_inner->name = k_inner->name + "_inner";
+                    
+                // Set lower and upper bounds
+                if(!i_outer->tiled){
+                    i_outer->low_bound = "0";
+                    if(check_if_number(i_outer->get_extent())){
+                        i_outer->up_bound =  std::to_string((int)ceil((double)stoi(i_outer->get_extent()) / (double)opt.l0_fact) - 1);
+                    }else{
+                        i_outer->up_bound =  i_outer->get_extent() + "/" + std::to_string((double)opt.l0_fact - 1);
+                    }
+                }
+                
+                if(!j_outer->tiled){    
+                    j_outer->low_bound = "0";
+                    if(check_if_number(j_outer->get_extent())){
+                        j_outer->up_bound =  std::to_string((int)ceil((double)stoi(j_outer->get_extent()) / (double)opt.l1_fact) - 1);
+                    }else{
+                        j_outer->up_bound =  j_outer->get_extent() + "/" + std::to_string((double)opt.l1_fact - 1);
+                    }
+                }
+                if(!k_outer->tiled){ 
+                    k_outer->low_bound = "0";
+                    if(check_if_number(k_outer->get_extent())){
+                        k_outer->up_bound =  std::to_string((int)ceil((double)stoi(k_outer->get_extent()) / (double)opt.l2_fact) - 1);
+                    }else{
+                        k_outer->up_bound =  k_outer->get_extent() + "/" + std::to_string((double)opt.l2_fact - 1);
+                    }
+                }
+                    
+                i_inner->low_bound = "0";
+                i_inner->up_bound = std::to_string(opt.l0_fact - 1);
+                    
+                j_inner->low_bound = "0";
+                j_inner->up_bound = std::to_string(opt.l1_fact - 1);
+                    
+                k_inner->low_bound = "0";
+                k_inner->up_bound = std::to_string(opt.l2_fact - 1);
+
+                // Transform computations in dummy iterators
+                for (auto child: j_outer->children){
+                    if (child->name.compare("dummy_iter") != 0)
+                        continue;
+                    child->name = i_inner->name;
+                    child->low_bound = i_inner->low_bound;
+                    child->up_bound = i_inner->up_bound;
+                    child->tiled = true;
+
+                    ast_node *child_j_inner = new ast_node();
+                    child_j_inner->name = j_inner->name;
+                    child_j_inner->low_bound = j_inner->low_bound;
+                    child_j_inner->up_bound = j_inner->up_bound;
+                    child_j_inner->tiled = true;
+
+                    ast_node *child_k_inner = new ast_node();
+                    child_k_inner->name = k_inner->name;
+                    child_k_inner->low_bound = k_inner->low_bound;
+                    child_k_inner->up_bound = k_inner->up_bound;
+                    child_k_inner->tiled = true;
+
+                    child_k_inner->parent = child_j_inner;
+                    child_j_inner->parent = child;
+                    
+                    child->children.push_back(child_j_inner);
+                    child_j_inner->children.push_back(child_k_inner);
+
+                    child_k_inner->computations = child->computations;
+                    child->computations.clear();
+                }
+                
+                i_inner->tiled = true;
+                j_inner->tiled = true;
+                k_inner->tiled = true;
+                i_outer->tiled = true;
+                j_outer->tiled = true;
+                k_outer->tiled = true;
+            }
+        }
         /**
          * Applying to staging
         */
         if(change_isl_states){
             // Transform the computations schedule to check the legality of the transformations
-            std::vector<computation_info*> all_data;
-            
-            //collect computations to tile
-            j_inner->collect_all_computation(all_data);
-
-            for(computation_info* info:all_data)
+            for(computation* comp : opt.comps)
             {
-                std::vector<std::string> loop_names = info->comp_ptr->get_loop_level_names();
+                std::vector<std::string> loop_names = comp->get_loop_level_names();
                 
-                std::string outer_name_1 = loop_names[i_outer->depth];
-                std::string outer_name_2 = loop_names[i_outer->depth+1];
-                std::string inner_name_3 = loop_names[i_outer->depth+2];
+                std::string outer_name_1 = loop_names[opt.l0];
+                std::string outer_name_2 = loop_names[opt.l0+1];
+                std::string inner_name_3 = loop_names[opt.l0+2];
 
                 std::string ii_outer = outer_name_1+"_outer";
                 std::string jj_outer = outer_name_2+"_outer";
@@ -899,20 +1159,13 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt, bool cha
                 std::string jj_inner = outer_name_2+"_inner";
                 std::string kk_inner = inner_name_3+"_inner";
                 
-                info->comp_ptr->tile(var(outer_name_1),var(outer_name_2),var(inner_name_3)
+                comp->tile(var(outer_name_1),var(outer_name_2),var(inner_name_3)
                                     ,opt.l0_fact,opt.l1_fact,opt.l2_fact,
                                     var(ii_outer),var(jj_outer),var(kk_outer),var(ii_inner),var(jj_inner),var(kk_inner));
-            
-                std::string f = "";
-                for(auto& str:loop_names)
-                {
-                    f+=str+" ";
-                }
             }
         }
 
     }
-
     node->update_depth(node->depth);
 
     recover_isl_states();
@@ -1127,21 +1380,19 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
     recover_isl_states();
 }
 
-void syntax_tree::transform_ast_by_shifting(const optimization_info &info, bool change_isl_states){
+void syntax_tree::transform_ast_by_shifting(const optimization_info &opt, bool change_isl_states){
 
-    ast_node *node_1 = info.node;
+    ast_node *node_1 = opt.node;
     node_1->shifted = true;
     if(change_isl_states){
         // Transform the computations schedule to check the legality of the transformations
         stage_isl_states(); 
         std::vector<ast_node *> all_nodes;
-        info.node->get_all_nodes(all_nodes);
+        opt.node->get_all_nodes(all_nodes);
                 
-        for(ast_node* node1 : all_nodes ){
-            for(computation_info comp : node1->computations)
-            {   
-                comp.comp_ptr->shift(info.l0, info.l0_fact);
-            }
+        for(computation* comp : opt.comps)
+        {  
+                comp->shift(opt.l0, opt.l0_fact);
         }
         recover_isl_states();
     }
@@ -1254,6 +1505,7 @@ ast_node* ast_node::copy_and_return_node(ast_node *new_node, ast_node *node_to_f
     new_node->unrolled = unrolled;
     new_node->skewed = skewed;
     new_node->parallelized = parallelized;
+    new_node->tiled = tiled;
     new_node->computations = computations;
 
     //new_node->isl_states = isl_states;
@@ -1546,9 +1798,13 @@ int syntax_tree::get_buffer_id(std::string const& buf_name) const
 
 void ast_node::update_depth(int depth)
 {
- 
-    this->depth = depth;
-   
+    if(this->name.compare("dummy_iter")!=0)
+        this->depth = depth;
+    else
+        // Dummy_iterators are special nodes that represent computations in imperfectly nested loops
+        // Thus, the depth of a dummy_iterator is the same as the depth of the node containing the computation and the dummy_iter
+        this->depth = depth-1;
+    
     for (ast_node *child : children)
         child->update_depth(this->depth + 1);
 }
@@ -1572,6 +1828,61 @@ void ast_node::get_all_nodes(std::vector<ast_node*>& nodes)
     nodes.push_back(this);   
     for (ast_node *child : children)
         child->get_all_nodes(nodes);
+}
+
+int ast_node::get_ast_height(){
+
+    if (this->children.size() == 0)
+        return 1;
+    
+    int max_child_depth = 0;
+    for (ast_node *child : children){
+        int child_height = child->get_ast_height();
+        if (child_height > max_child_depth)
+            max_child_depth = child_height;
+    }
+    return max_child_depth + 1;
+}
+
+std::vector<ast_node*> ast_node::get_nodes_by_depth(int depth){
+
+    assert(depth>= 0 && "calling get_nodes_by_depth with a negative depth");
+
+    if (depth == 0)
+        return {this};
+    
+    std::vector<ast_node*> nodes;
+
+    for (ast_node *child : children){
+        std::vector<ast_node*> child_nodes = child->get_nodes_by_depth(depth-1);
+        if (child_nodes.size()>0)
+            // Add the child nodes to the final result
+            nodes.insert(nodes.end(), child_nodes.begin(), child_nodes.end());
+    }
+    return nodes;
+}
+std::vector<tiramisu::computation*> ast_node::get_computations_by_depth(int depth){
+
+    assert(depth>= 0 && "calling get_nodes_by_depth with a negative depth");
+
+    std::vector<ast_node*> depth_nodes = this->get_nodes_by_depth(depth);
+
+    std::vector<tiramisu::computation*> comps;
+    for(ast_node *node : depth_nodes)
+        // Make sure to avoid adding the computations stored in dummy_iterators at this depth
+        if (node->computations.size()>0 && node->name.compare("dummy_iter")!=0)
+            for (auto comp_info: node->computations)
+                comps.push_back(comp_info.comp_ptr);
+
+    // We also add all the computations that are under dummy_iterators at level: depth+1
+    std::vector<ast_node*> dummy_iterator_nodes = this->get_nodes_by_depth(depth+1);
+
+    for(ast_node *node : dummy_iterator_nodes)
+        if (node->computations.size()>0 && node->name.compare("dummy_iter")==0)
+            for (auto comp_info: node->computations)
+                comps.push_back(comp_info.comp_ptr);
+
+    return comps;
 }
 int ast_node::get_loop_levels_chain_depth() const
 {
@@ -2072,6 +2383,7 @@ ast_node * ast_node::copy_local_node(bool copy_first_computation)
     new_node->unrolled = unrolled;
     new_node->skewed = skewed;
     new_node->parallelized = parallelized;
+    new_node->tiled = tiled;
     if(copy_first_computation)
     {
         new_node->computations = {computations[0]};
@@ -2173,7 +2485,7 @@ void syntax_tree::recover_isl_states() const
 
 bool syntax_tree::ast_is_legal() const
 {
-    
+
     stage_isl_states();
 
     this->fct->prepare_schedules_for_legality_checks(true);
@@ -2181,7 +2493,7 @@ bool syntax_tree::ast_is_legal() const
     bool result = this->fct->check_legality_for_function();
 
     recover_isl_states();
-    
+
     return result;
 
 }
@@ -2338,55 +2650,6 @@ std::string syntax_tree::get_schedule_str()
     return schedule_str;
 }
 
-bool syntax_tree::schedule_is_prunable()
-{
-    if (std::atoi(read_env_var("PRUNE_SLOW_SCHEDULES"))!=1){
-        return false;
-    }
-    // The following filtering rules are selected after a statistical analysis of inefficient schedule patterns
-    std::string schedule_str = get_schedule_str();
-
-    std::vector<int> depths(this->get_computations().size());
-    int min ;
-    for (optimization_info optim: new_optims){
-            if(optim.type == optimization_type::MATRIX){
-                for(int i=0;i<optim.comps.size();i++){
-                    depths.at(this->get_computation_index(optim.comps.at(i))) = optim.matrix.size();
-                }  
-            }
-            min= *std::min_element(depths.begin(), depths.end());
-            // Only get the depths from identity matrices
-            if(min>0) break;
-        }
-    std::string reg = "";
-    for(int i=0;i<depths.size();i++){
-        reg += ".*P\\(\\{(C[0-9],)*C" + std::to_string(i) + "(,C[0-9])*\\},L"+ std::to_string(depths.at(i)-1)+"\\)U.*|"; 
-    }
-    if(depths.size()>0){
-        reg.pop_back();
-    }
-
-    
-    std::regex regexp(reg);
-    
-    if (std::regex_search(schedule_str, regexp))
-        return true;
-    
-    reg = "";
-    for(int i=0;i<depths.size();i++){
-        reg += ".*P\\(\\{(C[0-9],)*C" + std::to_string(i) + "(,C[0-9])*\\},L"+ std::to_string(depths.at(i)-1)+"\\)T2\\(\\{(C[0-9],)*C" + std::to_string(i)+ "(,C[0-9])*\\},L"+std::to_string(depths.at(i)-3)+",L"+std::to_string(depths.at(i)-2)+".*|"; 
-    }
-    if(depths.size()>0){
-        reg.pop_back();
-    }
-    
-    std::regex regexpt(reg);
-    
-    if (std::regex_search(schedule_str, regexpt))
-        return true;
-
-    return false;
-}
 bool syntax_tree::ast_is_prunable()
 {
     std::vector<int> optims(this->get_computations().size());
@@ -2401,52 +2664,6 @@ bool syntax_tree::ast_is_prunable()
     int max = *std::max_element(optims.begin(), optims.end());
     // compare the maximum number of applied matrices on any computation with MAX_MAT_DEPTH+1 (the plus 1 is to take into considiration the identity matrix)
     if(max>MAX_MAT_DEPTH+1) return true;
-
-    return false;
-}
-bool syntax_tree::can_set_default_evaluation()
-{
-    if (std::atoi(read_env_var("SET_DEFAULT_EVALUATION"))!=1){
-        return false;
-    }
-    std::vector<int> depths(this->get_computations().size());
-    int min;
-    for (optimization_info optim: new_optims){
-            
-            if(optim.type == optimization_type::MATRIX){
-                for(int i=0;i<optim.comps.size();i++){
-                    depths.at(this->get_computation_index(optim.comps.at(i))) = optim.matrix.size();
-                }  
-            }
-
-            min= *std::min_element(depths.begin(), depths.end());
-            // Only get the depths from identity matrices
-            if(min>0) break;
-        }
-
-    std::string schedule_str = get_schedule_str();
-    
-    //check if innermost loop is parallelized, if yes set the speedup to 0.001 
-    std::string reg = "";
-    for(int i=0;i<depths.size();i++){
-        // we only set a default evaluation for loops that have 3 nested loops or more
-        if(depths.at(i)>2){
-            reg += ".*P\\(\\{(C[0-9],)*C" + std::to_string(i) + "(,C[0-9])*\\},L"+ std::to_string(depths.at(i)-1)+"\\)$|"; 
-        }
-    }
-    if(depths.size()>0){
-        reg.pop_back();
-    }
-    std::regex regexp(reg);
-    
-
-    if (std::regex_search(schedule_str,regexp))
-    {
-        evaluation =  std::atof(read_env_var("INIT_EXEC_TIME"))*1000;
-        return true;
-    }
-    
-    
 
     return false;
 }
@@ -2684,8 +2901,14 @@ void syntax_tree::move_to_next_head()
 }
 
 bool syntax_tree::optim_already_applied_on_comp(tiramisu::computation *comp, tiramisu::auto_scheduler::optimization_type opt_type) {
-    for (auto opt_info:new_optims) {
+    for (auto opt_info : new_optims) {
         if (opt_info.type != opt_type) //if different optimization, skip to next
+            continue;
+        if (std::find(opt_info.comps.begin(), opt_info.comps.end(), comp) != opt_info.comps.end()) // if comp in computations list
+            return true;
+    }
+    for (auto opt_info : previous_optims) {
+        if (opt_info.type != opt_type) //If different optimization, skip to next
             continue;
         if (std::find(opt_info.comps.begin(), opt_info.comps.end(), comp) != opt_info.comps.end()) // if comp in computations list
             return true;

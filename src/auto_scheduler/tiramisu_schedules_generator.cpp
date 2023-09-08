@@ -225,8 +225,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
     ast_node *node = std::get<0>(ast.get_current_optimization_target());
 
-    std::vector<std::string> shared_levels_extents;
-    std::vector<int> innermost_extents;
     std::vector<ast_node *> innermost_nodes;
 
     std::vector<ast_node *> shared_nodes;
@@ -373,18 +371,66 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         break;
 
     case optimization_type::TILING:
-        shared_levels_extents = ast.get_shared_levels_extents();
 
-        //shared nodes minus last shared node
-        shared_nodes = node->collect_shared_nodes_from_head();
+        shared_nodes = node->collect_shared_nodes_from_head();    
+
+        for (auto &node_iterator : shared_nodes)
+        {
+            // We wil push multiple optimizations to support the tiling of imperfectly-nested loops
+            int ast_height = node_iterator->get_ast_height();
+            // Explore all the tiling sizes
+            for (int tiling_size : tiling_factors_list){
+                if (can_split_iterator_sup(node_iterator->up_bound, node_iterator->low_bound, tiling_size)){
+                    // Copy the AST to add the tiling
+                    syntax_tree *new_ast = new syntax_tree();
+                    ast_node *new_node = ast.copy_and_return_node(*new_ast, node_iterator);
+                    // For each depth in this subtree
+                    // We only support tiling for up to three dimensions
+                    for(int i = 0; i < std::min(3, ast_height); i++){
+
+                        std::vector<tiramisu::computation *> depth_computations = node_iterator->get_computations_by_depth(i);
+                        // Check that there are computations at this level to be tiled
+                        if (depth_computations.size() == 0)
+                            continue;
+
+                        if (ast.optim_already_applied_on_comps(depth_computations, optimization_type::TILING)) // check if one of the involved computations is already tiled
+                            continue;
+
+                        optimization_info optim_info;
+                        optim_info.type = optimization_type::TILING;
+                        optim_info.node = new_node;
+                        optim_info.nb_l = i+1;
+                        optim_info.l0 = node_iterator->depth;
+                        optim_info.l1 = optim_info.l0+1;
+                        optim_info.l2 = optim_info.l1+1;
+                        
+                        // Add tiling factors
+                        optim_info.l0_fact = tiling_size;
+                        optim_info.l1_fact = tiling_size;
+                        optim_info.l2_fact = tiling_size;
+
+                        // Add involved computations
+                        optim_info.comps = depth_computations;
+                        // Add the optimization to the ast
+                        new_ast->new_optims.push_back(optim_info);
+                    }
+                    if(new_ast->new_optims.size() > 0)
+                        // Add this AST to the generated candidates
+                        states.push_back(new_ast);
+                }   
+            }    
+        }
+
+        // Explore 2D and 3D tiling of perfectly nested loops
         shared_nodes.pop_back(); // remove the last because we can't start a tiling from the last iterator
 
         if (!shared_nodes.empty())
             shared_nodes[0]->get_all_computations(involved_computations); // since we are trying tilings on the shared nodes, we can directly get the involved comps from here.
-        if (ast.optim_already_applied_on_comps(involved_computations,optimization_type::TILING)) // check if one of the involved computations is already tiled
+
+        if (ast.optim_already_applied_on_comps(involved_computations, optimization_type::TILING)) // Check if at least one of the involved computations is already tiled
             return states;
 
-        // use nb try as to count if we reached last commun possible node (to disable 3layers tiling);
+        // Use nb try as to count if we reached last commun possible node (to disable 3-layers tiling);
         nb_try = 0;
 
         for (auto &node_iterator : shared_nodes)
@@ -396,7 +442,9 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                 {
                     for (int tiling_size2 : tiling_factors_list)
                     {
-                        if (can_split_iterator_sup(node_iterator->children[0]->up_bound, node_iterator->children[0]->low_bound, tiling_size2))
+                        ast_node* child_iteartor =  node_iterator->children[0];
+                        // Explore 2D tiling if the node is not a leaf of the tree but the node is prefectly nested (no computations and only one child) || the node is a leaf of the tree 
+                        if (can_split_iterator_sup(child_iteartor->up_bound, child_iteartor->low_bound, tiling_size2))
                         {
                             // Copy the AST and add tiling with 2 dimensions to the list of optimizations
                             syntax_tree *new_ast = new syntax_tree();
@@ -414,11 +462,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                             optim_info.comps = involved_computations;
                             new_ast->new_optims.push_back(optim_info);
                             states.push_back(new_ast);
-
-                            // Cannot apply tiling with 3 dimensions,
-                            // continue to apply tiling with 2 dimensions.
-                            /*if ((nb_try + 2) >= shared_nodes.size())
-                                continue;*/
 
                             if ((nb_try + 1) < shared_nodes.size())
                             {
@@ -453,7 +496,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                     }
                 }
             }
-
             nb_try++;
         }
         break;
@@ -515,23 +557,37 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         // Apply all possible unrolling factors to all innermost iterators
         //test unrolling for all inner nodes until we find a valid
         bool result = true;
+
+        // In the case where complicated transformations are applied, we can't trust that the Tiramisu AST reflects all the changes
+        // Instead, we retrieve the accurate depth of the branch to be unrolling using the isl AST
+        int unrolling_depth = -1;
         for (ast_node *inner_most_node: innermost_nodes) {
             std::vector<tiramisu::computation *> involved_computations;
             inner_most_node->get_innermost_computations(involved_computations);
-            for (auto comp: involved_computations){
-                std::vector<std::string> loop_names = comp->get_loop_level_names();
-                std::vector<tiramisu::computation *> involved_comp_first; 
-                involved_comp_first.push_back(comp);
-                std::string loop_name = loop_names[inner_most_node->depth];
-                result = result && (!inner_most_node->is_optimized_by_tag()) &&
-                                ast.fct->loop_unrolling_is_legal(var(loop_name), involved_comp_first);
+            tiramisu::computation * first_comp = involved_computations.at(0);
+            
+            // The index of the loop to unrolling is the number of for loops containing this computations - 1
+            // The number of loops containing the computation is the maximal AST depth - 1 (the compute_maximal_AST_depth counts the user node in the depth)
+            unrolling_depth = first_comp->compute_maximal_AST_depth() - 2;
+            if(unrolling_depth < 0){
+                // In the case where a computation is not contained by any loops, the maximal_AST_depth will be one and the unrolling depth will be negative
+                // Since the computation has no loops, there are no loops to unroll.
+                result = false;
+            }else{
+                // The legality of unrolling can be checked by checking if unrolling each of the computations in this node is legal
+                for (auto computation : involved_computations){
+                    std::vector<std::string> loop_names = computation->get_loop_level_names();
+                    std::string loop_name = loop_names[unrolling_depth];
+                    result = result && (!inner_most_node->is_optimized_by_tag()) &&
+                                ast.fct->loop_unrolling_is_legal(var(loop_name), {computation});
+                }
             }
             if (result) // unrollable: test all possible values
             {
                 ast.recover_isl_states();
 
                 for (int unrolling_fact: unrolling_factors_list) {
-                    if (can_split_iterator(inner_most_node->up_bound, inner_most_node->low_bound, unrolling_fact, optimization_type::UNROLLING)) {
+                    if (can_split_iterator_sup(inner_most_node->up_bound, inner_most_node->low_bound, unrolling_fact, optimization_type::UNROLLING)) {
                         // Copy the AST and add unrolling to the list of optimizations
                         syntax_tree *new_ast = new syntax_tree();
                         ast_node *new_node = ast.copy_and_return_node(*new_ast, inner_most_node);
@@ -541,7 +597,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                         optim_info.nb_l = 1;
 
                         // When l0 is set to -1, unrolling is applied to all innermost levels, (1 to avoid that)
-                        optim_info.l0 = new_node->depth;
+                        optim_info.l0 = unrolling_depth;
                         optim_info.l0_fact = unrolling_fact;
                         // select this node
                         optim_info.node = new_node;
@@ -557,7 +613,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         }
         ast.recover_isl_states();
     }
-        break;
+    break;
 
     case optimization_type::PARALLELIZE:
 
@@ -609,6 +665,8 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                 // select this node
                 optim_info.node = new_node;
 
+                // Please note that this variable will not be used to decide which loops will be parallelized in the generated code
+                // Check the apply_parallelization function for more details  
                 optim_info.comps = involved_computations;
                 new_ast->new_optims.push_back(optim_info);
                 states.push_back(new_ast);
@@ -930,9 +988,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     bool explre_solver_skew = true;
     std::vector<std::vector<std::vector<int>>> matrices;
     ast_node *node = std::get<0>(ast.get_current_optimization_target());
-    
-    std::vector<int> shared_levels_extents;
-    std::vector<int> innermost_extents;
+
     std::vector<ast_node *> innermost_nodes;
 
     std::vector<ast_node *> shared_nodes;

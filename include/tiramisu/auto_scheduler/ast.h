@@ -285,6 +285,11 @@ public:
     bool parallelized = false;
 
     /**
+     * True if the loop level has been tiled
+     */
+    bool tiled = false;
+
+    /**
     * True if the loop level has been skewed
     */
     bool skewed = false;
@@ -423,6 +428,22 @@ public:
      * and only one child.
      */
     int get_loop_levels_chain_depth() const;
+
+    /**
+     * Starting from this node, get the maximum depth of the tree.
+     * The height of the root is 1. 
+     */
+    int get_ast_height();
+
+    /**
+     * Starting from this node, get the all the nodes that are at the depth \p depth.
+     */
+    std::vector<ast_node*> get_nodes_by_depth(int depth);
+
+    /**
+     * Starting from this node, get the all the computations included in the nodes that are at the depth \p depth.
+     */
+    std::vector<tiramisu::computation*> get_computations_by_depth(int depth);
 
     /**
      * Print the subtree rooted at this node.
@@ -618,12 +639,12 @@ public:
     int nb_explored_optims = 0;
     
     /**
-     *
+     * Contains all the transformations that are already applied on the ast 
      */
     std::vector<optimization_info> previous_optims;
     
     /**
-     *
+     * Contains the transformations that are to be applied on the ast
      */
     std::vector<optimization_info> new_optims;
     
@@ -865,9 +886,8 @@ public:
     std::string get_schedule_str();
 
     /**
-     * Predicts if the schedule applied to the ast is worth evaluating and exploring further.
+     * Predicts if the schedule applied to the ast surpasses the max number of affine transformations set by the user
      */
-    bool schedule_is_prunable();
     bool ast_is_prunable();
 
     /**
@@ -875,11 +895,6 @@ public:
      * In case the computation_index is -1, it will bring all the computation within the node.
     */
     void get_previous_computations(std::vector<computation*>& result,ast_node*& node, int computation_index);
-
-    /**
-     * Checks if the AST's evaluation can be predicted using manual engineered rules
-     */
-    bool can_set_default_evaluation();
 
     /**
      * Initialize the search state with potentiel alternatives for the specified optimisation.
@@ -941,12 +956,12 @@ public:
     int get_computation_index(computation *comp);
 
     /**
-     * Checks whether the optimization type opt_type is  already applied to computation comp (searches in new_optims)
+     * Checks whether the optimization type opt_type is already applied to computation comp
      */
-     bool optim_already_applied_on_comp(tiramisu::computation* comp,tiramisu::auto_scheduler::optimization_type opt_type);
+     bool optim_already_applied_on_comp(tiramisu::computation* comp, tiramisu::auto_scheduler::optimization_type opt_type);
 
      /**
-     * Checks whether the optimization type opt_type is  already applied to at least one computation from comp_list (searches in new_optims)
+     * Checks whether the optimization type opt_type is already applied to at least one computation from comp_list
      */
      bool optim_already_applied_on_comps(const std::vector<tiramisu::computation *>comp_list, tiramisu::auto_scheduler::optimization_type opt_type);
 };

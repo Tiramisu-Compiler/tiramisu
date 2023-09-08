@@ -195,6 +195,12 @@ void block::tile(var L0, var L1, var L2, int sizeX, int sizeY, int sizeZ,
     }
 }
 
+void block::tile(int L0, int sizeX) {
+    for (auto &child : this->children) {
+        child->tile(L0, sizeX);
+    }
+}
+
 void block::tile(int L0, int L1, int sizeX, int sizeY) {
     for (auto &child : this->children) {
         child->tile(L0, L1, sizeX, sizeY);

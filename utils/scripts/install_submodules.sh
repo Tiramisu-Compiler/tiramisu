@@ -38,7 +38,7 @@ echo ${PROJECT_SRC_DIR}
 echo "#### Cloning submodules ####"
 
 echo_and_run_cmd "cd ${PROJECT_SRC_DIR}"
-echo_and_run_cmd "git submodule update --init --remote --recursive"
+echo_and_run_cmd "git submodule update --init --recursive"
 
 
 # Get ISL installed
@@ -47,7 +47,8 @@ echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/3rdParty/isl"
 if [ ! -d "build" ]; then
     echo_and_run_cmd "mkdir build/"
 fi
-echo_and_run_cmd "touch aclocal.m4 Makefile.am Makefile.in"
+#echo_and_run_cmd "touch aclocal.m4 Makefile.am Makefile.in"
+echo_and_run_cmd "./autogen.sh"
 echo_and_run_cmd "./configure --prefix=$PWD/build/ --with-int=imath"
 echo_and_run_cmd "make -j $CORES"
 echo_and_run_cmd "make install"

@@ -6,9 +6,7 @@ void gen(std::string name, int size, int val0, int val1)
 {
     tiramisu::init(name);
 
-    tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0);
-
-    tiramisu::var i("i", 0, N), j("j", 0, N);
+    tiramisu::var i("i", 0, size), j("j", 0, size);
     tiramisu::var i0("i0"), j0("j0"), i1("i1"), j1("j1");
     tiramisu::var i00("i00"), j00("j00"), i01("i01"), j01("j01");
 

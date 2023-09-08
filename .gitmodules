@@ -13,3 +13,8 @@
 	url = https://github.com/llvm-mirror/clang.git
 	branch = release_50
 	ignore = all
+[submodule "3rdParty/isl"]
+	path = 3rdParty/isl
+	url = https://repo.or.cz/isl.git
+	branch = master
+

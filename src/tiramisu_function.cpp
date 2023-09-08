@@ -1242,6 +1242,222 @@ bool tiramisu::function::needs_rank_call() const
     return _needs_rank_call;
 }
 
+void tiramisu::function::cluster_statement_automatically()
+{   
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+    // for link in scheduling graph
+    // if str -> target fuzed both at innermost: they belong to the same cluster
+        // if one of them already in cluster
+    DEBUG(3, tiramisu::str_dump("Number of schedule graph roots is " +
+                                std::to_string(this->starting_computations.size())));
+
+    tiramisu::computation * start_computation = NULL;
+    for (auto root: this->starting_computations) 
+    {
+        start_computation = root;
+        break;
+    }
+    
+    DEBUG(3, tiramisu::str_dump("Starting the clustering detection from :" + start_computation->get_name()));
+
+    tiramisu::computation * iterator_computation = start_computation;
+
+    std::vector<tiramisu::computation *> cluster;
+
+    while (this->sched_graph.find(iterator_computation) != this->sched_graph.end()) {
+        // look up next computation
+        std::unordered_map<tiramisu::computation *, int>& map = this->sched_graph[iterator_computation];
+        if (map.empty())
+        {
+            break;
+        }
+        tiramisu::computation * target_computation = map.begin()->first;
+        int detected_level = map.begin()->second;
+        DEBUG(3, tiramisu::str_dump(" link " + iterator_computation->get_name() + " to " + target_computation->get_name()));
+
+        int nb_levels_1 = iterator_computation->get_loop_levels_number();
+        int nb_levels_2 = target_computation->get_loop_levels_number();
+
+        // see if they are fused at the innermost level both
+        DEBUG(3, tiramisu::str_dump(" nb loops in first " + std::to_string(nb_levels_1)));
+        DEBUG(3, tiramisu::str_dump(" nb loops in second " + std::to_string(nb_levels_2)));
+        DEBUG(3, tiramisu::str_dump(" see at which level they are fused " + std::to_string(detected_level)));
+
+        if ((nb_levels_1 == nb_levels_2) && (nb_levels_1 == detected_level + 1)) {
+            // fused at innermost level for both
+            // they are part of the same cluster
+            DEBUG(3, tiramisu::str_dump(" both computations in the same cluster "));
+            if (cluster.empty()) {
+                cluster.push_back(iterator_computation);
+                cluster.push_back(target_computation);
+            }
+            else {
+                // this means iterator_computation is already in
+                cluster.push_back(target_computation);
+            }
+        }
+        else
+        {
+            // they are not in the same cluster -> flush the cluster
+            if (!cluster.empty()) {
+                std::string cluster_str = "";
+                for (auto const& stmt : cluster)
+                {
+                    cluster_str += stmt->get_name() + " ";
+                }
+                DEBUG(3, tiramisu::str_dump(" flushing the cluster " + cluster_str));
+                this->append_clustered_statements(cluster);
+                cluster.clear();
+            }
+        }
+        // next link
+        iterator_computation = target_computation;
+    }
+
+    // flush any cluster that remains
+    if (cluster.size() > 1) {
+        std::string cluster_str = "";
+        for (auto const& stmt : cluster)
+        {
+            cluster_str += stmt->get_name() + " ";
+        }
+        DEBUG(3, tiramisu::str_dump(" flushing the cluster " + cluster_str));
+        this->append_clustered_statements(cluster);
+    }
+    DEBUG_INDENT(-4);
+}
+
+void tiramisu::function::append_clustered_statements(const std::vector<tiramisu::computation *> &statements)
+{
+    this->clustered_statements.push_back(statements);
+}
+
+void tiramisu::function::filter_out_invalid_clusters()
+{
+    std::vector<std::vector<tiramisu::computation *>> filtered_clusters;
+    for (auto const& cluster : this->clustered_statements)
+    {
+        if (check_clustered_statements_are_innermost(cluster))
+        {
+            // keep the cluster
+            filtered_clusters.push_back(cluster);
+        }
+    }
+    this->clustered_statements = filtered_clusters;
+}
+
+bool tiramisu::function::check_clustered_statements_are_innermost(const std::vector<tiramisu::computation *> &cluster)
+{   DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    const std::string empty_name = "";
+    std::vector<isl_map *> schedules_cmp;
+
+    DEBUG(10, tiramisu::str_dump("Checking the validity of the cluster :"));
+    for (auto const& comp: cluster)
+    {
+        isl_map * schedule_copy = isl_map_copy(comp->get_schedule());
+        schedule_copy = isl_map_set_tuple_name(schedule_copy, isl_dim_out, empty_name.c_str());
+        schedule_copy = isl_map_set_tuple_name(schedule_copy, isl_dim_in, empty_name.c_str());
+        DEBUG(10, tiramisu::str_dump("the computation :" + comp->get_name() + " schedule is " 
+                + std::string(isl_map_to_str(schedule_copy))));
+        
+        // remove last dim
+        schedule_copy = isl_map_project_out(schedule_copy, isl_dim_out, 
+                isl_map_dim(schedule_copy, isl_dim_out) - 1, 1);
+
+        DEBUG(10, tiramisu::str_dump("Schedule without last beta dimension : " 
+                + std::string(isl_map_to_str(schedule_copy))));
+        schedules_cmp.push_back(schedule_copy);
+    }
+            // append a new vector of maps
+    // compare them 0 -> n-1
+    bool innermost = true;
+    for (int i = 0; i < schedules_cmp.size() - 1; i++)
+    {
+        if (isl_map_is_equal(schedules_cmp[i], schedules_cmp[i + 1]) != isl_bool_true)
+        {
+            innermost = false;
+            break;
+        }
+    }
+    if (innermost)
+    {
+        DEBUG(10, tiramisu::str_dump("-> This cluster is valid"));
+    }
+    else
+    {
+        DEBUG(10, tiramisu::str_dump("-> This cluster is invalid !! check stopping here"));
+    }
+    //clean up
+    for (auto const& comp: schedules_cmp)
+    {
+        isl_map_free(comp);
+    }
+    schedules_cmp.clear();
+
+    DEBUG_INDENT(-4);
+    return innermost;
+}
+
+void tiramisu::function::sort_clustered_statements()
+{   DEBUG_FCT_NAME(5);
+    DEBUG_INDENT(4);
+
+    for(auto& cluster: this->clustered_statements)
+    {
+        DEBUG(5, tiramisu::str_dump("sorting the cluster :"));
+        std::map<int, tiramisu::computation *> beta_to_name;
+        for (auto& comp: cluster)
+        {
+            isl_map * schedule_copy = isl_map_copy(comp->get_schedule());
+            DEBUG(5, tiramisu::str_dump("the computation :" + comp->get_name() + " schedule is " 
+                    + std::string(isl_map_to_str(schedule_copy))));
+            
+            // get the value of the last beta dimension
+            isl_set * schedule_range = isl_map_range(schedule_copy);
+            int nb_dimension = isl_set_dim(schedule_range, isl_dim_set);
+
+            isl_val * last_beta = isl_set_dim_max_val(schedule_range, nb_dimension - 1);
+            int last_beta_value = static_cast<int>(isl_val_get_d(last_beta));
+
+            isl_val_free(last_beta);
+
+            DEBUG(5, tiramisu::str_dump("Schedule last beta dimension : " 
+                    + std::to_string(last_beta_value)));
+            beta_to_name[last_beta_value] = comp;
+
+        }
+        cluster.clear();
+        DEBUG(5, tiramisu::str_dump(" The established order is "));
+
+        for (auto& computation : beta_to_name)
+        {
+            DEBUG(5, tiramisu::str_dump(" The computation " + computation.second->get_name()));
+            cluster.push_back(computation.second);
+        }
+
+    }
+
+    DEBUG_INDENT(-4);
+}
+
+std::vector<tiramisu::computation*> function::get_the_cluster_represented_by_stmt(const tiramisu::computation& first) const
+{
+    for(int i=0; i < this->clustered_statements.size(); i++)
+    {
+        if (this->clustered_statements[i].size() > 0)
+        {
+            if (this->clustered_statements[i][0]->get_name() == first.get_name())
+            {
+                return this->clustered_statements[i];
+            }
+        }
+    }
+    return std::vector<tiramisu::computation*>();
+}
+
 void function::set_context_set(isl_set *context)
 {
     assert((context != NULL) && "Context is NULL");
@@ -1439,6 +1655,24 @@ void function::gen_isl_ast()
         ast_build = isl_ast_build_set_iterators(ast_build, iterators);
     }
 
+    // unschedule clustered computations
+    // only schedule thr first stmt of the cluster
+    bool first = true;
+    for (auto& cluster : clustered_statements)
+    {
+        first = true;
+        for (auto& comp : cluster)
+        {
+            if (first) 
+            {
+                first = false;
+            }
+            else {
+                comp->unschedule_this_computation();
+            }
+        }
+    }
+
     // Intersect the iteration domain with the domain of the schedule.
     isl_union_map *umap =
         isl_union_map_intersect_domain(
@@ -1461,6 +1695,74 @@ void function::gen_isl_ast()
     isl_ast_build_free(ast_build);
 
     DEBUG_INDENT(-4);
+}
+
+/**
+ * Print the function as an isl AST representation.
+ * This function prints the iterators and the computations only in the following format
+ * for iterrators:
+ * <iterator_level>|iterator|<iterator_name>|<lower_bound>|<iterator_condition>|<iterator_increment>
+ * and for computations:
+ * <computation_level>|computation|<computation_name>
+ */
+void function::print_isl_ast_representation(isl_ast_node *node, int level)
+{
+    if (node == NULL)
+    {
+        node = this->ast;
+    }
+
+    if (isl_ast_node_get_type(node) == isl_ast_node_block)
+    {
+        // iterate over the children of the block and construct their representation
+        isl_ast_node_list *list = isl_ast_node_block_get_children(node);
+        for (int i = 0; i < isl_ast_node_list_n_ast_node(list); i++)
+        {
+            isl_ast_node *child = isl_ast_node_list_get_ast_node(list, i);
+            print_isl_ast_representation(child, level);
+            isl_ast_node_free(child);
+        }
+        isl_ast_node_list_free(list);
+    }
+    else if (isl_ast_node_get_type(node) == isl_ast_node_for)
+    {
+        // construct string of iterator from the isl_ast_node
+        std::string iterator_string_repr = std::to_string(level) + "|iterator|" + std::string(isl_ast_expr_to_C_str(isl_ast_node_for_get_iterator(node))) + "|" + std::string(isl_ast_expr_to_C_str(isl_ast_node_for_get_init(node))) + "|" +
+                            std::string(isl_ast_expr_to_C_str(isl_ast_node_for_get_cond(node))) + "|" +
+                            std::string(isl_ast_expr_to_C_str(isl_ast_node_for_get_inc(node)));
+        std::cout << iterator_string_repr << std::endl;
+
+        // recurse on the body of the for loop while incrementing the level
+        isl_ast_node *body = isl_ast_node_for_get_body(node);
+        print_isl_ast_representation(body, level + 1);
+        isl_ast_node_free(body);
+    }
+    else if (isl_ast_node_get_type(node) == isl_ast_node_user)
+    {
+        // Get the computation name from the isl_ast_node
+        isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
+        isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
+        isl_id *id = isl_ast_expr_get_id(arg);
+        isl_ast_expr_free(expr);
+        isl_ast_expr_free(arg);
+        std::string computation_name(isl_id_get_name(id));
+
+        // construct string of computation from the isl_ast_node
+        std::string computation_string_repr = std::to_string(level) + "|computation|" + computation_name;
+        isl_id_free(id);
+        std::cout << computation_string_repr << std::endl;
+    }
+    else if (isl_ast_node_get_type(node) == isl_ast_node_if)
+    {
+        // if we find an if node we construct both its then and else branches
+        print_isl_ast_representation(isl_ast_node_if_get_then(node), level);
+
+        // if the if node has an else branch we construct it
+        if (isl_ast_node_if_has_else(node))
+        {
+            print_isl_ast_representation(isl_ast_node_if_get_else(node), level);
+        }
+    }
 }
 
 void tiramisu::function::allocate_and_map_buffers_automatically()
@@ -2645,7 +2947,7 @@ const std::vector<std::string> tiramisu::function::get_invariant_names() const
     return inv_str;
 }
 
-void tiramisu::function::performe_full_dependency_analysis()
+void tiramisu::function::perform_full_dependency_analysis()
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -2929,6 +3231,9 @@ bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<t
             break;
         }
     }
+
+    DEBUG(3, tiramisu::str_dump(" unrolling check for var result is : "+std::to_string(result)));
+
     DEBUG_INDENT(-4);
 
     return result;
@@ -3119,7 +3424,7 @@ bool tiramisu::function::loop_vectorization_is_legal(tiramisu::var i , std::vect
     bool result = this->loop_unrolling_is_legal(i,fuzed_computations) 
                 && this->loop_parallelization_is_legal(i,fuzed_computations);
 
-    DEBUG(3, tiramisu::str_dump(" vectorization legality is : "+result));
+    DEBUG(3, tiramisu::str_dump(" vectorization legality is : " + std::to_string(result)));
 
     DEBUG_INDENT(-4);
 
