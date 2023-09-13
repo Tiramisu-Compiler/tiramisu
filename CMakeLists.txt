@@ -73,6 +73,7 @@ if (${USE_MPI})
     endif()
 endif()
 
+include_directories("${ISL_INCLUDE_DIRECTORY}")
 set(CMAKE_CXX_FLAGS "-std=c++17 -Wall -Wno-sign-compare")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
