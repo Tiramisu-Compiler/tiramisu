@@ -16,6 +16,7 @@ const int DEFAULT_MAX_NB_ITERATORS = 7;
  * Generate a set of AST's from a given AST.
  * Inherit this class to implement a new way to generate schedules.
  */
+
 class schedules_generator
 {
 private:
@@ -71,7 +72,19 @@ public:
      * Given an AST, and an optimization to apply, 
      * generate new ASTs by applying the given optimization.
      */
-    virtual std::vector<syntax_tree*> generate_schedules(syntax_tree const& ast, optimization_type optim) =0;
+//    virtual std::vector<syntax_tree*> generate_schedules(syntax_tree const& ast, optimization_type optim) =0;
+
+    /**
+     * Additional default definition, it would be overriden such to generate schedules from
+     * the AST and it's generator_state attribute.
+    */
+//    virtual std::vector<syntax_tree*> generate_schedules(syntax_tree& ast)
+//    {
+//        return this->generate_schedules(ast,optimization_type::TILING);
+//    }
+    virtual std::vector<syntax_tree*> generate_schedules(syntax_tree& ast)=0;
+    virtual std::vector<syntax_tree *> generate_matrices(syntax_tree &ast)=0;
+    
 };
 
 /**
@@ -114,6 +127,7 @@ public:
         : schedules_generator(tiling_factors_list, unrolling_factors_list) {}
 
     virtual std::vector<syntax_tree*> generate_schedules(syntax_tree const& ast, optimization_type optim);
+    virtual std::vector<syntax_tree *> generate_matrices(syntax_tree &ast)=0;
 };
 
 /**
@@ -139,7 +153,10 @@ public:
         : schedules_generator(tiling_factors_list, unrolling_factors_list),    
           max_nb_iterators(max_nb_iterators) {}
         
-    virtual std::vector<syntax_tree*> generate_schedules(syntax_tree const& ast, optimization_type optim);
+//    virtual std::vector<syntax_tree*> generate_schedules(syntax_tree const& ast, optimization_type optim);
+
+    virtual std::vector<syntax_tree*> generate_schedules(syntax_tree& ast);
+    virtual std::vector<syntax_tree *> generate_matrices(syntax_tree &ast);
 };
 
 }

@@ -19,3 +19,5 @@ configure.cmake
 3rdParty/*
 __pycache__
 .ipynb_checkpoints
+cmake-build-debug/
+cmake-build-autoscheduler/

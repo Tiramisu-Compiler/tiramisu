@@ -10,7 +10,6 @@ fi
 
 PROJECT_SRC_DIR=`realpath ${1}`
 CMAKE=cmake
-#CMAKE=/data/scratch/baghdadi/libs/cmake-3.22.1_prefix/bin/cmake
 CORES=4
 
 # For Travis build we skip LLVM installation and use a custom binary.
@@ -39,7 +38,24 @@ echo ${PROJECT_SRC_DIR}
 # echo "#### Cloning submodules ####"
 
 echo_and_run_cmd "cd ${PROJECT_SRC_DIR}"
-echo_and_run_cmd "git submodule update --init --remote --recursive"
+echo_and_run_cmd "git submodule update --init --recursive"
+
+
+# Get ISL installed
+echo "#### Installing isl ####"
+echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/3rdParty/isl"
+if [ ! -d "build" ]; then
+    echo_and_run_cmd "mkdir build/"
+fi
+#echo_and_run_cmd "touch aclocal.m4 Makefile.am Makefile.in"
+echo_and_run_cmd "./autogen.sh"
+echo_and_run_cmd "./configure --prefix=$PWD/build/ --with-int=imath"
+echo_and_run_cmd "make -j $CORES"
+echo_and_run_cmd "make install"
+echo "Done installing isl"
+
+
+
 
 # Get LLVM installed
 if [ "$2" = "" ]; then

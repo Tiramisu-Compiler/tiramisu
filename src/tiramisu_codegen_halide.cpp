@@ -157,12 +157,15 @@ isl_map *create_map_from_domain_and_range(isl_set *domain, isl_set *range)
 }
 
 isl_ast_expr *create_isl_ast_index_expression(isl_ast_build *build,
-                                              isl_map *access, int remove_level = -1)
+                                              isl_map *access, int remove_level = -1, std::string schedule_out_name = "")
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
     isl_map *schedule = isl_map_from_union_map(isl_ast_build_get_schedule(build));
+    if (schedule_out_name != "") {
+        schedule = isl_map_set_tuple_name(schedule, isl_dim_in, schedule_out_name.c_str());
+    }
     DEBUG(3, tiramisu::str_dump("Schedule:", isl_map_to_str(schedule)));
 
     if (remove_level != -1) {
@@ -183,6 +186,8 @@ isl_ast_expr *create_isl_ast_index_expression(isl_ast_build *build,
     isl_pw_multi_aff *iterator_map = isl_pw_multi_aff_from_map(map);
     DEBUG_NO_NEWLINE(3, tiramisu::str_dump("iterator_map (the iterator map of an AST leaf after scheduling): "));
     DEBUG_NO_NEWLINE(3, isl_pw_multi_aff_dump(iterator_map));
+    int access_in_dim = isl_map_dim(access, isl_dim_in);
+    access = isl_map_drop_constraints_involving_dims(access, isl_dim_in, access_in_dim - 1, 1);
     DEBUG(3, tiramisu::str_dump("Access:", isl_map_to_str(access)));
     isl_pw_multi_aff *index_aff = isl_pw_multi_aff_from_map(isl_map_copy(access));
     assert(index_aff != nullptr && "Affine expression extraction failed!");
@@ -193,9 +198,9 @@ isl_ast_expr *create_isl_ast_index_expression(isl_ast_build *build,
     isl_space *model = isl_pw_multi_aff_get_space(isl_pw_multi_aff_copy(index_aff));
     iterator_map = isl_pw_multi_aff_align_params(iterator_map, model);
     DEBUG_NO_NEWLINE(3, tiramisu::str_dump("space(index_aff): "));
-    DEBUG_NO_NEWLINE(3, isl_space_dump(isl_pw_multi_aff_get_space(index_aff)));
+    DEBUG_NO_NEWLINE(3, isl_pw_multi_aff_dump((index_aff)));
     DEBUG_NO_NEWLINE(3, tiramisu::str_dump("space(iterator_map): "));
-    DEBUG_NO_NEWLINE(3, isl_space_dump(isl_pw_multi_aff_get_space(iterator_map)));
+    DEBUG_NO_NEWLINE(3, isl_pw_multi_aff_dump((iterator_map)));
     iterator_map = isl_pw_multi_aff_pullback_pw_multi_aff(index_aff, iterator_map);
     DEBUG_NO_NEWLINE(3, tiramisu::str_dump("isl_pw_multi_aff_pullback_pw_multi_aff(index_aff,iterator_map):"));
     DEBUG_NO_NEWLINE(3, isl_pw_multi_aff_dump(iterator_map));
@@ -1257,7 +1262,7 @@ std::map<std::string, isl_ast_expr *> generator::compute_iterators_map(tiramisu:
 
     DEBUG(3, tiramisu::str_dump("Creating an isl_ast_index_expression for the access :",
                                 isl_map_to_str(identity)));
-    isl_ast_expr *idx_expr = create_isl_ast_index_expression(build, identity, comp->get_level_to_drop());
+    isl_ast_expr *idx_expr = create_isl_ast_index_expression(build, identity, comp->get_level_to_drop(), comp->get_name());
     DEBUG(3, tiramisu::str_dump("The created isl_ast_expr expression for the index expression is :",
                                 isl_ast_expr_to_str(idx_expr)));
 
@@ -1317,118 +1322,128 @@ isl_ast_node *generator::stmt_code_generator(isl_ast_node *node, isl_ast_build *
 
         assert((comp != NULL) && "Computation not found!");;
 
-        DEBUG(3, tiramisu::str_dump("Computation:", comp->get_name().c_str()));
+        // generate accesses for all computation in this cluster
 
-        // Get the accesses of the computation.  The first access is the access
-        // for the LHS.  The following accesses are for the RHS.
-        std::vector<isl_map *> accesses;
-        if (comp->has_accesses() == true)
-        {
-            isl_map *access = comp->get_access_relation_adapted_to_time_processor_domain();
-            accesses.push_back(access);
-            // Add the accesses of the RHS to the accesses vector
-            generator::get_rhs_accesses(func, comp, accesses, true);
+        std::vector<tiramisu::computation*> cluster = func->get_the_cluster_represented_by_stmt(*comp);
+
+        if (cluster.empty()) {
+            cluster.push_back(comp);
         }
 
-        // This requires some type of wait on an asynchronous or non-blocking operation.
-        isl_map *req_access = nullptr;
-        if (comp->wait_access_map) {
-            // This has a special LHS access into the request buffer
-            isl_map *acc_copy = comp->get_access_relation() ? isl_map_copy(comp->get_access_relation()) : nullptr;
-            comp->set_access(comp->wait_access_map);
-            req_access = comp->get_access_relation_adapted_to_time_processor_domain();
-            if (acc_copy) {
-                comp->set_access(acc_copy);
-            }
-        }
+        for (auto comp : cluster) {
+            DEBUG(3, tiramisu::str_dump("Computation:", comp->get_name().c_str()));
 
-        if (req_access) {
-            comp->wait_index_expr = create_isl_ast_index_expression(build, req_access, comp->get_level_to_drop());
-            isl_map_free(req_access);
-        }
-
-        /*
-         * Compute the iterators map.
-         * The iterators map is map between the original names of the iterators of a computation
-         * and their transformed form after schedule (also after renaming).
-         *
-         * If in the original computation, we had
-         *
-         * {C[i0, i1]: ...}
-         *
-         * And if in the generated code, the iterators are called c0, c1, c2 and c3 and
-         * the loops are tiled, then the map will be
-         *
-         * {<i0, c0*10+c2>, <i1, c1*10+c3>}.
-         **/
-        std::map<std::string, isl_ast_expr *> iterators_map = generator::compute_iterators_map(comp, build);
-        comp->set_iterators_map(iterators_map);
-
-        if (!accesses.empty())
-        {
-            DEBUG(3, tiramisu::str_dump("Generated RHS access maps:"));
-            DEBUG_INDENT(4);
-            for (size_t i = 0; i < accesses.size(); i++)
+            // Get the accesses of the computation.  The first access is the access
+            // for the LHS.  The following accesses are for the RHS.
+            std::vector<isl_map *> accesses;
+            if (comp->has_accesses() == true)
             {
-                if (accesses[i] != NULL)
-                {
-                    DEBUG(3, tiramisu::str_dump("Access " + std::to_string(i) + ":", isl_map_to_str(accesses[i])));
-                }
-                else
-                {
-                    DEBUG(3, tiramisu::str_dump("Access " + std::to_string(i) + ": NULL"));
+                isl_map *access = comp->get_access_relation_adapted_to_time_processor_domain();
+                accesses.push_back(access);
+                // Add the accesses of the RHS to the accesses vector
+                generator::get_rhs_accesses(func, comp, accesses, true);
+            }
+
+            // This requires some type of wait on an asynchronous or non-blocking operation.
+            isl_map *req_access = nullptr;
+            if (comp->wait_access_map) {
+                // This has a special LHS access into the request buffer
+                isl_map *acc_copy = comp->get_access_relation() ? isl_map_copy(comp->get_access_relation()) : nullptr;
+                comp->set_access(comp->wait_access_map);
+                req_access = comp->get_access_relation_adapted_to_time_processor_domain();
+                if (acc_copy) {
+                    comp->set_access(acc_copy);
                 }
             }
 
-            DEBUG_INDENT(-4);
+            if (req_access) {
+                comp->wait_index_expr = create_isl_ast_index_expression(build, req_access, comp->get_level_to_drop(), comp->get_name());
+                isl_map_free(req_access);
+            }
 
-            std::vector<isl_ast_expr *> index_expressions;
+            /*
+            * Compute the iterators map.
+            * The iterators map is map between the original names of the iterators of a computation
+            * and their transformed form after schedule (also after renaming).
+            *
+            * If in the original computation, we had
+            *
+            * {C[i0, i1]: ...}
+            *
+            * And if in the generated code, the iterators are called c0, c1, c2 and c3 and
+            * the loops are tiled, then the map will be
+            *
+            * {<i0, c0*10+c2>, <i1, c1*10+c3>}.
+            **/
+            std::map<std::string, isl_ast_expr *> iterators_map = generator::compute_iterators_map(comp, build);
+            comp->set_iterators_map(iterators_map);
 
-            if (comp->has_accesses())
+            if (!accesses.empty())
             {
-                // For each access in accesses (i.e. for each access in the computation),
-                // compute the corresponding isl_ast expression.
-                for (size_t i = 0; i < accesses.size(); ++i)
+                DEBUG(3, tiramisu::str_dump("Generated RHS access maps:"));
+                DEBUG_INDENT(4);
+                for (size_t i = 0; i < accesses.size(); i++)
                 {
                     if (accesses[i] != NULL)
                     {
-                        DEBUG(3, tiramisu::str_dump("Creating an isl_ast_index_expression for the access (isl_map *):",
-                                                    isl_map_to_str(accesses[i])));
-                        isl_ast_expr *idx_expr = create_isl_ast_index_expression(build, accesses[i], comp->get_level_to_drop());
-                        DEBUG(3, tiramisu::str_dump("The created isl_ast_expr expression for the index expression is :", isl_ast_expr_to_str(idx_expr)));
-                        index_expressions.push_back(idx_expr);
-                        isl_map_free(accesses[i]);
+                        DEBUG(3, tiramisu::str_dump("Access " + std::to_string(i) + ":", isl_map_to_str(accesses[i])));
                     }
                     else
                     {
-                        // If this is not a let stmt and it is supposed to have accesses to other computations,
-                        // it should have an access function.
-                        if ((!comp->is_let_stmt()) && (!comp->is_library_call()))
+                        DEBUG(3, tiramisu::str_dump("Access " + std::to_string(i) + ": NULL"));
+                    }
+                }
+
+                DEBUG_INDENT(-4);
+
+                std::vector<isl_ast_expr *> index_expressions;
+
+                if (comp->has_accesses())
+                {
+                    // For each access in accesses (i.e. for each access in the computation),
+                    // compute the corresponding isl_ast expression.
+                    for (size_t i = 0; i < accesses.size(); ++i)
+                    {
+                        if (accesses[i] != NULL)
                         {
-                            tiramisu::str_dump("This is computation " + comp->get_name() +"\n");
-                            // TODO better error message
-                            ERROR("An access function should be provided for computation " + comp->get_name() + "'s #" + std::to_string(i) + " access before generating code.", true);
+                            DEBUG(3, tiramisu::str_dump("Creating an isl_ast_index_expression for the access (isl_map *):",
+                                                        isl_map_to_str(accesses[i])));
+                            isl_ast_expr *idx_expr = create_isl_ast_index_expression(build, accesses[i], comp->get_level_to_drop(), comp->get_name());
+                            DEBUG(3, tiramisu::str_dump("The created isl_ast_expr expression for the index expression is :", isl_ast_expr_to_str(idx_expr)));
+                            index_expressions.push_back(idx_expr);
+                            isl_map_free(accesses[i]);
+                        }
+                        else
+                        {
+                            // If this is not a let stmt and it is supposed to have accesses to other computations,
+                            // it should have an access function.
+                            if ((!comp->is_let_stmt()) && (!comp->is_library_call()))
+                            {
+                                tiramisu::str_dump("This is computation " + comp->get_name() +"\n");
+                                // TODO better error message
+                                ERROR("An access function should be provided for computation " + comp->get_name() + "'s #" + std::to_string(i) + " access before generating code.", true);
+                            }
                         }
                     }
                 }
-            }
 
-            // We want to insert the elements of index_expressions vector one by one in the beginning of comp->get_index_expr()
-            for (int i = index_expressions.size() - 1; i >= 0; i--)
-            {
-                comp->get_index_expr().insert(comp->get_index_expr().begin(), index_expressions[i]);
-            }
+                // We want to insert the elements of index_expressions vector one by one in the beginning of comp->get_index_expr()
+                for (int i = index_expressions.size() - 1; i >= 0; i--)
+                {
+                    comp->get_index_expr().insert(comp->get_index_expr().begin(), index_expressions[i]);
+                }
 
-            for (const auto &i_expr : comp->get_index_expr())
-            {
-                DEBUG(3, tiramisu::str_dump("Generated Index expression:", (const char *)
-                        isl_ast_expr_to_C_str(i_expr)));
+                for (const auto &i_expr : comp->get_index_expr())
+                {
+                    DEBUG(3, tiramisu::str_dump("Generated Index expression:", (const char *)
+                            isl_ast_expr_to_C_str(i_expr)));
+                }
             }
-        }
-        else
-        {
-            DEBUG(3, tiramisu::str_dump("Generated RHS empty."));
-        }
+            else
+            {
+                DEBUG(3, tiramisu::str_dump("Generated RHS empty."));
+            }
+        } // end of the cluster
     }
 
     DEBUG_FCT_NAME(3);
@@ -1719,11 +1734,126 @@ void tiramisu::generator::extract_tags_from_isl_node(const tiramisu::function &f
 
     DEBUG_INDENT(-4);
 }
+// Print the content of a statements map
+void print_stmts_map(std::map<std::string, std::vector<std::string>> stmap){
+    for(std::map<std::string, std::vector<std::string>>::iterator it=stmap.begin(); it!=stmap.end(); ++it)
+        {
+            std::cout << "Node: " << it->first<<std::endl;
+            std::cout<< "Computations: "<<std::endl;
+            for (int i = 0; i < it->second.size(); i++)
+            {
+                std::cout<<it->second.at(i)<<std::endl;
+            }
+            
+        }
+}
+// Create a map that contains the string representation of an isl_ast_node as keys,
+// and all of the statements (computations) contained within this node as values
+// To do this, we iterate through the isl_ast recursively while filling up the map
+// This map is used to verify whether a node is concerned with the tags specified by a statment
+// Currently only the level is specified in the tag and additional information is requesried to
+// Correctly apply the tags (unrolling, parallelization, and vectorization) on the correct loops only   
+std::map<std::string, std::vector<std::string>> create_stmts_map(isl_ast_node *node){
 
+    std::map<std::string, std::vector<std::string>> node_stmts_map;
+    if (isl_ast_node_get_type(node) == isl_ast_node_block)
+    {
+        // In the case where the node is of the type block
+        // We add the union of all the maps of its child nodes to the final map
+        // We also add the current block node which contains the union of all statements from its child nodes
+        isl_ast_node_list *list = isl_ast_node_block_get_children(node);
+        std::vector<std::string> block_stmts;
+        for (int i = isl_ast_node_list_n_ast_node(list) - 1; i >= 0; i--)
+        {
+            isl_ast_node *child = isl_ast_node_list_get_ast_node(list, i);
+            std::map<std::string, std::vector<std::string>> child_stmts_map = create_stmts_map(child);
+            std::map<std::string,std::vector<std::string>>::iterator it = child_stmts_map.find(isl_ast_node_to_C_str(child));
+            // Make sure the node is in the map
+            assert(it != child_stmts_map.end());
+            std::vector<std::string> child_stmts = it->second;
+            // Add all of the statements of this child to the parent block
+            block_stmts.insert(block_stmts.end(), child_stmts.begin(), child_stmts.end() );
+            // The stmts map for this block will be the union of all its child nodes
+            node_stmts_map.insert(child_stmts_map.begin(), child_stmts_map.end());
+        }
+        node_stmts_map[isl_ast_node_to_C_str(node)] = block_stmts;
+    }
+    else if(isl_ast_node_get_type(node) == isl_ast_node_for) {
+        // In the case of a for loop, we return the statements map of its body node
+        // We also add the current for node which contains all statements from its body node
+        isl_ast_node *body = isl_ast_node_for_get_body(node);
+        std::map<std::string, std::vector<std::string>> child_stmts_map = create_stmts_map(body);
+        std::map<std::string,std::vector<std::string>>::iterator it = child_stmts_map.find(isl_ast_node_to_C_str(body));
+        std::vector<std::string> for_stmts = it->second;
+        // Add the map of the children to the final statements map
+        node_stmts_map.insert(child_stmts_map.begin(), child_stmts_map.end());
+        // A for node is a sequence of child for loops
+        // The statements of a for node are the same as its child for loops
+        node_stmts_map[isl_ast_node_to_C_str(node)] = for_stmts;
+    }
+    else if(isl_ast_node_get_type(node) == isl_ast_node_user){
+        // In the case of a user_node (a statement) we create a new map that contains only this node and the computation contained within it
+        isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
+        isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
+        isl_id *id = isl_ast_expr_get_id(arg);
+        isl_ast_expr_free(expr);
+        isl_ast_expr_free(arg);
+        std::string computation_name(isl_id_get_name(id));
+        isl_id_free(id);
+        node_stmts_map[isl_ast_node_to_C_str(node)] = {computation_name};
+    }
+    else if (isl_ast_node_get_type(node) == isl_ast_node_if)
+    {
+        // In the case of a conditional node, we call the function recursivly on the if block and also the else block if it exists 
+        std::vector<std::string> if_block_stmts;
+        isl_ast_node *if_stmt = isl_ast_node_if_get_then(node);
+        isl_ast_node *else_stmt = isl_ast_node_if_get_else(node);
+        std::map<std::string, std::vector<std::string>> if_stmts_map = create_stmts_map(if_stmt);
+        std::map<std::string,std::vector<std::string>>::iterator it = if_stmts_map.find(isl_ast_node_to_C_str(if_stmt));
+
+        // Make sure the node is in the map
+        assert(it != if_stmts_map.end());
+        std::vector<std::string> child_stmts = it->second;
+        // Add all of the statements of this child to the parent block
+        if_block_stmts.insert(if_block_stmts.end(), child_stmts.begin(), child_stmts.end() );
+
+        // Only call the function recusivly if the else statement exists
+        if (else_stmt != NULL) {
+            std::map<std::string, std::vector<std::string>> else_stmts_map;
+            else_stmts_map = create_stmts_map(else_stmt);
+            std::map<std::string,std::vector<std::string>>::iterator it = else_stmts_map.find(isl_ast_node_to_C_str(else_stmt));
+            // Make sure the node is in the map
+            assert(it != else_stmts_map.end());
+            std::vector<std::string> child_stmts = it->second;
+
+            // Add all of the statements of this child to the parent block
+            if_block_stmts.insert(if_block_stmts.end(), child_stmts.begin(), child_stmts.end() );
+            node_stmts_map.insert(else_stmts_map.begin(), else_stmts_map.end());
+        }
+        // The statements map of the if node is the union of the statements maps of the if block and else block
+        node_stmts_map.insert(if_stmts_map.begin(), if_stmts_map.end());
+        node_stmts_map[isl_ast_node_to_C_str(node)] = if_block_stmts;
+    }
+    return node_stmts_map;
+}
+// Check if a given statement exists as a child of a given isl_ast_node
+// Requires that the map stmts_map has been constructed using create_stmts_map
+bool isl_node_contains_stmt(isl_ast_node *node, std::string stmt, std::map<std::string, std::vector<std::string>> stmts_map){
+    std::map<std::string,std::vector<std::string>>::iterator it = stmts_map.find(isl_ast_node_to_C_str(node));
+    // Make sure the node is in the map
+    assert(it != stmts_map.end());
+    std::vector<std::string> node_statements = it->second;
+    if (std::find(node_statements.begin(), node_statements.end(), stmt) != node_statements.end())
+    {
+        // The statement is an child of this node
+        return true;   
+    }
+    return false;
+}
 Halide::Internal::Stmt
 tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, isl_ast_node *node, int level,
                                                std::vector<std::pair<std::string, std::string>> &tagged_stmts,
-                                               bool is_a_child_block)
+                                               bool is_a_child_block, std::map<std::string, std::vector<std::string>> stmts_map)
 {
     assert(node != NULL);
     assert(level >= 0);
@@ -1865,7 +1995,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             {
                 DEBUG(3, tiramisu::str_dump("Generating block."));
                 // Generate a child block
-                block = tiramisu::generator::halide_stmt_from_isl_node(fct, child, level, tagged_stmts, true);
+                block = tiramisu::generator::halide_stmt_from_isl_node(fct, child, level, tagged_stmts, true, stmts_map);
             }
             isl_ast_node_free(child);
 
@@ -1969,10 +2099,10 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
 
                 if (comp->get_expr().get_op_type() == tiramisu::o_allocate)
                 {
-//                    result = Halide::Internal::Allocate::make(
-//                           buf->get_name(),
-//                           halide_type_from_tiramisu_type(buf->get_elements_type()),
-//                           halide_dim_sizes, Halide::Internal::const_true(), result);
+                   /*result = Halide::Internal::Allocate::make(
+                          buf->get_name(),
+                          halide_type_from_tiramisu_type(buf->get_elements_type()),
+                           halide_dim_sizes, Halide::Internal::const_true(), result); */
                     result = make_buffer_alloc(buf, halide_dim_sizes, result);
 
 
@@ -2100,7 +2230,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             DEBUG(3, tiramisu::str_dump("Upper bound expression: ");
                     std::cout << cond_upper_bound_halide_format);
             Halide::Internal::Stmt halide_body =
-                    tiramisu::generator::halide_stmt_from_isl_node(fct, body, level + 1, tagged_stmts, false);
+                    tiramisu::generator::halide_stmt_from_isl_node(fct, body, level + 1, tagged_stmts, false, stmts_map);
             Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
             Halide::DeviceAPI dev_api = Halide::DeviceAPI::Host;
 
@@ -2111,7 +2241,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             while (tt < tagged_stmts.size()) {
                 if (tagged_stmts[tt].first != "") {
                     if (tagged_stmts[tt].second == "parallelize" &&
-                        fct.should_parallelize(tagged_stmts[tt].first, level)) {
+                        fct.should_parallelize(tagged_stmts[tt].first, level) && isl_node_contains_stmt(node, tagged_stmts[tt].first, stmts_map)) {
                         fortype = Halide::Internal::ForType::Parallel;
                         // Since this statement is treated, remove it from the list of
                         // tagged statements so that it does not get treated again later.
@@ -2119,7 +2249,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                         // As soon as we find one tagged statement that actually useful we exit
                         break;
                     } else if (tagged_stmts[tt].second == "vectorize" &&
-                               fct.should_vectorize(tagged_stmts[tt].first, level)) {
+                               fct.should_vectorize(tagged_stmts[tt].first, level) && isl_node_contains_stmt(node, tagged_stmts[tt].first, stmts_map)) {
                         DEBUG(3, tiramisu::str_dump("Trying to vectorize at level "
                                                     + std::to_string(level) + ", tagged stmt is " +
                                                     tagged_stmts[tt].first));
@@ -2178,8 +2308,8 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                             tttt++;
                         }
                         break;
-                    } else if (tagged_stmts[tt].second == "map_to_gpu_thread" &&
-                               fct.should_map_to_gpu_thread(tagged_stmts[tt].first, level)) {
+                    } else if (tagged_stmts[tt].second == "map_to_gpu_thread" && isl_node_contains_stmt(node, tagged_stmts[tt].first, stmts_map) 
+                    && fct.should_map_to_gpu_thread(tagged_stmts[tt].first, level)) {
                         fortype = Halide::Internal::ForType::GPUThread;
                         dev_api = Halide::DeviceAPI::OpenCL;
                         std::string gpu_iter = fct.get_gpu_thread_iterator(tagged_stmts[tt].first, level);
@@ -2196,8 +2326,8 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                         // tagged statements so that it does not get treated again later.
                         tagged_stmts[tt].first = "";
                         break;
-                    } else if (tagged_stmts[tt].second == "map_to_gpu_block" &&
-                               fct.should_map_to_gpu_block(tagged_stmts[tt].first, level)) {
+                    } else if (tagged_stmts[tt].second == "map_to_gpu_block" && isl_node_contains_stmt(node, tagged_stmts[tt].first, stmts_map)
+                    && fct.should_map_to_gpu_block(tagged_stmts[tt].first, level)) {
                         assert(false);
                         fortype = Halide::Internal::ForType::GPUBlock;
                         dev_api = Halide::DeviceAPI::OpenCL;
@@ -2216,7 +2346,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                         tagged_stmts[tt].first = "";
                         break;
                     } else if (tagged_stmts[tt].second == "unroll" &&
-                               fct.should_unroll(tagged_stmts[tt].first, level)) {
+                               fct.should_unroll(tagged_stmts[tt].first, level) && isl_node_contains_stmt(node, tagged_stmts[tt].first, stmts_map)) {
                         DEBUG(3, tiramisu::str_dump("Trying to unroll at level ");
                                 tiramisu::str_dump(std::to_string(level)));
 
@@ -2350,10 +2480,37 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             // Retrieve the computation of the node.
             tiramisu::computation *comp = get_computation_annotated_in_a_node(node);
             DEBUG(10, tiramisu::str_dump("The computation that corresponds to this node: "); comp->dump());
+            
+            std::vector<tiramisu::computation*> cluster = fct.get_the_cluster_represented_by_stmt(*comp);
 
-            comp->create_halide_assignment();
-            result = comp->get_generated_halide_stmt();
+            if (!cluster.empty()){
+                DEBUG(10, tiramisu::str_dump(" Generating a cluster of statement (same as a block) : "));
 
+                Halide::Internal::Stmt block;
+
+                for (auto& computation : cluster)
+                {
+                    Halide::Internal::Stmt block;
+                    computation->create_halide_assignment();
+                    block = computation->get_generated_halide_stmt();
+
+                    if (result.defined())
+                    {
+                        result = generator::make_halide_block(result, block);
+                    }
+                    else // (!result.defined())
+                    {
+                        result = block;
+                    }
+                    
+                    DEBUG(3, std::cout << "cluster Result is now: " << result);
+                }
+            }
+            else {
+                // regular case
+                comp->create_halide_assignment();
+                result = comp->get_generated_halide_stmt();
+            }
 
             for (const auto &l_stmt : comp->get_associated_let_stmts())
             {
@@ -2421,7 +2578,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             DEBUG(3, tiramisu::str_dump("Generating code for the if branch."));
 
             Halide::Internal::Stmt if_s =
-                    tiramisu::generator::halide_stmt_from_isl_node(fct, if_stmt, level, tagged_stmts, false);
+                    tiramisu::generator::halide_stmt_from_isl_node(fct, if_stmt, level, tagged_stmts, false, stmts_map);
 
             DEBUG(10, tiramisu::str_dump("If branch: "); std::cout << if_s);
 
@@ -2442,7 +2599,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                 else
                 {
                     DEBUG(3, tiramisu::str_dump("Generating code for the else branch."));
-                    else_s = tiramisu::generator::halide_stmt_from_isl_node(fct, else_stmt, level, tagged_stmts, false);
+                    else_s = tiramisu::generator::halide_stmt_from_isl_node(fct, else_stmt, level, tagged_stmts, false, stmts_map);
                     DEBUG(10, tiramisu::str_dump("Else branch: "); std::cout << else_s);
                 }
             }
@@ -2479,9 +2636,11 @@ void function::gen_halide_stmt()
     // AST tree.
     std::vector<std::pair<std::string, std::string>> generated_stmts;
     Halide::Internal::Stmt stmt;
-
+    isl_ast_node *isl_ast = this->get_isl_ast();
+    // Create the statements mapping for this tree
+    std::map<std::string, std::vector<std::string>> stmts_map = create_stmts_map(isl_ast);
     // Generate the statement that represents the whole function
-    stmt = tiramisu::generator::halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts, false);
+    stmt = tiramisu::generator::halide_stmt_from_isl_node(*this, isl_ast, 0, generated_stmts, false, stmts_map);
 
     DEBUG(3, tiramisu::str_dump("The following Halide statement was generated:\n"); std::cout << stmt << std::endl);
 

@@ -27,7 +27,7 @@ void generate_function(std::string name, int size, int val0)
     result.store_in(&buff_A);
 
     // analysis
-    perform_full_dependency_analysis() ;
+    perform_full_dependency_analysis() ;     
 
     // start adding optimizations
     result.skew(i, j, 1, 1, ni, nj);

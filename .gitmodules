@@ -8,3 +8,8 @@
 	url = https://github.com/llvm/llvm-project.git
 	branch = release/13.x
 	ignore = all
+[submodule "3rdParty/isl"]
+	path = 3rdParty/isl
+	url = https://repo.or.cz/isl.git
+	branch = master
+

@@ -146,7 +146,7 @@ bool check_legality_of_function();
 
 
 /**
- * Performe a full dependency analysis RAW/WAR/WAW. The result is stored in the function's attributes
+ * Perform a full dependency analysis RAW/WAR/WAW. The result is stored in the function's attributes
  * Before invoking this method, the user must call tiramisu::prepare_schedules_for_legality_checks() and must define the buffer associated with each computation.
  */
 void perform_full_dependency_analysis();
@@ -161,31 +161,57 @@ void perform_full_dependency_analysis();
  * 
  */
 void prepare_schedules_for_legality_checks(bool reset_static_dimesion = false);
-
+  /**
+ * Clear the schedule graph of the implicit function
+ */
+void clear_implicit_function_sched_graph();
  /**
      * Checks if the given fused computations could legally have their loop level \p i as parallel using dependence analysis and legality check.
      * It relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
   */
-  bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
+  //@{
+  bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
 
+  bool loop_parallelization_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
+  //@}
   /**
   * Checks if the given fused computations could legally have their loop level \p i unrolled.
   */
-  bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
+  bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
 
+  bool loop_unrolling_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
+  //@}
   /**
   * Checks if the given fused computations could legally have their loop level \p i vectorized.
   */
   bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
+/**
+ * Automatically detect statements that need to be clustered. Then clusters them.
+ * \note purpose of clustering is to speed up the code generation by merging the fused statements at innerMost levels.
+ * Meaning if 2 or more statements that share all their loops, they would be merged for the sake of code generation speed. Then in another step,
+ * the statements would be adjusted. The code generated is guaranteed to be the same with ou without clustering.
+ * \warning to correctly invoke and use this method \p prepare_schedules_for_legality_checks() must be invoked before.
+*/
+void cluster_statements_automatically();
+
+/**
+ * Automatically detect statements that need to be clustered. Then clusters them.
+ * \note purpose of clustering is to speed up the code generation by merging the fused statements at innerMost levels.
+ * Meaning if 2 or more statements that share all their loops, they would be merged for the sake of code generation speed. Then in another step,
+ * the statements would be adjusted. The code generated is guaranteed to be the same with ou without clustering.
+ * \warning to correctly invoke and use this method \p prepare_schedules_for_legality_checks() must be invoked before.
+*/
+void cluster_statements_automatically();
+
 //*******************************************************
 
 /**
-  * A class to represent functions in Tiramisu. A function in Tiramisu is composed of
-  * a set of computations (tiramisu::computation).
-  */
+ * A class to represent functions in Tiramisu. A function in Tiramisu is composed of
+ * a set of computations (tiramisu::computation).
+ */
 class function
 {
     // Friend classes.  They can access the private members of the "function" class.
@@ -355,7 +381,13 @@ private:
       * factor of 8.
       */
     std::vector<std::tuple<std::string, int, int>> unroll_dimensions;
-
+    /**
+      * Original number of computations.
+      * Added to be able to reset the computations in the case where some transformations
+      * add additional computations to the function.
+      * This is the case in some explored unrollings
+      */
+    int original_number_of_computations;
     /**
       * Body of the function (a vector of computations).
       * The order of the computations in the vector does not have any
@@ -364,6 +396,14 @@ private:
       * schedule.
       */
     std::vector<computation *> body;
+
+    /**
+      * The grouped statements of the function (a vector of vector of computations).
+      * This structure is only used when optimizing the code generation.
+      * The statements that are grouped together must have the same loop iterators
+      * and fused in the innermost level.
+      */
+    std::vector<std::vector<computation *>> clustered_statements;    
 
     /**
       * A Halide statement that represents the whole function.
@@ -534,6 +574,16 @@ private:
      */
     std::vector<isl_basic_set*> compute_legal_skewing(std::vector<tiramisu::computation *> fused_computations, tiramisu::var outer_variable,
                                               tiramisu::var inner_variable, int&  legal_process);
+
+    /**
+     * This method finds the legal polyhedral space for the 2 selected variables.
+     * It also provide the list of deltas found in the selected scop.
+     * In case the dependencies are empty it returns an empty set.
+     * \warning always check that set is not empty
+     * \note in case no dependencies are present the set is NULL
+     */
+    std::pair<std::vector<std::pair<int,int>>, isl_basic_set*>  compute_legal_polyhedral_space(std::vector<tiramisu::computation *> fused_computations, int outer_variable, 
+                                              int inner_variable);
 
 
 
@@ -761,7 +811,8 @@ protected:
      * at the loop level \p lev.
      */
     int get_vector_length(const std::string &comp, int lev) const;
-
+    
+    
     /**
      * If the computation \p comp is unrolled at the loop level \p lev,
      * return its unrolling factor.
@@ -917,10 +968,6 @@ protected:
        */
     void add_mapping(std::pair<std::string, tiramisu::buffer *> p);
     
-    /**
-     * \brief Clear any relation (defined by after, then or between) between computations.
-     */
-    void clear_sched_graph();
 
 public:
 
@@ -972,7 +1019,17 @@ public:
     void align_schedules();
     
     /**
-     * \brief Remove, for every computation, every schedule.
+     * \brief Clear any relation (defined by after, then or between) between computations.
+     */
+    void clear_sched_graph();
+    
+    /**
+     * \brief Remove computations added by unrolling and reset the computation names.
+     */
+    void reset_computations();
+
+    /**
+     * \brief Remove, for every Fputation, every schedule.
      */
     void reset_schedules();
 
@@ -1183,6 +1240,16 @@ public:
     void gen_isl_ast();
 
     /**
+     * Print the function as an isl AST representation.
+     * This function prints the iterators and the computations only in the following format
+     * for iterrators:
+     * <iterator_level>|iterator|<iterator_name>|<lower_bound>|<iterator_condition>|<iterator_increment>
+     * and for computations:
+     * <computation_level>|computation|<computation_name>
+     */
+    void print_isl_ast_representation(isl_ast_node *node, int level);
+
+    /**
       * Generate the time-space domain of the function.
       *
       * In this representation, the logical time of execution and the
@@ -1208,12 +1275,62 @@ public:
       */
     void set_arguments(const std::vector<tiramisu::buffer *> &buffer_vec);
 
+    
+    /**
+     * Set the number of computations for the original ast.
+     */
+    void set_original_number_of_computations();
     /**
      * Wrapper for all the functions required to run code generation of a
      * tiramisu program.
      */
-    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false, bool gen_python = false);
-    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag, bool gen_python = false);
+    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
+    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag);
+
+    /**
+    * Automatically detect the statements that can be clustered and cluster them.
+    * \note this method invokes internally \p prepare_schedules_for_legality_checks()
+    * Thus, the computations must be ordered (using after, then ...)
+    * */
+    void cluster_statement_automatically();
+    
+    /**
+     * Appends a group of clustered statements together to accelerate code generation.
+     * \warning the order must be defined when defined for the clustering to work (use after, then ..)
+     * \note for statement to be clustered the must be fused in the innermost loop level.
+    */
+    void append_clustered_statements(const std::vector<tiramisu::computation *>& cluster);
+
+    /**
+     * Check that the clustered statements are indeed viable and correct.
+     * In case a cluster is not valid, it gets removed from the clusters.
+     * \remark \p prepare_schedules_for_legality_checks() must be invoked before.
+     * (i.e. schedules must be aligned)
+    */
+    void filter_out_invalid_clusters();
+
+    /***
+     * Sorts the clusters after checking that they are legally set.
+     * The statements that are scheduled first are put in the first position of the cluster
+     *  \remark \p prepare_schedules_for_legality_checks() must be invoked before.
+     * (i.e. schedules must be aligned)
+    */
+    void sort_clustered_statements();
+
+    /***
+     * Check if a computation represent a cluster.
+     * If it is the case it return a vector or computation to add to the ast
+     * Otherwise it returns an empty vector
+    */
+    std::vector<tiramisu::computation*> get_the_cluster_represented_by_stmt(const tiramisu::computation& first) const;
+
+    /**
+     * \brief verifies that the declared clustered statements are share indeed 
+     * the same iterators and are fused in the innermost level.
+     * \remark \p prepare_schedules_for_legality_checks() must be invoked before.
+     * (i.e. schedules must be aligned)
+    */
+    bool check_clustered_statements_are_innermost(const std::vector<tiramisu::computation *> &statements);
 
     /**
      * \brief Set the context of the function.
@@ -1287,12 +1404,41 @@ public:
     /**
      * Checks if the given fused computations could legally have their loop level \p i unrolled.
     */
+    // @{
     bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
+    bool loop_unrolling_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
+    // @}
+
+    /**
+    * Checks if the given fuzed computations could legally have the loop levels \p i and \p j interchanged.
+    * This function checks the control dependencies for the two loops.
+    */
+    bool loop_interchnage_is_legal(int i, int j, std::vector<tiramisu::computation *> fused_computations);
 
     /**
      * Checks if the given fused computations could legally have their loop level \p i vectorized.
     */
-    bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
+    bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+
+    /**
+     * Automatically computes the dependencies distances in isl_basic_set for all dependencies in this function.
+     * \return an isl_basic set for each dependency in this function, containing the distance, and with regard to the schedules. 
+     * \note: The method relies fully on the dependence analysis result, so the  methods \p prepare_schedules_for_legality_checks()
+     * then \p perform_full_dependency_analysis() must be invoked before.
+    */
+    std::vector<isl_basic_set *> compute_dependencies_set_distance();
+
+    /**
+     * Computes the dependencies distances for all dependencies in this function.
+     * \return a vector of distances. A distance is represented as a std::vector of std::tuple<bool, int, int>.
+     * where each element of the vector represents the distance in a particular dimension.
+     * A distance element is an std::tuple<bool, int, int> which is fact an interval [lower_bound, upper_bound] for the distance,
+     * extracted from the std::tuple<bool, lower_bound, upper_bound>. In some cases, the distance is constant meaning lower_bound == upper_bound,
+     * thus the first boolean of the tuple indicates if the distance is a constant one.
+     * \note: The method relies fully on the dependence analysis result, so the  methods \p prepare_schedules_for_legality_checks()
+     * then \p perform_full_dependency_analysis() must be invoked before.
+    */
+    std::vector<std::vector<std::tuple<bool, int, int>>> compute_dependencies_distance();
 
     /**
      * resets all the static beta dimensions in all the computations to Zero.
@@ -1348,11 +1494,18 @@ public:
      * the second vector size's should be equal to twice the value of nb_parallel in the regular case.
      * for nb_parallel=1 it only returns the smallest skewing (best) possible for this use case.
     */
+   //@{
     std::tuple<
       std::vector<std::pair<int,int>>,
       std::vector<std::pair<int,int>>,
       std::vector<std::pair<int,int>>> skewing_local_solver(std::vector<tiramisu::computation *> fused_computations,
                                                             tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel);
+    std::tuple<
+        std::vector<std::pair<int, int>>,
+        std::vector<std::pair<int, int>>,
+        std::vector<std::pair<int, int>>> skewing_local_solver(std::vector<tiramisu::computation *> fused_computations,
+                         int outer_level, int inner_level, int nb_parallel);
+    // @}
 
     /**
      * Computes the best legal skewing parameters for 3 use cases (outer parallelism, innermost parallelism and identity).
@@ -1381,7 +1534,27 @@ public:
       std::vector<std::tuple<int,int,int,int>>,
       std::vector<std::tuple<int,int,int,int>>> skewing_local_solver_positive(std::vector<tiramisu::computation *> fused_computations,
                                                           tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel);
-                                                          
+
+                        
+    /**
+     * Finds the best polyhedral transformation for the specified 2 loops: it includes interchange and skewing.
+     * This method also make sure the dependencies becomes positive in order to enable Tiling. 
+     * The method relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
+     * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
+     * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
+     * The output of this method is the 4 parameters for the transformation: alpha, beta, gamma and sigma
+     * 
+     * The parameters found should in theory maximize the locality and find outermost parallelism.
+     * 
+     * \param[in] parallel_enforced makes sure either outer_variable or inner_parallel (atleast) is parallel.
+     * 
+     * \note in case no dependencies exists, or in case nothing can be done, identity transformation (1,0,0,1) is returned. 
+    */
+    std::tuple<int,int,int,int> polyhedral_2d_local_solver_positive(std::vector<tiramisu::computation *> fused_computations,
+                                                          int outer_variable, int inner_variable, bool parallel_enforced);
+
+                        
+                                                           
     /**
      * Computes the best legal 3D skewing parameters for 3 use cases (outer parallelism, innermost parallelism and identity).
      * This method also make sure the dependencies becomes positive with skewing in order to enable Tiling. 
@@ -1406,11 +1579,42 @@ public:
       std::vector<std::tuple<int,int,int,int,int,int,int,int,int>>> skewing_local_3D_solver_positive(
                                                   std::vector<tiramisu::computation *> fused_computations, tiramisu::var var_outer,
                                                   tiramisu::var var2, tiramisu::var var_inner);
+
+    /**
+     * Computes the best legal polyhedral transformation that optimizes the locality.
+     * The method relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
+     * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
+     * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
+     * 
+     * \param[in] parallelism_enforced when enabled it tries to enable parallism on either the first loop or the second if possible.
+     * \param[in] innermost_dimension number of innermost dimension 
+     * \param[in] outermost_dimension number of outermost dimension 
+     * 
+     * \note this method will solve the polyhedral locality scheduling problem for all dimension between innermost and outermost.
+     * it enables tiling on the sequence of loops between innermost and outermost.
+     * Furthermore, if parallelism_enforced is true, it will make sure either innermost_dimension (or innermost_dimension + 1) is parallel.
+     * \return one single list (its size is nb_dimensions * nb_dimensions) that represent the best transformation matrix for locality.
+    */
+    std::vector<int> polyhedral_full_solver_positive(
+                                                  std::vector<tiramisu::computation *> fused_computations,
+                                                  int outermost_dimension, int innermost_dimension, bool parallelism_enforced);
                                                           
     std::vector<int> extract_transformation_coeffcients(isl_basic_map * transformation, int position);
 
     std::tuple<int,int,int,int,int,int,int,int,int> extract_3d_skewing_params(isl_basic_map * transformation);
 
+    /***
+     * Extracts the transformation coefficients into a vector
+     * for instance in {[i,j]->[2i+j, i+j]} we would get [2,1,1,1]
+     * We get the coefficients of the first dimension then the second ...
+     * \param[in] nb_dimensions is the number of dimensions to extract
+    */
+    std::vector<int> extract_transformation_coefficient_from_map(isl_basic_map * map, int nb_dimensions);
+
+    /**
+     * for each computation, it computes potentiel canidate for vectorization, then it regroups it in result vector. 
+    */
+    std::vector<int> get_potentiel_vectorizable_loop_level(std::vector<tiramisu::computation *> involved_computations);
 };
 
 
@@ -1749,6 +1953,11 @@ public:
       * class are printed.
       */
     void dump(bool exhaustive) const;
+
+    /**
+     * \brief returns a string of the dimensions of this buffer
+    */
+    std::string buffer_dimensions_as_string() const;
 
     /**
       * \brief If this buffer is an argument to a tiramisu::function,
@@ -2693,6 +2902,7 @@ private:
       * the static dimension names are set to default names.
       */
     void set_loop_level_names(std::vector<std::string> names);
+    void set_loop_level_names_matrix(std::vector<std::string> names);
 
     /**
       * Set the names of the dimensions of the schedule domain.
@@ -2730,11 +2940,7 @@ private:
      */
     void set_iterators_map(std::map<std::string, isl_ast_expr *> map);
 
-    /**
-      * Identical to
-      *      void shift(tiramisu::var L0, int n);
-      */
-    void shift(int L0, int n);
+    
 
     /**
       * Simplify \p set using the context and by calling
@@ -4112,6 +4318,7 @@ public:
       */
     buffer *get_automatically_allocated_buffer();
 
+    virtual void matrix_transform(std::vector<std::vector<int>> matrix);
     /**
       * Interchange (swap) the two loop levels \p L0 and \p L1.
       */
@@ -4316,6 +4523,12 @@ public:
       * a negative value would mean a shift backward.
       */
     virtual void shift(var L0, int n);
+
+    /**
+      * Identical to
+      *      void shift(tiramisu::var L0, int n);
+      */
+    virtual void shift(int L0, int n);
     
 
     /*
@@ -4397,7 +4610,7 @@ public:
 
       * and apply
 
-      \code
+      \codes
         a.skew(i, j, 1, 1, ni, nj);
       \endcode
 
@@ -4641,7 +4854,16 @@ public:
       * \overload
       */
     computation &then(computation &next_computation, int L=computation::root_dimension);
-
+    /**
+      * Tile a single loop level \p L0 with rectangular
+      * tiling. \p sizeX represents the tile size.
+      * \p L0_outer, \p L0_inner
+      * are the names of the new dimensions created after tiling.
+      */
+    // @{
+    virtual void tile(var L0, int sizeX,
+                      var L0_outer, var L0_inner);
+    // @}
     /**
       * Tile the two loop levels \p L0 and \p L1 with rectangular
       * tiling. \p sizeX and \p sizeY represent the tile size.
@@ -4653,12 +4875,19 @@ public:
     virtual void tile(var L0, var L1, int sizeX, int sizeY);
     virtual void tile(var L0, var L1, int sizeX, int sizeY,
                       var L0_outer, var L1_outer, var L0_inner, var L1_inner);
+
     virtual void tile(var L0, var L1, var L2, int sizeX, int sizeY, int sizeZ);
     virtual void tile(var L0, var L1, var L2, int sizeX, int sizeY, int sizeZ,
                       var L0_outer, var L1_outer, var L2_outer, var L0_inner,
                       var L1_inner, var L2_inner);
     // @}
-
+    /**
+      * Tile a single loop level \p L0 with rectangular
+      * tiling. \p sizeX represents the tile size.
+      */
+    // @{
+    virtual void tile(int L0, int sizeX);
+    // @}
     /**
       * Tile the two loop levels \p L0 and \p L1 with rectangular
       * tiling. \p sizeX and \p sizeY represent the tile size.
@@ -4739,6 +4968,48 @@ public:
     //@}
 
     /**
+     * Expand a computation S[i,j] it means to allocate a buffer as big as the iteration domain (i,j)
+     * To store the computation. The goal is to eliminate as much dependencies as possible by providing extra memory.
+     * \param[in] update_dependencies default true, it recomputes the dependencies after the expansion.
+     * \note Only computations mapped to temporary buffers can be expanded.
+     * \remark This method expends the entire iteration domain of the computation.
+     * \warning This methods updates the legality check results if it was already computed
+    */
+    virtual void expand(bool update_dependencies = true);
+
+    /**
+     * \brief Expand one iteration dimension of the computation
+     * \param[in] L iteration domain level to expand in this current computation.
+     *\param[in] update_dependencies default true, it recomputes the dependencies after the expansion.
+     * \note Only computations mapped to temporary buffers can be expanded
+     * \warning This methods updates the legality check results if it was already computed
+    */
+    virtual void expand(int L, bool update_dependencies = true);
+
+    /**
+     * \brief Expand a list of iteration dimensions of this computation
+     * \param[in] Levels List of iteration domain dimensions' level to expand in this current computation.
+     * \param[in] update_dependencies default true, it recomputes the dependencies after the expansion.
+     * \note Only computations mapped to temporary buffers can be expanded
+     * \warning This methods updates the legality check results if it was already computed
+    */
+    virtual void expand(const std::vector<int>& Levels, bool update_dependencies = true);
+
+    /**
+     * Checks if a computation can be expanded.
+     * A computation can be expanded if it is mapped to temporary buffer (not input or output, so that the tiramisu's function stays the same).
+     * And also if there is room for expansion; if the computation is mapped to a buffer with a lesser dimensionality than the iteration domain.
+    */
+    bool expandable();
+
+    /**
+     * Checks for every dimension of the iteration domain if it can be expanded.
+     * A dimension can be expanded if it is not already mapped to the access buffer.
+    */
+    std::vector<bool> compute_expandable_domain_dimensions();
+
+
+    /**
       * Vectorize the loop level \p L.  Use the vector length \p v.
       *
       * The difference between this function and the function
@@ -4802,9 +5073,17 @@ public:
       * assigned.
       */
     // @{
+    virtual void vectorize(int L,int v);
     virtual void vectorize(var L, int v);
     virtual void vectorize(var L, int v, var L_outer, var L_inner);
     // @}
+
+    /**
+     * Finds the loop level that should be vectorized to improve performance using the access relation.
+     * if level is -1 it means that there is potentiel loop level selected
+    */
+
+    int get_potentiel_vectorizable_loop_level();
 
     /**
       * \brief Generate communication code for this computation
@@ -5419,6 +5698,7 @@ protected:
       *     - a \p node,
       *     - \p level represents the current loop level being traversed (0 means the outer level.
       *     - \p is_a_child_block indicates whether the block that is ging to be
+      *     - \p stmts_map a map inidicating all the statements contained in an isl_ast_node. Use create_stmts_map to obtain this map.
       *     generated is a child block for an other block. In such a case, allocate
       *     and let statements should not be generate. Allocate and let statements
       *     should only be generated in non-child blocks so that their scope reaches
@@ -5427,7 +5707,7 @@ protected:
     static Halide::Internal::Stmt halide_stmt_from_isl_node(const tiramisu::function &fct, isl_ast_node *node,
                                                             int level,
                                                             std::vector<std::pair<std::string, std::string>> &tagged_stmts,
-                                                            bool is_a_child_block);
+                                                            bool is_a_child_block, std::map<std::string, std::vector<std::string>> stmts_map);
 
     // TODO doc
     static Halide::Internal::Stmt make_halide_block(const Halide::Internal::Stmt &first,
@@ -5522,12 +5802,23 @@ public:
      * the upper bound and false to extract the lower bound.
      */
      static expr extract_bound_expression(isl_ast_node *ast, int dim, bool upper);
-
+     /**
+      * Return single iterator bound
+      *
+      */
+     static int get_single_iterator_bound(isl_set *set, int dim);
+    /**
+      * Returns a map with the dimensions of the set and the values:
+      * True: if the dimension has at least two constraints in the constraints map
+      * False otherwise
+      */
+     static std::unordered_map<std::string, bool> get_constraints_map(isl_set *set);
     /**
      * Return a tiramisu::expr representing the bound of
      * the dimension \p dim in \p set.  If \p upper is true
      * then this function returns the upper bound otherwise
      * it returns the lower bound.
+     * \p contains_static_dims is used to indicate if \p set contains static dimensions
      *
      * For example, assuming that
      *
@@ -5543,7 +5834,7 @@ public:
      *
      * would return min(N-1,M-1)
      */
-    static tiramisu::expr get_bound(isl_set *set, int dim, int upper);
+    static tiramisu::expr get_bound(isl_set *set, int dim, int upper, bool contains_static_dims = false);
 
     /**
      * Return the extent of the loop.

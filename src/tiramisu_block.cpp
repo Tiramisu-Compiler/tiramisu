@@ -46,6 +46,11 @@ void block::interchange(int L0, int L1) {
         child->interchange(L0, L1);
     }
 }
+void block::matrix_transform(std::vector<std::vector<int>> matrix) {
+    for (auto &child : this->children) {
+        child->matrix_transform(matrix);
+    }
+}
 
 void block::parallelize(var L) {
     for (auto &child : this->children) {
@@ -189,6 +194,12 @@ void block::tile(var L0, var L1, var L2, int sizeX, int sizeY, int sizeZ,
     for (auto &child : this->children) {
         child->tile(L0, L1, L2, sizeX, sizeY, sizeZ, L0_outer, L1_outer,
                     L2_outer, L0_inner, L1_inner, L2_inner);
+    }
+}
+
+void block::tile(int L0, int sizeX) {
+    for (auto &child : this->children) {
+        child->tile(L0, sizeX);
     }
 }
 

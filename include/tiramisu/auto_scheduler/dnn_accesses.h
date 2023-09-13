@@ -17,14 +17,15 @@ class dnn_iterator
 {
 public:
     std::string name;
-    int low_bound;
-    int up_bound;
-    
-    dnn_iterator(std::string const& name, int low_bound, int up_bound)
+    std::string low_bound;
+    std::string up_bound;
+
+    dnn_iterator(std::string const& name, std::string low_bound, std::string up_bound)
         : name(name), low_bound(low_bound), up_bound(up_bound) {}
         
     /**
-     * Return a list of dnn_iterators from the iterators of the given computation.
+     * Return a list of dnn_iterators from the iterators of the given computation. 
+     * This function can't be used in the case of multi root programs because it can return duplicated iterator names.
      */
     static std::vector<dnn_iterator> get_iterators_from_computation(tiramisu::computation const& comp);
 };
