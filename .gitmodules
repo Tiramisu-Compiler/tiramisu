@@ -1,13 +1,3 @@
-[submodule "3rdParty/llvm"]
-	path = 3rdParty/llvm
-	url = https://github.com/llvm/llvm-project.git
-	branch = release/17.x
-	ignore = all
-[submodule "Halide"]
-	path = 3rdParty/Halide
-	url = https://github.com/halide/Halide.git
-	branch = master
-	ignore = all
 [submodule "3rdParty/clang"]
 	path = 3rdParty/clang
 	url = https://github.com/llvm-mirror/clang.git
@@ -16,4 +6,12 @@
 [submodule "3rdParty/isl"]
 	path = 3rdParty/isl
 	url = https://repo.or.cz/isl.git
+	branch = master
+[submodule "3rdParty/llvm"]
+	path = 3rdParty/llvm
+	url = https://github.com/llvm/llvm-project.git
+	branch = release/13.x
+[submodule "3rdParty/Halide"]
+	path = 3rdParty/Halide
+	url = https://github.com/halide/Halide.git
 	branch = master

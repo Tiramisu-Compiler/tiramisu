@@ -40,7 +40,7 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::var j = tiramisu::var("j");
     tiramisu::computation S0("[N,M]->{S0[i,j]}", tiramisu::expr((uint8_t) val0), true, p_uint8,
                              &function0);
-    tiramisu::computation S1("[N,M,T1]->{S1[i,j]: 0<=i<M and 0<=j<T1}", S0(0, 1), true, p_uint8,
+    tiramisu::computation S1("[N,M,T1]->{S1[i,j]: 0<=i<N and 0<=j<T1}", S0(0, 1), true, p_uint8,
                              &function0);
     tiramisu::computation S2("[N,M]->{S2[i,j]}", S0(i, j) + S0(i, j), true, p_uint8, &function0);
     tiramisu::computation S3("[N,M]->{S3[i,j]}", S2(i, j) + S0(i, j), true, p_uint8, &function0);

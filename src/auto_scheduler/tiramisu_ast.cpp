@@ -2625,12 +2625,6 @@ std::string syntax_tree::get_schedule_str()
                                 std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+","+
                                 std::to_string(optim.l2_fact)+","+std::to_string(optim.l3_fact)+"),";
                 break;
-            
-            case optimization_type::SKEWING_POSITIVE:
-                schedule_str += "S(L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+","+
-                                std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+","+
-                                std::to_string(optim.l2_fact)+","+std::to_string(optim.l3_fact)+"),";
-                break;
 
             default:
                 break;

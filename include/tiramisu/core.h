@@ -1284,8 +1284,8 @@ public:
      * Wrapper for all the functions required to run code generation of a
      * tiramisu program.
      */
-    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
-    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag);
+    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false, bool gen_python = false);
+    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag, bool gen_python = false);
 
     /**
     * Automatically detect the statements that can be clustered and cluster them.

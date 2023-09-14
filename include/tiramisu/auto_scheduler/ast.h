@@ -662,7 +662,7 @@ public:
 
     /**
      * a structure that saves the points of previous applied optimizations.
-     * Used by the shedule_generator to explore same optimization in different deapth of the search.
+     * Used by the shedule_generator to explore same optimization in different depth of the search.
     */
     generator_state search_state;
         
