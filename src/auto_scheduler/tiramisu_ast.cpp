@@ -2598,7 +2598,10 @@ std::string syntax_tree::get_schedule_str()
                 break;
 
             case optimization_type::TILING:
-                if (optim.nb_l == 2)
+                if (optim.nb_l == 1)
+                        schedule_str += "T1("+comps_list_str+",L"+std::to_string(optim.l0)+","+
+                        std::to_string(optim.l0_fact)+")";
+                else if (optim.nb_l == 2)
                     schedule_str += "T2("+comps_list_str+",L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+","+
                             std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+")";
                 else if (optim.nb_l == 3)

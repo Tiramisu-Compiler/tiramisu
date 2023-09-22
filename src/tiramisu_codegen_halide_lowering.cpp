@@ -249,6 +249,12 @@ Module lower_halide_pipeline(const string &pipeline_name,
     s = unify_duplicate_lets(s);
     //log("Lowering after second simplifcation:", s);
 
+    if (PRINT_HALIDE_IR_AFTER_CODEGEN)
+    {
+        std::cout << "\nGenerated Halide IR:\n";
+        std::cout << s;
+    }
+    
     // debug(1) << "Reduce prefetch dimension...\n";
     s = reduce_prefetch_dimension(s, t);
     //log("Lowering after reduce prefetch dimension:", s);

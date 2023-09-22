@@ -22,12 +22,13 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     fct->set_original_number_of_computations();
     setenv("INIT_EXEC_TIME", "0", true); // set the INIT_EXEC_TIME to 0 meaning that it's the non scheduled version
     float initial_timeout = std::atof(read_env_var("INITIAL_TIMEOUT"));
+
     std::vector<float> initial_measurements;
-    if (std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1 || std::atoi(read_env_var("EXECUTE_BEST_AND_INITIAL_SCHED"))==1){
+    if (std::atoi(read_env_var("EXPLORE_BY_EXECUTION")) == 1 || std::atoi(read_env_var("EXECUTE_INITIAL_SCHED")) == 1){
         initial_measurements =  exec_evaluator->get_measurements(ast, true, initial_timeout);
     }else{
         // If we're exploring using the model, the speed up for the original schedule is 1.
-        initial_measurements = {1};
+        initial_measurements = {-1};
         // The exploraton assumes that the schedules are reset and especially that the scheduling graph has been cleared before the candidate generation
         fct->reset_schedules();
     }
@@ -38,8 +39,13 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     }
     ast.evaluation = initial_exec_time;
 
+    // Set the initial ast as the best we have so far
+    searcher->set_best_evaluation(initial_exec_time); 
+    searcher->set_best_ast(&ast); 
+
    if (std::atoi(read_env_var("AS_VERBOSE"))==1)
         std::cout << "Initial exec time : " << initial_exec_time << std::endl;
+    
     std::string program_json = evaluate_by_learning_model::get_program_json(ast);
     std::vector<std::string> schedules_annotations;
 
@@ -103,27 +109,34 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     file.close();
 
     std::chrono::steady_clock::time_point sampling_end = std::chrono::steady_clock::now();
-    float best_execution_time = searcher->get_best_evaluation() != FLT_MAX ? searcher->get_best_evaluation() : initial_exec_time;
+    float best_execution_time = searcher->get_best_evaluation();
 
     std::cout << "Search time : " << std::chrono::duration_cast<std::chrono::milliseconds>(sampling_end - sampling_start).count() << " ms" << std::endl;
     std::cout << "Best execution time : " << best_execution_time << std::endl;
-    
+
     if(std::atoi(read_env_var("SAVE_BEST_SCHED_IN_FILE"))==1){
-        syntax_tree* best_ast = searcher->get_best_evaluation() != FLT_MAX ? searcher->get_best_ast() : &ast;
+        // Onl
+        syntax_tree* best_ast = searcher->get_best_ast();
         std::ofstream myfile;
 
         myfile.open(read_env_var("LOG_FILE_PATH"), std::ios_base::app);
         myfile<<"\""<<filename.substr(2,filename.size()-26)<<"\",";
         
 
-        if(std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1){
+        if(std::atoi(read_env_var("EXPLORE_BY_EXECUTION")) == 1){
             myfile << "\""<< initial_exec_time<<"\",";
             myfile << "\""<< best_execution_time<<"\",";
 
-        }else if (std::atoi(read_env_var("EXECUTE_BEST_AND_INITIAL_SCHED"))==1)
+        }else 
         {
-            myfile << "\""<< initial_exec_time<<"\",";
-            myfile << "\""<<min_eval(exec_evaluator->get_measurements(*best_ast, false, schedule_timeout))<<"\",";
+            std::cout<<"got here before seg"<<std::endl;
+            if (std::atoi(read_env_var("EXECUTE_INITIAL_SCHED")) == 1)
+            {
+                myfile << "\""<< initial_exec_time<<"\",";
+            }
+            if (std::atoi(read_env_var("EXECUTE_BEST_SCHED")) == 1){
+                myfile << "\""<<min_eval(exec_evaluator->get_measurements(*best_ast, false, schedule_timeout))<<"\",";
+            }
         }
         
         myfile << "\"" << best_ast->get_schedule_str() <<"\""<< std::endl;

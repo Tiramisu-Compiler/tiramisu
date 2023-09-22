@@ -179,7 +179,7 @@ cd tiramisu
 	
 4) Add Halide's cmake to the `CMAKE_PREFIX_PATH`: 
 ```bash
-export CMAKE_PREFIX_PATH=<TIRAMISU_ROOT_DIR>/3rdParty/Halide/build/:$CMAKE_PREFIX_PATH
+export CMAKE_PREFIX_PATH=$TIRAMISU_ROOT_DIR/3rdParty/Halide/install/:$CMAKE_PREFIX_PATH
 ```
 5) Build the main Tiramisu library
 ```bash

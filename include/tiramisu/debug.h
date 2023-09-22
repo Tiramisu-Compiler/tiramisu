@@ -8,7 +8,7 @@
   * the code generation step. Set to false to disable this.
   * Halide IR will be printed even if ENABLE_DEBUG is set to false.
   */
-#define PRINT_HALIDE_IR_AFTER_CODEGEN 0
+#define PRINT_HALIDE_IR_AFTER_CODEGEN 1
 
 /**
   * Set to true to enable printing the final (fully simplified)

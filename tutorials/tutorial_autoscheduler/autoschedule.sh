@@ -1,11 +1,13 @@
-export BEAM_SIZE=3
+export BEAM_SIZE=1
 export NB_EXEC=1
 export AS_VERBOSE=1
 # Set the exploration to use the model. Change to 1 for exploration by execution.
 export EXPLORE_BY_EXECUTION=0
 export PYTHON_PATH=/path/to/bin/python
-export SAVE_BEST_SCHED_IN_FILE=0
-export EXECUTE_BEST_AND_INITIAL_SCHED=0
+export SAVE_BEST_SCHED_IN_FILE=1
+export LOG_FILE_PATH="/path/to/results/file"
+export EXECUTE_INITIAL_SCHED=0
+export EXECUTE_BEST_SCHED=1
 export TIRAMISU_ROOT=/absolute/path/to/Tiramisu
 export LD_LIBRARY_PATH=${TIRAMISU_ROOT}/3rdParty/Halide/build/src:${TIRAMISU_ROOT}/3rdParty/llvm/build/lib:$LD_LIBRARY_PATH
 
