@@ -6886,7 +6886,6 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper, bool contain
 
     assert(e.is_defined() && "The computed bound expression is undefined.");
     DEBUG(10, tiramisu::str_dump(std::string("The ") + (upper ? "upper" : "lower") + " bound is : "); e.dump(false));
-    tiramisu::str_dump(std::string("The ") + (upper ? "upper" : "lower") + " bound is : "); e.dump(false);std::cout<<std::endl;
     DEBUG_INDENT(-4);
     return e;
 }

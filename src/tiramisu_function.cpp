@@ -2111,13 +2111,13 @@ void tiramisu::function::reset_computations()
 
     // we also need to reset the names for the computations that were duplicated since
     // they were renamed using the function rename_computations
-
     for (computation *comp : get_computations()){
         // for each computation we also remove all the added updates added using the add_definitions function
         comp->definitions_number -= comp->updates.size()-1;
         comp->updates = std::vector<tiramisu::computation *>(comp->updates.begin(),comp->updates.begin()+1);
         // we extract the correct name for the computation
-        int pos = comp->name.find("_update_");
+        // We use rfind to look for the last occurance of _update_ incase the original computation has update in its name
+        int pos = comp->name.rfind("_update_");
         std::string correct_name; 
         if( pos != std::string::npos){
             correct_name = comp->name.substr(1,pos-1);
