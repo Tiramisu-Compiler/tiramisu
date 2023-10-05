@@ -1254,9 +1254,27 @@ void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
             i_inner->low_bound = "0";
             i_inner->up_bound = std::to_string(opt.l0_fact - 1);
             
+            // Treat the case where the unrolled loop would disapear in code generation
+            // i.e. loops that only have only a single iteration (upper and lower bound are zero)
+            int new_depth = i_outer->depth + 1;
+            if (i_outer->up_bound == "0"){
+                ast_node *outer_parent = i_outer->parent;
+                auto it = find(outer_parent->children.begin(), outer_parent->children.end(), i_outer);
+
+                // The child needs to be in the children list of the parent
+                assert(it != outer_parent->children.end());
+
+                // Replace the outer loop with the inner one
+                int index =  it - outer_parent->children.begin();
+                outer_parent->children.at(index) = i_inner;
+                
+                // Update the parent pointer and depth
+                i_inner->parent = outer_parent;
+                new_depth = i_outer->depth;
+            }
             // Finalize unrolling
             i_inner->unrolled = true;
-            i_inner->update_depth(i_outer->depth + 1);
+            i_inner->update_depth(new_depth);
         }
     }
 }
