@@ -14,4 +14,4 @@
 [submodule "3rdParty/Halide"]
 	path = 3rdParty/Halide
 	url = https://github.com/halide/Halide.git
-	branch = master
+	branch = release/14.x
