@@ -129,7 +129,6 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
 
         }else 
         {
-            std::cout<<"got here before seg"<<std::endl;
             if (std::atoi(read_env_var("EXECUTE_INITIAL_SCHED")) == 1)
             {
                 myfile << "\""<< initial_exec_time<<"\",";
