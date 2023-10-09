@@ -6,25 +6,25 @@
 
 #define NB_THREAD_INIT 48
 struct args {
-    double *buf;
+    int *buf;
     unsigned long long int part_start;
     unsigned long long int part_end;
-    double value;
+    int value;
 };
 
 void *init_part(void *params)
 {
-   double *buffer = ((struct args*) params)->buf;
+   int *buffer = ((struct args*) params)->buf;
    unsigned long long int start = ((struct args*) params)->part_start;
    unsigned long long int end = ((struct args*) params)->part_end;
-   double val = ((struct args*) params)->value;
+   int val = ((struct args*) params)->value;
    for (unsigned long long int k = start; k < end; k++){
        buffer[k]=val;
    }
    pthread_exit(NULL);
 }
 
-void parallel_init_buffer(double* buf, unsigned long long int size, double value){
+void parallel_init_buffer(int* buf, unsigned long long int size, int value){
     pthread_t threads[NB_THREAD_INIT]; 
     struct args params[NB_THREAD_INIT];
     for (int i = 0; i < NB_THREAD_INIT; i++) {
@@ -64,7 +64,7 @@ int get_max_depth(){
 }
 
 void declare_memory_usage(){
-    setenv("MEM_SIZE", std::to_string((double)18*18*18*2*8/1024/1024).c_str(), true); // This value was set by the Code Generator
+    setenv("MEM_SIZE", std::to_string((int)18*18*18*2*8/1024/1024).c_str(), true); // This value was set by the Code Generator
 }
 
 int get_nb_exec(){

@@ -19,10 +19,10 @@ int main(int argc, char **argv)
     var i("i", 0, 180), j("j", 0, 180), k("k", 0, 180);
     
     //inputs
-    input paths("paths", {i, j}, p_float64);
+    input paths("paths", {i, j}, p_int32);
 
     //Computations
-    computation paths_update("paths_update", {k,i,j}, p_float64);
+    computation paths_update("paths_update", {k,i,j}, p_int32);
     paths_update.set_expression(expr(o_min, paths(i,j), paths(i,k) + paths(k,j)));
 
     // -------------------------------------------------------
@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     // Layer III
     // -------------------------------------------------------
     //Input Buffers
-    buffer b_paths("b_paths", {180,180}, p_float64, a_output);    
+    buffer b_paths("b_paths", {180,180}, p_int32, a_output);    
 
     //Store inputs
     paths.store_in(&b_paths);

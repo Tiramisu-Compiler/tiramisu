@@ -41,7 +41,7 @@ int main(int argc, char **argv)
     computation stddev_prod("stddev_prod", {j,l}, stddev(j) + (data(l,j)-mean(j))*(data(l,j)-mean(j)));
     computation stddev_div("stddev_div", {j}, stddev(j)/expr(cast(p_float64, 1400)));
     computation stddev_sqrt("stddev_sqrt", {j}, expr(o_sqrt,stddev(j)));
-    computation stddev_tern("stddev_tern", {j}, (stddev(j)<=0.1)*1.0+(1-(stddev(j)<=0.1))*stddev(j));
+    computation stddev_tern("stddev_tern", {j}, cast(p_float64, (stddev(j)<=0.1))*1.0+(1-cast(p_float64, (stddev(j)<=0.1)))*stddev(j));
 
     computation data_sub("data_sub", {l,j}, data(l,j)-mean(j));
     computation data_div("data_div",{l,j},data(l,j)/(expr(o_sqrt,expr(cast(p_float64, 1400)))*stddev(j)));

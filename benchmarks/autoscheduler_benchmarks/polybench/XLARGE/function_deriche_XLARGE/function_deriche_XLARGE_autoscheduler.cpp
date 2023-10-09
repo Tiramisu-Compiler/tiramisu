@@ -13,9 +13,9 @@ const std::string py_interface_path = TIRAMISU_ROOT + "/tutorials/tutorial_autos
 using namespace tiramisu;
 int main(int argc, char **argv)
  {
-    double k;
-    double a1, a2, a3, a4, a5, a6, a7, a8;
-    double b1, b2, c1, c2;
+    float k;
+    float a1, a2, a3, a4, a5, a6, a7, a8;
+    float b1, b2, c1, c2;
 
     k = (1.0-exp(-0.25))*(1.0-exp(-0.25))/(1.0+2.0*0.25*exp(-0.25)-exp(2.0*0.25));
     a1 = a5 = k;
@@ -40,24 +40,24 @@ int main(int argc, char **argv)
     var j_reversed("j_reversed", -4320+1, 1), i_reversed("i_reversed", -7680+1, 1);
 
     //inputs
-    input imgIn("imgIn", {i, j}, p_float64);
-    input y1("y1", {i,j}, p_float64); //used as a wrapper for buf y1
-    input y2("y2", {i,j}, p_float64); //used as a wrapper for buf y2
+    input imgIn("imgIn", {i, j}, p_float32);
+    input y1("y1", {i,j}, p_float32); //used as a wrapper for buf y1
+    input y2("y2", {i,j}, p_float32); //used as a wrapper for buf y2
 
  
     //Computations
-    computation ym1_w_init("ym1_w_init", {i}, 0.0);
-    computation ym2_w_init("ym2_w_init", {i}, 0.0);
-    computation xm1_w_init("xm1_w_init", {i}, 0.0);
+    computation ym1_w_init("ym1_w_init", {i}, expr((float)0.0));
+    computation ym2_w_init("ym2_w_init", {i}, expr((float)0.0));
+    computation xm1_w_init("xm1_w_init", {i}, expr((float)0.0));
     computation y1_1("y1_1", {i,j}, imgIn(i, j)*a1 + xm1_w_init(0)*a2 + ym1_w_init(0)*b1 + ym2_w_init(0)*b2);
     computation xm1_w("xm1_w", {i,j}, imgIn(i, j));
     computation ym2_w("ym2_w", {i,j}, ym1_w_init(0));
     computation ym1_w("ym1_w", {i,j}, y1(i, j));
 
-    computation yp1_w_init("yp1_w_init", {i}, 0.0);
-    computation yp2_w_init("yp2_w_init", {i}, 0.0);
-    computation xp1_w_init("xp1_w_init", {i}, 0.0);
-    computation xp2_w_init("xp2_w_init", {i}, 0.0);
+    computation yp1_w_init("yp1_w_init", {i}, expr((float)0.0));
+    computation yp2_w_init("yp2_w_init", {i}, expr((float)0.0));
+    computation xp1_w_init("xp1_w_init", {i}, expr((float)0.0));
+    computation xp2_w_init("xp2_w_init", {i}, expr((float)0.0));
     computation y2_reverse_j("y2_reverse_j", {i,j_reversed}, xp1_w_init(0)*a3 + xp2_w_init(0)*a4 + yp1_w_init(0)*b1 + yp2_w_init(0)*b2);
     computation xp2_w("xp2_w", {i,j_reversed}, xp1_w_init(0));
     computation xp1_w("xp1_w", {i,j_reversed}, imgIn(i, -j_reversed));
@@ -66,18 +66,18 @@ int main(int argc, char **argv)
 
     computation imgOut_r("imgOut_r", {i,j}, (y1(i, j) + y2(i, j))*c1);//
 
-    computation tm1_h_init("tm1_h_init" ,{j}, 0.0);
-    computation ym1_h_init("ym1_h_init" ,{j}, 0.0);
-    computation ym2_h_init("ym2_h_init" ,{j}, 0.0);
+    computation tm1_h_init("tm1_h_init" ,{j}, expr((float)0.0));
+    computation ym1_h_init("ym1_h_init" ,{j}, expr((float)0.0));
+    computation ym2_h_init("ym2_h_init" ,{j}, expr((float)0.0));
     computation y1_transpose("y1_transpose", {j,i}, imgOut_r(i, j)*a5 + tm1_h_init(0)*a6 + ym1_h_init(0)*b1 + ym2_h_init(0)*b2);///
     computation tm1_h("tm1_h", {j,i}, imgOut_r(i, j));
     computation ym2_h("ym2_h", {j,i}, ym1_h_init(0));
     computation ym1_h("ym1_h", {j,i}, y1(i, j));
 
-    computation tp1_h_init("tp1_h_init", {j}, 0.0);
-    computation tp2_h_init("tp2_h_init", {j}, 0.0);
-    computation yp1_h_init("yp1_h_init", {j}, 0.0);
-    computation yp2_h_init("yp2_h_init", {j}, 0.0);
+    computation tp1_h_init("tp1_h_init", {j}, expr((float)0.0));
+    computation tp2_h_init("tp2_h_init", {j}, expr((float)0.0));
+    computation yp1_h_init("yp1_h_init", {j}, expr((float)0.0));
+    computation yp2_h_init("yp2_h_init", {j}, expr((float)0.0));
     computation y2_reverse_i("y2_reverse_i", {j,i_reversed}, tp1_h_init(0)*a7 + tp2_h_init(0)*a8 + yp1_h_init(0)*b1 + yp2_h_init(0)*b2);
     computation tp2_h("tp2_h", {j,i_reversed}, tp1_h_init(0));
     computation tp1_h("tp1_h", {j,i_reversed}, imgOut_r(-i_reversed, j));
@@ -128,20 +128,20 @@ int main(int argc, char **argv)
     // Layer III
     // -------------------------------------------------------
     //Input Buffers
-    buffer b_imgIn("b_imgIn", {7680,4320}, p_float64, a_input);    
-    buffer b_imgOut("b_imgOut", {7680,4320}, p_float64, a_output);    
-    buffer b_y1("b_y1", {7680,4320}, p_float64, a_temporary);    
-    buffer b_y2("b_y2", {7680,4320}, p_float64, a_temporary);  
-    buffer b_xm1("b_xm1", {1}, p_float64, a_temporary);
-    buffer b_ym2("b_ym2", {1}, p_float64, a_temporary);
-    buffer b_ym1("b_ym1", {1}, p_float64, a_temporary);
-    buffer b_xp2("b_xp2", {1}, p_float64, a_temporary);
-    buffer b_xp1("b_xp1", {1}, p_float64, a_temporary);
-    buffer b_yp2("b_yp2", {1}, p_float64, a_temporary);
-    buffer b_yp1("b_yp1", {1}, p_float64, a_temporary);
-    buffer b_tp2("b_tp2", {1}, p_float64, a_temporary);
-    buffer b_tp1("b_tp1", {1}, p_float64, a_temporary);
-    buffer b_tm1("b_tm1", {1}, p_float64, a_temporary);
+    buffer b_imgIn("b_imgIn", {7680,4320}, p_float32, a_input);    
+    buffer b_imgOut("b_imgOut", {7680,4320}, p_float32, a_output);    
+    buffer b_y1("b_y1", {7680,4320}, p_float32, a_temporary);    
+    buffer b_y2("b_y2", {7680,4320}, p_float32, a_temporary);  
+    buffer b_xm1("b_xm1", {1}, p_float32, a_temporary);
+    buffer b_ym2("b_ym2", {1}, p_float32, a_temporary);
+    buffer b_ym1("b_ym1", {1}, p_float32, a_temporary);
+    buffer b_xp2("b_xp2", {1}, p_float32, a_temporary);
+    buffer b_xp1("b_xp1", {1}, p_float32, a_temporary);
+    buffer b_yp2("b_yp2", {1}, p_float32, a_temporary);
+    buffer b_yp1("b_yp1", {1}, p_float32, a_temporary);
+    buffer b_tp2("b_tp2", {1}, p_float32, a_temporary);
+    buffer b_tp1("b_tp1", {1}, p_float32, a_temporary);
+    buffer b_tm1("b_tm1", {1}, p_float32, a_temporary);
 
     //Store inputs
     imgIn.store_in(&b_imgIn);    

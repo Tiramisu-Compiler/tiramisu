@@ -2,13 +2,13 @@ cmake_minimum_required(VERSION 3.5)
 project(Autoscheduler)
 
 include(CMakePrintHelpers)
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -fopenmp")
 set(CMAKE_VERBOSE_MAKEFILE "ON")
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 SET(BUILD_TARGET "" CACHE STRING "")
 SET(FUNCTION_TO_BUILD "" CACHE STRING "")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ldl -g -fno-rtti -lz -lpthread -std=c++17 -O0")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ldl -g -fno-rtti -lz -lpthread -fopenmp -std=c++17 -O0")
 
 
 include_directories($ENV{TIRAMISU_ROOT}/3rdParty/Halide/install/include/ $ENV{TIRAMISU_ROOT}/include/ $ENV{TIRAMISU_ROOT}/3rdParty/isl/include)
