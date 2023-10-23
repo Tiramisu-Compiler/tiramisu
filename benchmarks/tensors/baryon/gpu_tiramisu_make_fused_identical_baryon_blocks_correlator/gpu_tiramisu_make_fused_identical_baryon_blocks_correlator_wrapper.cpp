@@ -10,13 +10,13 @@
 extern "C" {
 #endif
 
-#include "gpu_tiramisu_make_fused_baryon_blocks_correlator_wrapper.h"
+#include "gpu_tiramisu_make_fused_identical_baryon_blocks_correlator_wrapper.h"
 #include "gpu_tiramisu_make_fused_baryon_blocks_correlator_ref.cpp"
 
 #define RUN_REFERENCE 1
 #define RUN_CHECK 1
 int nb_tests = 1;
-int randommode = 1;
+int randommode = 0;
 
 const int Nc_f = Nc;
 const int Ns_f= Ns;
@@ -28,7 +28,7 @@ const int Nq_f = Nq;
 const int Nsrc_f = NsrcHex;
 const int Nsnk_f = NsnkHex;
 
-void tiramisu_make_nucleon_2pt(double* C_re,
+void gpu_tiramisu_make_identical_nucleon_2pt(double* C_re,
     double* C_im,
      double* B1_prop_re, 
      double* B1_prop_im, 
@@ -59,8 +59,8 @@ void tiramisu_make_nucleon_2pt(double* C_re,
     long mega = 1024*1024;
     std::cout << "Array sizes" << "\n";
     std::cout << "Prop:" <<  "\n";
-    std::cout << "	Max index size = " << Nq*Vsnk*Vsrc*Nc*Ns*Nc*Ns*Lt <<  "\n";
-    std::cout << "	Array size = " << Nq*Vsnk*Vsrc*Nc*Ns*Nc*Ns*Lt*sizeof(std::complex<double>)/mega << " Mega bytes" << "\n";
+    std::cout << "	Max index size = " << Vsnk*Vsrc*Nc*Ns*Nc*Ns*Lt <<  "\n";
+    std::cout << "	Array size = " << Vsnk*Vsrc*Nc*Ns*Nc*Ns*Lt*sizeof(std::complex<double>)/mega << " Mega bytes" << "\n";
     std::cout << "Q, O & P:" <<  "\n";
     std::cout << "	Max index size = " << Vsnk*Vsrc*Nc*Ns*Nc*Ns <<  "\n";
     std::cout << "	Array size = " << Vsnk*Vsrc*Nc*Ns*Nc*Ns*sizeof(std::complex<double>)/mega << " Mega bytes" <<  "\n";
@@ -76,8 +76,11 @@ void tiramisu_make_nucleon_2pt(double* C_re,
     }
 
    // Halide buffers
-   Halide::Buffer<double> b_C_r(NsnkHex, B1Nrows, NsrcHex, B1Nrows, sites_per_rank, Vsnk/sites_per_rank, Lt, "C_r");
-   Halide::Buffer<double> b_C_i(NsnkHex, B1Nrows, NsrcHex, B1Nrows, sites_per_rank, Vsnk/sites_per_rank, Lt, "C_i");
+   Halide::Buffer<double> b_C_r(NsnkHex, B1Nrows, NsrcHex, B1Nrows, Lt, "C_r");
+   Halide::Buffer<double> b_C_i(NsnkHex, B1Nrows, NsrcHex, B1Nrows, Lt, "C_i");
+
+   Halide::Buffer<double> b_C_r_full(NsnkHex, B1Nrows, NsrcHex, B1Nrows, sites_per_rank, Vsnk/sites_per_rank, Lt, "C_r_full");
+   Halide::Buffer<double> b_C_i_full(NsnkHex, B1Nrows, NsrcHex, B1Nrows, sites_per_rank, Vsnk/sites_per_rank, Lt, "C_i_full");
 
    Halide::Buffer<int> b_src_color_weights(Nq, Nw, B1Nrows, "src_color_weights");
    Halide::Buffer<int> b_src_spin_weights(Nq, Nw, B1Nrows, "src_spin_weights");
@@ -89,11 +92,11 @@ void tiramisu_make_nucleon_2pt(double* C_re,
    Halide::Buffer<double> b_snk_weights(Nw, B1Nrows, "snk_weights");
 
     // prop
-    Halide::Buffer<double> b_B1_prop_r((double *)B1_prop_re, {Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq});
-    Halide::Buffer<double> b_B1_prop_i((double *)B1_prop_im, {Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq});
+    Halide::Buffer<double> b_B1_prop_r((double *)B1_prop_re, {Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt});
+    Halide::Buffer<double> b_B1_prop_i((double *)B1_prop_im, {Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt});
 
     if (rank == 0)
-   printf("prop elem %4.9f \n", b_B1_prop_r(0,0,0,0,0,0,0,0));
+   printf("prop elem %4.9f \n", b_B1_prop_r(0,0,0,0,0,0,0));
 
     // psi
     Halide::Buffer<double> b_B1_src_psi_r((double *)src_psi_B1_re, {NsrcHex, Vsrc});
@@ -164,22 +167,34 @@ void tiramisu_make_nucleon_2pt(double* C_re,
          for (int r=0; r<B1Nrows; r++)
             for (int n=0; n<NsnkHex; n++)
                for (int t=0; t<Lt; t++) 
+                     {
+                        b_C_r(n, r, m, rp, t) = 0.0;
+                        b_C_i(n, r, m, rp, t) = 0.0;
+                     }
+
+   for (int rp=0; rp<B1Nrows; rp++)
+      for (int m=0; m<NsrcHex; m++)
+         for (int r=0; r<B1Nrows; r++)
+            for (int n=0; n<NsnkHex; n++)
+               for (int t=0; t<Lt; t++) 
                   for (int x_out=0; x_out<Vsnk/sites_per_rank; x_out++)
                      for (int x_in = 0; x_in < sites_per_rank; ++x_in)
                      {
-                        b_C_r(n, r, m, rp, x_in, x_out, t) = 0.0;
-                        b_C_i(n, r, m, rp, x_in, x_out, t) = 0.0;
+                        b_C_r_full(n, r, m, rp, x_in, x_out, t) = 0.0;
+                        b_C_i_full(n, r, m, rp, x_in, x_out, t) = 0.0;
                      }
 
    if (rank == 0) {
-   printf("prop 1 %4.9f + I %4.9f \n", b_B1_prop_r(0,0,0,0,0,0,0,0), b_B1_prop_i(0,0,0,0,0,0,0,0));
+   printf("prop 1 %4.9f + I %4.9f \n", b_B1_prop_r(0,0,0,0,0,0,0), b_B1_prop_i(0,0,0,0,0,0,0));
    printf("psi src 1 %4.9f + I %4.9f \n", b_B1_src_psi_r(0,0), b_B1_src_psi_i(0,0));
    printf("psi snk %4.9f + I %4.9f \n", b_B1_snk_psi_r(0,0,0,0), b_B1_snk_psi_i(0,0,0,0));
    printf("weights snk %4.9f \n", b_snk_weights(0,0));
    }
-   tiramisu_make_fused_baryon_blocks_correlator(
+   gpu_tiramisu_make_fused_identical_baryon_blocks_correlator(
 				    b_C_r.raw_buffer(),
 				    b_C_i.raw_buffer(),
+				    b_C_r_full.raw_buffer(),
+				    b_C_i_full.raw_buffer(),
 				    b_B1_prop_r.raw_buffer(),
 				    b_B1_prop_i.raw_buffer(),
                 b_B1_src_psi_r.raw_buffer(),
@@ -195,55 +210,15 @@ void tiramisu_make_nucleon_2pt(double* C_re,
 				    b_snk_weights.raw_buffer(),
 				    b_sigs.raw_buffer());
 
-   if (rank == 0) {
-   printf("non-zero r1? %4.1f + I %4.1f ", b_C_r(0,0,0,0,0,0), b_C_i(0,0,0,0,0,0) );
-   printf("non-zero r2? %4.1f + I %4.1f ", b_C_r(0,1,0,1,0,0), b_C_i(0,1,0,1,0,0) );
-   }
-
-    // symmetrize and such
-#ifdef WITH_MPI
-   
-   for (int rp=0; rp<B1Nrows; rp++)
-      for (int m=0; m<NsrcHex; m++)
-         for (int r=0; r<B1Nrows; r++)
-            for (int n=0; n<NsnkHex; n++)
-               for (int t=0; t<Lt; t++)  {
-                  double number0r;
-                  double number0i;
-                  double this_number0r = b_C_r(n,r,m,rp,rank,t);
-                  double this_number0i = b_C_i(n,r,m,rp,rank,t);
-                  MPI_Allreduce(&this_number0r, &number0r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(&this_number0i, &number0i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-                  C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)] += number0r;
-                  C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)] += number0i;
-               }
-#else
    for (int rp=0; rp<B1Nrows; rp++)
       for (int m=0; m<NsrcHex; m++)
          for (int r=0; r<B1Nrows; r++)
             for (int n=0; n<NsnkHex; n++)
                for (int t=0; t<Lt; t++)
                {
-                  C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)] = 0.0;
-                  C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)] = 0.0;
+                  C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)] = b_C_r(n,r,m,rp,t);
+                  C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)] = b_C_i(n,r,m,rp,t);
                }
-   for (int rp=0; rp<B1Nrows; rp++)
-      for (int m=0; m<NsrcHex; m++)
-         for (int r=0; r<B1Nrows; r++)
-            for (int n=0; n<NsnkHex; n++)
-               for (int t=0; t<Lt; t++)
-                  for (int x_out = 0; x_out < Vsnk/sites_per_rank; x_out++) {
-                     for (int x_in = 0; x_in < sites_per_rank; ++x_in)
-                     {
-                        double number0r;
-                        double number0i;
-                        number0r = b_C_r(n,r,m,rp, x_in, x_out,t);
-                        number0i = b_C_i(n,r,m,rp, x_in, x_out,t);
-                        C_re[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)] += number0r;
-                        C_im[index_5d(rp,m,r,n,t, NsrcHex,B1Nrows,NsnkHex,Lt)] += number0i;
-                     }
-               }
-#endif
 
     if (rank == 0) {
    for (int rp=0; rp<B1Nrows; rp++) {
@@ -277,9 +252,10 @@ int main(int, char **)
 
    // Initialization
    // Props
-   double* B1_prop_re = (double *) malloc(Nq * Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
-   double* B1_prop_im = (double *) malloc(Nq * Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
-   for (q = 0; q < Nq; q++) {
+   double* B1_prop_re = (double *) malloc(Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
+   double* B1_prop_im = (double *) malloc(Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
+   double* full_B1_prop_re = (double *) malloc(Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * Nq * sizeof (double));
+   double* full_B1_prop_im = (double *) malloc(Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * Nq * sizeof (double));
       for (t = 0; t < Lt; t++) {
          for (iC = 0; iC < Nc; iC++) {
             for (iS = 0; iS < Ns; iS++) {
@@ -287,23 +263,39 @@ int main(int, char **)
                   for (jS = 0; jS < Ns; jS++) {
                      for (y = 0; y < Vsrc; y++) {
                         for (x = 0; x < Vsnk; x++) {
+	                   double v1 = rand()%10;
+	                   double v2 = rand()%10;
+	                   double v3 = rand()%10;
+	                   double v4 = rand()%10;
 			   if (randommode == 1) {
-	                        double v1 = rand()%10;
-	                        double v2 = rand()%10;
-	                        double v3 = rand()%10;
-	                        double v4 = rand()%10;
-                           B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v1;
-                           B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v3;
+                              B1_prop_re[id_prop_index(t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v1;
+                              B1_prop_im[id_prop_index(t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v3;
 			   }
 			   else {
                            if ((jC == iC) && (jS == iS)) {
-                              B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*cos(2*M_PI/6);
-                              B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*sin(2*M_PI/6);
+                              B1_prop_re[id_prop_index(t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*cos(2*M_PI/6);
+                              B1_prop_im[id_prop_index(t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*sin(2*M_PI/6);
                            }
                            else {
-                              B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 0;
-                              B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 0;
+                              B1_prop_re[id_prop_index(t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 0;
+                              B1_prop_im[id_prop_index(t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 0;
                            }
+			   }
+                           for (q = 0; q < Nq; q++) {
+			   if (randommode == 1) {
+                              full_B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v1;
+                              full_B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v3;
+			   }
+			   else {
+                           if ((jC == iC) && (jS == iS)) {
+                              full_B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*cos(2*M_PI/6);
+                              full_B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*sin(2*M_PI/6);
+                           }
+                           else {
+                              full_B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 0;
+                              full_B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 0;
+                           }
+			   }
 			   }
                         }
                      }
@@ -312,7 +304,6 @@ int main(int, char **)
             }
          }
       }
-   }
    // Wavefunctions
    double* src_psi_B1_re = (double *) malloc(Nsrc * Vsrc * sizeof (double));
    double* src_psi_B1_im = (double *) malloc(Nsrc * Vsrc * sizeof (double));
@@ -409,7 +400,7 @@ int main(int, char **)
       if (rank == 0)
          std::cout << "Run " << i << "/" << nb_tests <<  std::endl;
       auto start1 = std::chrono::high_resolution_clock::now();
-       tiramisu_make_nucleon_2pt(t_C_re,
+       gpu_tiramisu_make_identical_nucleon_2pt(t_C_re,
            t_C_im,
            B1_prop_re, 
            B1_prop_im, 
@@ -424,7 +415,7 @@ int main(int, char **)
            src_psi_B1_re, 
            src_psi_B1_im, 
            snk_psi_B1_re,
-           snk_psi_B1_im); //, Nc, Ns, Vsrc, Vsnk, Lt, Nw, Nq, NsrcHex, NsnkHex);
+           snk_psi_B1_im); //, Nc, Ns, Vsrc, Vsnk, Lt, Nw, Nq, NsrcHex, NsnkHex); 
        
       auto end1 = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double,std::milli> duration1 = end1 - start1;
@@ -454,7 +445,7 @@ int main(int, char **)
 	   std::cout << "Run " << i << "/" << nb_tests <<  std::endl;
 	   auto start2 = std::chrono::high_resolution_clock::now();
 
-      make_nucleon_2pt(C_re, C_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im, snk_psi_B1_re, snk_psi_B1_im, Nc, Ns, Vsrc, Vsnk, Lt, Nw, Nq, NsrcHex, NsnkHex);
+      make_nucleon_2pt(C_re, C_im, full_B1_prop_re, full_B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im, snk_psi_B1_re, snk_psi_B1_im, Nc, Ns, Vsrc, Vsnk, Lt, Nw, Nq, NsrcHex, NsnkHex);
 
 	   auto end2 = std::chrono::high_resolution_clock::now();
 	   std::chrono::duration<double,std::milli> duration2 = end2 - start2;

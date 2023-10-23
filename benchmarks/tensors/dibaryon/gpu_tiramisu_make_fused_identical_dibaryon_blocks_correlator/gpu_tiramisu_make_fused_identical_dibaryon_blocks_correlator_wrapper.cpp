@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <complex>
-#include "benchmarks.h"
+//#include "benchmarks.h"
 #include <iomanip>
 #include <string>
 
@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-#include "gpu_tiramisu_make_fused_dibaryon_blocks_correlator_wrapper.h"
+#include "gpu_tiramisu_make_fused_identical_dibaryon_blocks_correlator_wrapper.h"
 #include "gpu_tiramisu_make_fused_dibaryon_blocks_correlator_ref.cpp"
 
 #define RUN_REFERENCE 0
@@ -36,12 +36,10 @@ std::string fromBytesToStr( long long size )
    return res[3] + " " + res[2] + " " + res[1] + " " + res[0];
 }
 
-void tiramisu_make_two_nucleon_2pt(double* C_re,
+void gpu_tiramisu_make_identical_two_nucleon_2pt(double* C_re,
     double* C_im,
      double* B1_prop_re, 
      double* B1_prop_im, 
-     double* B2_prop_re, 
-     double* B2_prop_im, 
      int *src_color_weights_r1,
      int *src_spin_weights_r1,
      double *src_weights_r1,
@@ -91,8 +89,8 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
     long mega = 1024*1024;
     std::cout << "Array sizes" << std::endl;
     std::cout << "Prop:" <<  std::endl;
-    std::cout << "	Max index size = " << Nq*Vsnk*Vsrc*Nc*Ns*Nc*Ns*Lt <<  std::endl;
-    std::cout << "	Array size = " << Nq*Vsnk*Vsrc*Nc*Ns*Nc*Ns*Lt*sizeof(std::complex<double>)/mega << " Mega bytes" << std::endl;
+    std::cout << "	Max index size = " << Vsnk*Vsrc*Nc*Ns*Nc*Ns*Lt <<  std::endl;
+    std::cout << "	Array size = " << Vsnk*Vsrc*Nc*Ns*Nc*Ns*Lt*sizeof(std::complex<double>)/mega << " Mega bytes" << std::endl;
     std::cout << "Q, O & P:" <<  std::endl;
     std::cout << "	Max index size = " << Vsnk*Vsrc*Nc*Ns*Nc*Ns <<  std::endl;
     std::cout << "	Array size = " << Vsnk*Vsrc*Nc*Ns*Nc*Ns*sizeof(std::complex<double>)/mega << " Mega bytes" <<  std::endl;
@@ -111,12 +109,12 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
    Halide::Buffer<double> b_C_r(Nsnk+NsnkHex, B2Nrows, Nsrc+NsrcHex, B2Nrows, sites_per_rank, Vsnk/sites_per_rank, Lt, "C_r");
    Halide::Buffer<double> b_C_i(Nsnk+NsnkHex, B2Nrows, Nsrc+NsrcHex, B2Nrows, sites_per_rank, Vsnk/sites_per_rank, Lt, "C_i");
 // Vsnk / tiling_factor, Vsnk / tiling_factor, B2Nrows, Nsrc, B2Nrows, Nsnk
-   Halide::Buffer<double> b_C_BB_r(Nsnk, B2Nrows, Nsrc, B2Nrows, Vsnk / tiling_factor, Vsnk / tiling_factor, "b_C_BB_r");
-   Halide::Buffer<double> b_C_BB_i(Nsnk, B2Nrows, Nsrc, B2Nrows, Vsnk / tiling_factor, Vsnk / tiling_factor, "b_C_BB_i");
+// TODO
+   Halide::Buffer<double> b_C_BB_r(Nsnk, B2Nrows, Nsrc, Vsnk / tiling_factor, B2Nrows, Vsnk / tiling_factor, tiling_factor, tiling_factor, Lt, "b_C_BB_r");
+   Halide::Buffer<double> b_C_BB_i(Nsnk, B2Nrows, Nsrc, Vsnk / tiling_factor, B2Nrows, Vsnk / tiling_factor, tiling_factor, tiling_factor, Lt, "b_C_BB_i");
 // Lt, B2Nrows, Nsrc, B2Nrows, Nsnk
    Halide::Buffer<double> b_out_buf_C_BB_r(Nsnk, B2Nrows, Nsrc, B2Nrows, Lt, "b_out_buf_C_BB_r");
    Halide::Buffer<double> b_out_buf_C_BB_i(Nsnk, B2Nrows, Nsrc, B2Nrows, Lt, "b_out_buf_C_BB_i");
-
 
    Halide::Buffer<int> b_src_color_weights(Nq, Nw, B2Nrows, "src_color_weights");
    Halide::Buffer<int> b_src_spin_weights(Nq, Nw, B2Nrows, "src_spin_weights");
@@ -133,13 +131,11 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
    Halide::Buffer<double> b_hex_snk_weights(Nw2Hex, B2Nrows, "hex_snk_weights");
 
     // prop
-    Halide::Buffer<double> b_B1_prop_r((double *)B1_prop_re, {Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq});
-    Halide::Buffer<double> b_B1_prop_i((double *)B1_prop_im, {Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq});
-    Halide::Buffer<double> b_B2_prop_r((double *)B2_prop_re, {Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq});
-    Halide::Buffer<double> b_B2_prop_i((double *)B2_prop_im, {Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq});
+    Halide::Buffer<double> b_B1_prop_r((double *)B1_prop_re, {Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt});
+    Halide::Buffer<double> b_B1_prop_i((double *)B1_prop_im, {Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt});
 
    if (rank == 0) {
-   printf("prop elem %4.9f \n", b_B1_prop_r(0,0,0,0,0,0,0,0));
+   printf("prop elem %4.9f \n", b_B1_prop_r(0,0,0,0,0,0,0));
    }
 
     // psi
@@ -369,15 +365,14 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
                      }
 
    if (rank == 0) {
-   printf("prop 1 %4.9f + I %4.9f \n", b_B1_prop_r(0,0,0,0,0,0,0,0), b_B1_prop_i(0,0,0,0,0,0,0,0));
-   printf("prop 2 %4.9f + I %4.9f \n", b_B2_prop_r(0,0,0,0,0,0,0,0), b_B2_prop_i(0,0,0,0,0,0,0,0));
+   printf("prop 1 %4.9f + I %4.9f \n", b_B1_prop_r(0,0,0,0,0,0,0), b_B1_prop_i(0,0,0,0,0,0,0));
    printf("psi src 1 %4.9f + I %4.9f \n", b_B1_src_psi_r(0,0), b_B1_src_psi_i(0,0));
    printf("psi src 2 %4.9f + I %4.9f \n", b_B2_src_psi_r(0,0), b_B2_src_psi_i(0,0));
    printf("psi snk %4.9f + I %4.9f \n", b_snk_psi_r(0,0,0), b_snk_psi_i(0,0,0));
    printf("weights snk %4.1f \n", b_snk_weights(0,0));
    printf("sigs %d \n", b_sigs(0));
    }
-   gpu_tiramisu_make_fused_dibaryon_blocks_correlator(
+   gpu_tiramisu_make_fused_identical_dibaryon_blocks_correlator(
       b_C_r.raw_buffer(),
       b_C_i.raw_buffer(),
       b_out_buf_C_BB_r.raw_buffer(),
@@ -386,8 +381,6 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
       b_C_BB_i.raw_buffer(),
       b_B1_prop_r.raw_buffer(),
       b_B1_prop_i.raw_buffer(),
-      b_B2_prop_r.raw_buffer(),
-      b_B2_prop_i.raw_buffer(),
       b_B1_src_psi_r.raw_buffer(),
       b_B1_src_psi_i.raw_buffer(),
       b_B2_src_psi_r.raw_buffer(),
@@ -419,29 +412,6 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
 
    printf("done \n");
 
-
-   if (rank == 0) {
-   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,0,0,0,0,0), b_C_i(0,0,0,0,0,0) );
-   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,1,0,0,0,0), b_C_i(0,1,0,0,0,0) );
-   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,2,0,0,0,0), b_C_i(0,2,0,0,0,0) );
-   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,3,0,0,0,0), b_C_i(0,3,0,0,0,0) );
-   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,4,0,0,0,0), b_C_i(0,4,0,0,0,0) );
-   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,5,0,0,0,0), b_C_i(0,5,0,0,0,0) );
-   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,0,Nsrc,0,0,0), b_C_i(0,0,Nsrc,0,0,0) );
-   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,1,Nsrc,0,0,0), b_C_i(0,1,Nsrc,0,0,0) );
-   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,2,Nsrc,0,0,0), b_C_i(0,2,Nsrc,0,0,0) );
-   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,3,Nsrc,0,0,0), b_C_i(0,3,Nsrc,0,0,0) );
-   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,4,Nsrc,0,0,0), b_C_i(0,4,Nsrc,0,0,0) );
-   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,5,Nsrc,0,0,0), b_C_i(0,5,Nsrc,0,0,0) );
-   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,0,Nsrc,0,0,0), b_C_i(Nsnk,0,Nsrc,0,0,0) );
-   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,1,Nsrc,0,0,0), b_C_i(Nsnk,1,Nsrc,0,0,0) );
-   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,2,Nsrc,0,0,0), b_C_i(Nsnk,2,Nsrc,0,0,0) );
-   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,3,Nsrc,0,0,0), b_C_i(Nsnk,3,Nsrc,0,0,0) );
-   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,4,Nsrc,0,0,0), b_C_i(Nsnk,4,Nsrc,0,0,0) );
-   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,5,Nsrc,0,0,0), b_C_i(Nsnk,5,Nsrc,0,0,0) ); 
-   }
-
-    // symmetrize and such
 #ifdef WITH_MPI
    for (int rp=0; rp<B2Nrows; rp++)
       for (int m=0; m<Nsrc+NsrcHex; m++)
@@ -512,11 +482,10 @@ int main(int, char **)
 
    // Initialization
    // Props
-   double* B1_prop_re = (double *) malloc(Nq * Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
-   double* B1_prop_im = (double *) malloc(Nq * Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
-   double* B2_prop_re = (double *) malloc(Nq * Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
-   double* B2_prop_im = (double *) malloc(Nq * Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
-   for (q = 0; q < Nq; q++) {
+   double* B1_prop_re = (double *) malloc(Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
+   double* B1_prop_im = (double *) malloc(Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
+   double* full_B1_prop_re = (double *) malloc(Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * Nq * sizeof (double));
+   double* full_B1_prop_im = (double *) malloc(Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * Nq * sizeof (double));
       for (t = 0; t < Lt; t++) {
          for (iC = 0; iC < Nc; iC++) {
             for (iS = 0; iS < Ns; iS++) {
@@ -524,29 +493,39 @@ int main(int, char **)
                   for (jS = 0; jS < Ns; jS++) {
                      for (y = 0; y < Vsrc; y++) {
                         for (x = 0; x < Vsnk; x++) {
+	                   double v1 = rand()%10;
+	                   double v2 = rand()%10;
+	                   double v3 = rand()%10;
+	                   double v4 = rand()%10;
 			   if (randommode == 1) {
-	                        double v1 = rand()%10;
-	                        double v2 = rand()%10;
-	                        double v3 = rand()%10;
-	                        double v4 = rand()%10;
-                           B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v1;
-                           B2_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v2;
-                           B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v3;
-                           B2_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v4;
+                              B1_prop_re[id_prop_index(t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v1;
+                              B1_prop_im[id_prop_index(t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v3;
 			   }
 			   else {
                            if ((jC == iC) && (jS == iS)) {
-                              B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*cos(2*M_PI/6);
-                              B2_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*cos(2*M_PI/6);
-                              B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*sin(2*M_PI/6);
-                              B2_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*sin(2*M_PI/6); 
+                              B1_prop_re[id_prop_index(t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*cos(2*M_PI/6);
+                              B1_prop_im[id_prop_index(t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*sin(2*M_PI/6);
                            }
                            else {
-                              B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 0;
-                              B2_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 0;
-                              B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 0;
-                              B2_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 0;
+                              B1_prop_re[id_prop_index(t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 0;
+                              B1_prop_im[id_prop_index(t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 0;
                            }
+			   }
+                           for (q = 0; q < Nq; q++) {
+			   if (randommode == 1) {
+                              full_B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v1;
+                              full_B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v3;
+			   }
+			   else {
+                           if ((jC == iC) && (jS == iS)) {
+                              full_B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*cos(2*M_PI/6);
+                              full_B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*sin(2*M_PI/6);
+                           }
+                           else {
+                              full_B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 0;
+                              full_B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 0;
+                           }
+			   }
 			   }
                         }
                      }
@@ -555,7 +534,6 @@ int main(int, char **)
             }
          }
       }
-   }
    // Wavefunctions
    double* src_psi_B1_re = (double *) malloc(Nsrc * Vsrc * sizeof (double));
    double* src_psi_B1_im = (double *) malloc(Nsrc * Vsrc * sizeof (double));
@@ -778,7 +756,7 @@ int main(int, char **)
    if (rank == 0) {
    std::cout << "Start Tiramisu code." <<  std::endl;
 
-   long long gpu_prop_buffer_size = Nq * Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * 4 * sizeof ( double );
+   long long gpu_prop_buffer_size = (long) Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * 2 * sizeof ( double );
    std::cout << "Tiramisu GPU prop buffer size: " << fromBytesToStr( gpu_prop_buffer_size ) << "\n";
 
    long long gpu_wf_buffer_size = Vsrc * Nsrc * 4 * sizeof ( double )
@@ -788,11 +766,11 @@ int main(int, char **)
                                  + Vsnk * Vsnk * NEntangled * 2 * sizeof ( double );
    std::cout << "Tiramisu GPU wavefunction buffer size: " << fromBytesToStr( gpu_wf_buffer_size ) << "\n";
 
-   long long gpu_block_buffer_size = Vsnk / tiling_factor * Vsnk / tiling_factor * B2Nrows * Nsrc * B2Nrows * Nsnk * 2 * sizeof ( double )
-                                 + Vsnk / tiling_factor * Nc * Ns * Nc * Ns * Nsrc * Vsnk / tiling_factor * Nc * Ns * 64 * sizeof ( double )
-                                 + Vsnk / tiling_factor * Nc * Ns * Vsnk / tiling_factor * Nc * Ns * 24 * sizeof ( double )
-                                 + Vsnk / tiling_factor * Nc * Ns * Nc * Ns * Vsnk / tiling_factor * Nc * Ns * 32 * sizeof ( double )
-                                 + Vsnk/sites_per_rank * Nc * Ns * Nc * Ns * Nc * Ns * Nsrc * sites_per_rank * 16 * sizeof ( double )
+   long long gpu_block_buffer_size = (long) Vsnk / tiling_factor * Vsnk / tiling_factor * B2Nrows * Nsrc * B2Nrows * Nsnk * 2 * sizeof ( double )
+                                 + (long) Vsnk / tiling_factor * Nc * Ns * Nc * Ns * Nsrc * Vsnk / tiling_factor * Nc * Ns * 64 * sizeof ( double )
+                                 + (long) Vsnk / tiling_factor * Nc * Ns * Vsnk / tiling_factor * Nc * Ns * 24 * sizeof ( double )
+                                 + (long) Vsnk / tiling_factor * Nc * Ns * Nc * Ns * Vsnk / tiling_factor * Nc * Ns * 32 * sizeof ( double )
+                                 + (long) Vsnk/sites_per_rank * Nc * Ns * Nc * Ns * Nc * Ns * Nsrc * sites_per_rank * 16 * sizeof ( double )
                                  + Vsnk/sites_per_rank * sites_per_rank * 8 * sizeof ( double )
                                  + Vsnk/sites_per_rank * Nc * Ns * sites_per_rank * 8 * sizeof ( double )
 
@@ -801,7 +779,7 @@ int main(int, char **)
                                  + Vsnk/sites_per_rank * Nc * Ns * sites_per_rank * 8 * sizeof ( double );
    std::cout << "Tiramisu GPU block buffer size: " << fromBytesToStr( gpu_block_buffer_size ) << "\n";
 
-   long long gpu_buffers_size = Nq * Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * 4 * sizeof ( double )
+   long long gpu_buffers_size = (long) Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * 2 * sizeof ( double )
                                  + Vsrc * Nsrc * 4 * sizeof ( double )
                                  + Vsnk * Nsnk * 4 * sizeof ( double )
                                  + Vsrc * NsrcHex * 2 * sizeof ( double )
@@ -819,11 +797,11 @@ int main(int, char **)
                                  + B2Nrows * Nperms * Nw2Hex * Nq * 2 * 2 * sizeof ( int )
                                  + B2Nrows * Nw2Hex * sizeof ( double )
 
-                                 + Vsnk / tiling_factor * Vsnk / tiling_factor * B2Nrows * Nsrc * B2Nrows * Nsnk * 2 * sizeof ( double )
-                                 + Vsnk / tiling_factor * Nc * Ns * Nc * Ns * Nsrc * Vsnk / tiling_factor * Nc * Ns * 64 * sizeof ( double )
-                                 + Vsnk / tiling_factor * Nc * Ns * Vsnk / tiling_factor * Nc * Ns * 24 * sizeof ( double )
-                                 + Vsnk / tiling_factor * Nc * Ns * Nc * Ns * Vsnk / tiling_factor * Nc * Ns * 32 * sizeof ( double )
-                                 + Vsnk/sites_per_rank * Nc * Ns * Nc * Ns * Nc * Ns * Nsrc * sites_per_rank * 16 * sizeof ( double )
+                                 + (long) Vsnk / tiling_factor * Vsnk / tiling_factor * B2Nrows * Nsrc * B2Nrows * Nsnk * 2 * sizeof ( double )
+                                 + (long) Vsnk / tiling_factor * Nc * Ns * Nc * Ns * Nsrc * Vsnk / tiling_factor * Nc * Ns * 64 * sizeof ( double )
+                                 + (long) Vsnk / tiling_factor * Nc * Ns * Vsnk / tiling_factor * Nc * Ns * 24 * sizeof ( double )
+                                 + (long) Vsnk / tiling_factor * Nc * Ns * Nc * Ns * Vsnk / tiling_factor * Nc * Ns * 32 * sizeof ( double )
+                                 + (long) Vsnk/sites_per_rank * Nc * Ns * Nc * Ns * Nc * Ns * Nsrc * sites_per_rank * 16 * sizeof ( double )
                                  + Vsnk/sites_per_rank * sites_per_rank * 8 * sizeof ( double )
                                  + Vsnk/sites_per_rank * Nc * Ns * sites_per_rank * 8 * sizeof ( double )
 
@@ -832,13 +810,13 @@ int main(int, char **)
                                  + Vsnk/sites_per_rank * Nc * Ns * sites_per_rank * 8 * sizeof ( double )
 
                                  + Lt * Vsnk/sites_per_rank * sites_per_rank * B2Nrows * NsrcTot * B2Nrows * NsnkTot * 2 * sizeof ( double )
-                                 + Vsnk / tiling_factor * B2Nrows * Vsnk / tiling_factor * B2Nrows * 8 * sizeof ( double )
+                                 + Vsnk / tiling_factor * B2Nrows * Vsnk / tiling_factor * Nsrc * 8 * sizeof ( double )
                                  + Vsnk / tiling_factor * B2Nrows * Nsrc * B2Nrows * Vsnk / tiling_factor * 10 * sizeof ( double )
                                  + Lt * Vsnk/sites_per_rank * sites_per_rank * 16  * sizeof ( double );
       std::cout << "Tiramisu GPU buffers size: " << fromBytesToStr( gpu_buffers_size ) << "\n";
 
       long long cpu_buffers_size = Lt * Vsnk/sites_per_rank * sites_per_rank * B2Nrows * NsrcTot * B2Nrows * NsnkTot * 2 * sizeof( double )
-                                 + Nq * Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * 4 * sizeof( double )
+                                 + Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * 2 * sizeof( double )
                                  + Lt * B2Nrows * Nsrc * B2Nrows * Nsnk * 2 * sizeof( double )
                                  + Vsnk / tiling_factor * Vsnk / tiling_factor * B2Nrows * Nsrc * B2Nrows * Nsnk * 2 * sizeof( double )
                                  + Vsrc * Nsrc * 4 * sizeof( double )
@@ -869,12 +847,10 @@ int main(int, char **)
          std::cout << "Run " << i << "/" << nb_tests <<  std::endl;
       auto start1 = std::chrono::high_resolution_clock::now();
 
-       tiramisu_make_two_nucleon_2pt(t_C_re,
+       gpu_tiramisu_make_identical_two_nucleon_2pt(t_C_re,
            t_C_im,
            B1_prop_re, 
            B1_prop_im, 
-           B2_prop_re, 
-           B2_prop_im, 
            src_color_weights_r1,
            src_spin_weights_r1,
            src_weights_r1,
@@ -931,10 +907,10 @@ int main(int, char **)
 	   std::cout << "Run " << i << "/" << nb_tests <<  std::endl;
 	   auto start2 = std::chrono::high_resolution_clock::now();
 
-      make_two_nucleon_2pt(C_re, C_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, snk_color_weights_A1, snk_spin_weights_A1, snk_weights_A1, snk_color_weights_T1_r1, snk_spin_weights_T1_r1, snk_weights_T1_r1, snk_color_weights_T1_r2, snk_spin_weights_T1_r2, snk_weights_T1_r2, snk_color_weights_T1_r3, snk_spin_weights_T1_r3, snk_weights_T1_r3, perms, sigs, src_psi_B1_re, src_psi_B1_im, src_psi_B2_re, src_psi_B2_im, all_snk_psi_re, all_snk_psi_im, snk_psi_B1_re, snk_psi_B1_im, snk_psi_B2_re, snk_psi_B2_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, space_symmetric, snk_entangled, Nc, Ns, Vsrc, Vsnk, Lt, Nw, Nw2Hex, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms);
+      make_two_nucleon_2pt(C_re, C_im, full_B1_prop_re, full_B1_prop_im, full_B1_prop_re, full_B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, snk_color_weights_A1, snk_spin_weights_A1, snk_weights_A1, snk_color_weights_T1_r1, snk_spin_weights_T1_r1, snk_weights_T1_r1, snk_color_weights_T1_r2, snk_spin_weights_T1_r2, snk_weights_T1_r2, snk_color_weights_T1_r3, snk_spin_weights_T1_r3, snk_weights_T1_r3, perms, sigs, src_psi_B1_re, src_psi_B1_im, src_psi_B2_re, src_psi_B2_im, all_snk_psi_re, all_snk_psi_im, snk_psi_B1_re, snk_psi_B1_im, snk_psi_B2_re, snk_psi_B2_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, space_symmetric, snk_entangled, Nc, Ns, Vsrc, Vsnk, Lt, Nw, Nw2Hex, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms);
            
 
-      make_two_nucleon_2pt(C_re, C_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, snk_color_weights_A1, snk_spin_weights_A1, snk_weights_A1, snk_color_weights_T1_r1, snk_spin_weights_T1_r1, snk_weights_T1_r1, snk_color_weights_T1_r2, snk_spin_weights_T1_r2, snk_weights_T1_r2, snk_color_weights_T1_r3, snk_spin_weights_T1_r3, snk_weights_T1_r3, perms, sigs, src_psi_B2_re, src_psi_B2_im, src_psi_B1_re, src_psi_B1_im, all_snk_psi_re, all_snk_psi_im, snk_psi_B2_re, snk_psi_B2_im, snk_psi_B1_re, snk_psi_B1_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, space_symmetric, snk_entangled, Nc, Ns, Vsrc, Vsnk, Lt, Nw, Nw2Hex, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms);
+      make_two_nucleon_2pt(C_re, C_im, full_B1_prop_re, full_B1_prop_im, full_B1_prop_re, full_B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, snk_color_weights_A1, snk_spin_weights_A1, snk_weights_A1, snk_color_weights_T1_r1, snk_spin_weights_T1_r1, snk_weights_T1_r1, snk_color_weights_T1_r2, snk_spin_weights_T1_r2, snk_weights_T1_r2, snk_color_weights_T1_r3, snk_spin_weights_T1_r3, snk_weights_T1_r3, perms, sigs, src_psi_B2_re, src_psi_B2_im, src_psi_B1_re, src_psi_B1_im, all_snk_psi_re, all_snk_psi_im, snk_psi_B2_re, snk_psi_B2_im, snk_psi_B1_re, snk_psi_B1_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, space_symmetric, snk_entangled, Nc, Ns, Vsrc, Vsnk, Lt, Nw, Nw2Hex, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms);
 
    for (rp=0; rp<B2Nrows; rp++) {
       printf("\n");

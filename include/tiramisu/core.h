@@ -717,11 +717,6 @@ protected:
     const std::vector<std::string> &get_iterator_names() const;
 
     /**
-      * Get the name of the function.
-      */
-    const std::string &get_name() const;
-
-    /**
       * Return a set that represents the parameters of the function
       * (an ISL set that represents the parameters and constraints over
       * the parameters of the functions,  a parameter is an invariant
@@ -1185,6 +1180,12 @@ public:
       * specified.
       */
     void gen_time_space_domain();
+
+    /**
+      * Get the name of the function.
+      */
+    const std::string &get_name() const;
+
 
     /**
       * Return the invariant of the function that has

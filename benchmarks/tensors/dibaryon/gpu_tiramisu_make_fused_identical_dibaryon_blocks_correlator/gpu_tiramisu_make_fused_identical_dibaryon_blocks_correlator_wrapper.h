@@ -31,7 +31,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 // Define these values for each new test
-#define TEST_NAME_STR       "tiramisu_make_fused_dibaryon_blocks_correaltor"
+#define TEST_NAME_STR       "gpu_tiramisu_make_fused_dibaryon_blocks_correaltor"
 
 #include <tiramisu/utils.h>
 
@@ -39,15 +39,13 @@
 extern "C" {
 #endif
 
-int gpu_tiramisu_make_fused_dibaryon_blocks_correlator(
+int gpu_tiramisu_make_fused_identical_dibaryon_blocks_correlator(
 			    halide_buffer_t * buf_C_r_cpu,
 			    halide_buffer_t * buf_C_i_cpu,
             	halide_buffer_t * out_buf_C_BB_r_cpu, 
 				halide_buffer_t * out_buf_C_BB_i_cpu,
 			    halide_buffer_t * buf_C_BB_r_cpu,
 			    halide_buffer_t * buf_C_BB_i_cpu,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,

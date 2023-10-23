@@ -7,9 +7,10 @@
 #define Nc P_Nc
 #define Ns P_Ns
 #define Nw P_Nw
-#define Nw2 P_Nw2
+#define Nw2 Nw*Nw
 #define Nw2Hex P_Nw2Hex
 #define Nperms P_Nperms
+#define B1Nperms P_B1Nperms
 #define Lt P_Nt
 #define Vsrc P_Vsrc
 #define Vsnk P_Vsnk
@@ -23,15 +24,13 @@
 #define B1Nrows P_B1Nrows
 #define NEntangled P_NEntangled
 #define sites_per_rank P_sites_per_rank
-#define src_sites_per_rank P_src_sites_per_rank
-#define tiling_factor P_tiling_factor
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 // Define these values for each new test
-#define TEST_NAME_STR       "tiramisu_make_fused_dibaryon_blocks_correaltor"
+#define TEST_NAME_STR       "gpu_tiramisu_make_fused_identical_baryon_blocks_correaltor"
 
 #include <tiramisu/utils.h>
 
@@ -39,26 +38,7 @@
 extern "C" {
 #endif
 
-int gpu_tiramisu_make_fused_dibaryon_blocks_correlator(
-			    halide_buffer_t * buf_C_r_cpu,
-			    halide_buffer_t * buf_C_i_cpu,
-            	halide_buffer_t * out_buf_C_BB_r_cpu, 
-				halide_buffer_t * out_buf_C_BB_i_cpu,
-			    halide_buffer_t * buf_C_BB_r_cpu,
-			    halide_buffer_t * buf_C_BB_i_cpu,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
+int gpu_tiramisu_make_fused_identical_baryon_blocks_correlator(
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,

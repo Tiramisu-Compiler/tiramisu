@@ -1277,11 +1277,13 @@ cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_nod
     }
 
     std::string cuda_ast::kernel::get_name() const {
-        return "_kernel_" + std::to_string(this->kernel_number);
+	std::string name = global::get_implicit_function()->get_name() + "_kernel_" + std::to_string(this->kernel_number);
+	return name;
     }
 
     std::string cuda_ast::kernel::get_wrapper_name() const {
-        return this->get_name() + "_wrapper";
+	std::string name = this->get_name() + "_wrapper";
+	return name;
     }
 
     cuda_ast::kernel_call::kernel_call(kernel_ptr kernel) : statement(p_none), kernel(kernel){}

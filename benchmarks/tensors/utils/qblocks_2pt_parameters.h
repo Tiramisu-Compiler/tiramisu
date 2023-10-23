@@ -74,8 +74,9 @@
 #define P_B0Nrows 1
 #define P_Mw 12
 #define P_NsFull 4
-#define P_sites_per_rank 1
-#define P_src_sites_per_rank 1
+#define P_sites_per_rank 2
+#define P_src_sites_per_rank 2
+#define P_tiling_factor 2 // smaller means more dibaryon threads per block */
 
 #elif DATA_SET_3
 
