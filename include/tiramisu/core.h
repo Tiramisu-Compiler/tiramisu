@@ -695,11 +695,6 @@ protected:
       */
     const std::vector<computation *> &get_computations() const;
 
-    /**
-      * Return the computation of the function that has
-      * the name \p str.
-      */
-    std::vector<computation *> get_computation_by_name(std::string str) const;
 
     /**
       * Return a string representing the name of the GPU block iterator at
@@ -1099,6 +1094,12 @@ public:
     void compute_bounds();
 
     /**
+      * Return the computation of the function that has
+      * the name \p str.
+      */
+    std::vector<computation *> get_computation_by_name(std::string str) const;
+
+    /**
       * \brief Dump the function on standard output (dump most of the fields of
       * tiramisu::function).
       * \details This is mainly useful for debugging.
@@ -1142,6 +1143,24 @@ public:
       * This function can be called at any point during scheduling.
       */
     void dump_sched_graph();
+
+     void fuse_comps_after_tiling_dfs(computation * comp, std::vector<tiramisu::computation *> comps, int tiling_level,
+                                    std::unordered_set<computation *> &visited);
+    /**
+     * \brief Fuses the computations in the vector \p comps at the new tiled level \p tiling_level.
+     * \details This function goes through the sched_graph and fuses the computations in \p comps by either adding 2 (2D Tiling) or 3 (3D Tiling) new dimensions to the schedule of the computations in \p comps.
+     */
+    void fuse_comps_after_tiling(std::vector<tiramisu::computation *> comps, int tiling_level);
+
+    /**
+     * \brief Prints the scheduling graph of the implicit function. 
+    */
+    void print_sched_graph();
+
+    /**
+     * \brief Fuses the the computation \p comp_into with the computation \p comp_to_fuse at the level \p fusion_level. 
+    */
+    void fuse_comps_sched_graph(tiramisu::computation* comp_into, tiramisu::computation* comp_to_fuse, int fusion_level);
 
     /**
       * \brief Dump (on stdout) the time processor domain of the function.
@@ -1247,7 +1266,16 @@ public:
      * and for computations:
      * <computation_level>|computation|<computation_name>
      */
-    void print_isl_ast_representation(isl_ast_node *node, int level);
+    void print_isl_ast_representation();
+
+     /** Generates the function as an isl AST representation in a string format.
+     * This function generates a string representation of the iterators and the computations only in the following format
+     * for iterrators:
+     * <iterator_level>|iterator|<iterator_name>|<lower_bound>|<iterator_condition>|<iterator_increment>
+     * and for computations:
+     * <computation_level>|computation|<computation_name>
+     */
+    std::string generate_isl_ast_representation_string(isl_ast_node *node, int level, std::string tree_str);
 
     /**
       * Generate the time-space domain of the function.
@@ -1458,6 +1486,18 @@ public:
      * The shifting parameters given are always superior or equal to zero. This is an additional internal condition.
     */
     std::vector<std::tuple<tiramisu::var,int>> correcting_loop_fusion_with_shifting(std::vector<tiramisu::computation*> previous_computations, tiramisu::computation current, std::vector<tiramisu::var> vars_subjected_to_shifting);
+
+    /**
+     * Automatically computes the shifting parameters for variables at levels \p var_levels_subjected_to_shifting of the \p current that would allow to legally fuse \p current computation,
+     * with the vector of computations \p previous_computations if it is possible.
+     * This method return a vector of tuples mapping each variable with the required shifting if the fusion is possible, and an empty vector otherwise(impossible fusion).
+     * Note: In case where the fusion is legal and doesn't require shifting, the vector of tuples would map the variable to 0.
+     * The method relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
+     * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
+     * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
+     * The shifting parameters given are always superior or equal to zero. This is an additional internal condition.
+    */
+    std::vector<std::tuple<tiramisu::var,int>> correcting_loop_fusion_with_shifting(std::vector<tiramisu::computation*> previous_computations, tiramisu::computation current, std::vector<int> var_levels_subjected_to_shifting);
 
     /**
      * Uses the dependency analysis to check if the specified schedules of computations are legal.
