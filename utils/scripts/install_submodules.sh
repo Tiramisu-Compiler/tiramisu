@@ -77,17 +77,6 @@ else
 fi
 #    echo_and_run_cmd "$CMAKE -G Ninja -S ../llvm -DHAVE_LIBEDIT=0 -DLLVM_ENABLE_TERMINFO=OFF -DLLVM_ENABLE_PROJECTS='clang;lld;clang-tools-extra' -DLLVM_ENABLE_EH=ON -DLLVM_ENABLE_RTTI=ON -DLLVM_BUILD_32_BITS=OFF -DLLVM_TARGETS_TO_BUILD='X86;ARM;AArch64;Mips;NVPTX;PowerPC' -DLLVM_ENABLE_ASSERTIONS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$PWD/../prefix/ -DCMAKE_C_COMPILER='mpicc' CMAKE_CXX_COMPILER='mpicxx' -DCMAKE_MAKE_PROGRAM='ninja'"
 
-# Get ISL installed
-echo "#### Installing isl ####"
-echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/3rdParty/isl"
-if [ ! -d "build" ]; then
-    echo_and_run_cmd "mkdir build/"
-fi
-echo_and_run_cmd "touch aclocal.m4 Makefile.am Makefile.in"
-echo_and_run_cmd "./configure --prefix=$PWD/build/ --with-int=imath"
-echo_and_run_cmd "make -j $CORES"
-echo_and_run_cmd "make install"
-echo "Done installing isl"
 export CXX=""
 
 # # Get halide installed

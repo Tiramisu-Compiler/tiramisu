@@ -993,7 +993,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
 
     std::vector<ast_node *> shared_nodes;
     std::vector<tiramisu::computation *> involved_computations;
-
+    
     shared_nodes = node->collect_shared_nodes_from_head();
     int depth = node->depth + shared_nodes.size();
     if (shared_nodes.size() > 0)
@@ -1015,43 +1015,41 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
             {
                 int first_loop = shared_nodes[i]->depth;
                 int second_loop = shared_nodes[j]->depth;
-                bool valid_interchange = ast.fct->loop_interchnage_is_legal(first_loop,second_loop,involved_computations);
-                if(valid_interchange){
-                    // Copy the AST and add interchange to the list of optimizations
-                    syntax_tree *new_ast = new syntax_tree();
-                    ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[i]);
+                
+                // Copy the AST and add interchange to the list of optimizations
+                syntax_tree *new_ast = new syntax_tree();
+                ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[i]);
 
-                    optimization_info optim_info;
-                    optim_info.type = optimization_type::MATRIX;
-                    optim_info.node = new_node;
-                    
-                    optim_info.nb_l = 2;
-                    
-                    std::vector <  std::vector<int> >  matrix(depth);
-                    for(int l = 0; l<matrix.size(); l++){
-                        matrix.at(l)= std::vector<int>(depth);
-                        for(int c = 0; c<matrix.size(); c++){
-                            if (l!=c ){
-                                matrix.at(l).at(c) = 0;
-                            }else{
-                                matrix.at(l).at(c) = 1;
-                            }
+                optimization_info optim_info;
+                optim_info.type = optimization_type::MATRIX;
+                optim_info.node = new_node;
+                
+                optim_info.nb_l = 2;
+                
+                std::vector <  std::vector<int> >  matrix(depth);
+                for(int l = 0; l<matrix.size(); l++){
+                    matrix.at(l)= std::vector<int>(depth);
+                    for(int c = 0; c<matrix.size(); c++){
+                        if (l!=c ){
+                            matrix.at(l).at(c) = 0;
+                        }else{
+                            matrix.at(l).at(c) = 1;
                         }
                     }
-                        
-                    optim_info.l0 = first_loop;
-                    optim_info.l1 = second_loop;
-                    matrix.at(first_loop).at(second_loop) = 1;
-                    matrix.at(second_loop).at(first_loop) = 1;
-                    matrix.at(second_loop).at(second_loop) = 0;
-                    matrix.at(first_loop).at(first_loop) = 0;
-
-                    optim_info.comps = involved_computations;
-                    optim_info.matrix = matrix;
-                    optim_info.unimodular_transformation_type = 1;
-                    new_ast->new_optims.push_back(optim_info);
-                    states.push_back(new_ast);
                 }
+                    
+                optim_info.l0 = first_loop;
+                optim_info.l1 = second_loop;
+                matrix.at(first_loop).at(second_loop) = 1;
+                matrix.at(second_loop).at(first_loop) = 1;
+                matrix.at(second_loop).at(second_loop) = 0;
+                matrix.at(first_loop).at(first_loop) = 0;
+
+                optim_info.comps = involved_computations;
+                optim_info.matrix = matrix;
+                optim_info.unimodular_transformation_type = 1;
+                new_ast->new_optims.push_back(optim_info);
+                states.push_back(new_ast);
                 
             }
         }
