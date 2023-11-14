@@ -1144,7 +1144,14 @@ public:
     void fuse_comps_after_tiling(std::vector<tiramisu::computation *> comps, int tiling_level);
 
     /**
-     * \brief Prints the scheduling graph of the implicit function. 
+     * \brief Prints the scheduling graph of the implicit function.
+    /** \details
+     * Print the function as an isl AST representation.
+     * This function prints the iterators and the computations only in the following format
+     * for iterrators:
+     * <iterator_level>|iterator|<iterator_name>|<lower_bound>|<iterator_condition>|<iterator_increment>
+     * and for computations:
+     * <computation_level>|computation|<computation_name>
     */
     void print_sched_graph();
 
@@ -1477,6 +1484,18 @@ public:
      * The shifting parameters given are always superior or equal to zero. This is an additional internal condition.
     */
     std::vector<std::tuple<tiramisu::var,int>> correcting_loop_fusion_with_shifting(std::vector<tiramisu::computation*> previous_computations, tiramisu::computation current, std::vector<tiramisu::var> vars_subjected_to_shifting);
+
+    /**
+     * Automatically computes the shifting parameters for variables at levels \p var_levels_subjected_to_shifting of the \p current that would allow to legally fuse \p current computation,
+     * with the vector of computations \p previous_computations if it is possible.
+     * This method return a vector of tuples mapping each variable with the required shifting if the fusion is possible, and an empty vector otherwise(impossible fusion).
+     * Note: In case where the fusion is legal and doesn't require shifting, the vector of tuples would map the variable to 0.
+     * The method relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
+     * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
+     * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory.
+     * The shifting parameters given are always superior or equal to zero. This is an additional internal condition.
+     */
+    std::vector<std::tuple<tiramisu::var, int>> correcting_loop_fusion_with_shifting(std::vector<tiramisu::computation *> previous_computations, tiramisu::computation current, std::vector<int> var_levels_subjected_to_shifting);
 
     /**
      * Uses the dependency analysis to check if the specified schedules of computations are legal.

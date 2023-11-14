@@ -4395,6 +4395,20 @@ std::vector<std::tuple<tiramisu::var,int>> function::correcting_loop_fusion_with
 }
 
 
+std::vector<std::tuple<tiramisu::var, int>> function::correcting_loop_fusion_with_shifting(std::vector<tiramisu::computation *> previous_computations,
+                                                                                           tiramisu::computation current_computation,
+                                                                                           std::vector<int> var_levels_subjected_to_shifting)
+{
+    std::vector<tiramisu::var> vars_subjected_to_shifting;
+    auto loop_level_names = current_computation.get_loop_level_names();
+    for (auto level : var_levels_subjected_to_shifting)
+    {
+        vars_subjected_to_shifting.push_back(tiramisu::var(loop_level_names[level]));
+    }
+
+    return correcting_loop_fusion_with_shifting(previous_computations, current_computation, vars_subjected_to_shifting);
+}
+
 std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vector<tiramisu::computation *> fused_computations, tiramisu::var outer_variable,
                                               tiramisu::var inner_variable, int&  legal_process)
 {
