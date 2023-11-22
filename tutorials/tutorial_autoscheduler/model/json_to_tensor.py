@@ -831,6 +831,12 @@ def get_padded_initial_iteration_domain(program_json,comp_name, pad=True):
         constants_col[i*2+1]= int(constants_in_upper[0])-1 #adding a -1 because we are representing a non-strict inequality
         
         for iter_name in iterators_in_lower:
+            if iter_name not in comp_dict["iterators"]:
+                # replace iter_name with the first iterator that starts with iter_name in the list of iterators
+                for iterator in comp_dict["iterators"]:
+                    if iterator.startswith(iter_name):
+                        iter_name = iterator
+                        break
             col_idx = comp_dict['iterators'].index(iter_name)
             if '-'+iter_name in upper_bound:
                 coeff_mat[i*2,col_idx]=-1
