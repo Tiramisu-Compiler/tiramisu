@@ -28,7 +28,7 @@ void generate_function(std::string name, int size, int val0)
     result.store_in(&buff_A);
 
     prepare_schedules_for_legality_checks();
-    performe_full_dependency_analysis();
+    perform_full_dependency_analysis();
 
     tiramisu::function * f = global::get_implicit_function();
     std::vector<int> res = f->polyhedral_full_solver_positive({&result}, 0, 1, false);
