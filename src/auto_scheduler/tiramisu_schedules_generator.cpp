@@ -373,54 +373,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
     case optimization_type::TILING:
 
         shared_nodes = node->collect_shared_nodes_from_head();    
-
-        for (auto &node_iterator : shared_nodes)
-        {
-            // We wil push multiple optimizations to support the tiling of imperfectly-nested loops
-            int ast_height = node_iterator->get_ast_height();
-            // Explore all the tiling sizes
-            for (int tiling_size : tiling_factors_list){
-                if (can_split_iterator_sup(node_iterator->up_bound, node_iterator->low_bound, tiling_size)){
-                    // Copy the AST to add the tiling
-                    syntax_tree *new_ast = new syntax_tree();
-                    ast_node *new_node = ast.copy_and_return_node(*new_ast, node_iterator);
-                    // For each depth in this subtree
-                    // We only support tiling for up to three dimensions
-                    for(int i = 0; i < std::min(3, ast_height); i++){
-
-                        std::vector<tiramisu::computation *> depth_computations = node_iterator->get_computations_by_depth(i);
-                        // Check that there are computations at this level to be tiled
-                        if (depth_computations.size() == 0)
-                            continue;
-
-                        if (ast.optim_already_applied_on_comps(depth_computations, optimization_type::TILING)) // check if one of the involved computations is already tiled
-                            continue;
-
-                        optimization_info optim_info;
-                        optim_info.type = optimization_type::TILING;
-                        optim_info.node = new_node;
-                        optim_info.nb_l = i+1;
-                        optim_info.l0 = node_iterator->depth;
-                        optim_info.l1 = optim_info.l0+1;
-                        optim_info.l2 = optim_info.l1+1;
-                        
-                        // Add tiling factors
-                        optim_info.l0_fact = tiling_size;
-                        optim_info.l1_fact = tiling_size;
-                        optim_info.l2_fact = tiling_size;
-
-                        // Add involved computations
-                        optim_info.comps = depth_computations;
-                        // Add the optimization to the ast
-                        new_ast->new_optims.push_back(optim_info);
-                    }
-                    if(new_ast->new_optims.size() > 0)
-                        // Add this AST to the generated candidates
-                        states.push_back(new_ast);
-                }   
-            }    
-        }
-
         // Explore 2D and 3D tiling of perfectly nested loops
         shared_nodes.pop_back(); // remove the last because we can't start a tiling from the last iterator
 
