@@ -6718,11 +6718,6 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper, bool contain
     isl_options_set_ast_build_allow_else(ctx, 1);
     isl_options_set_ast_build_detect_min_max(ctx, 1);
 
-    // Computing the polyhedral hull of the input set.
-    //DEBUG(3, tiramisu::str_dump("Computing the polyhedral hull of the input set."));
-    //set = isl_set_from_basic_set(isl_set_affine_hull(isl_set_copy(set)));
-    //DEBUG(3, tiramisu::str_dump("The polyhedral hull is: ", isl_set_to_str(set)));
-
     // Intersect the iteration domain with the domain of the schedule.
     DEBUG(3, tiramisu::str_dump("Generating time-space domain."));
     isl_map *map =
@@ -6766,32 +6761,38 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper, bool contain
     std::string dim_name = isl_set_get_dim_name(set, isl_dim_set, iterator_name_dim);
 
     int dimension = -1;
-    // Check if the element exists in the constraints of the set
-    if (constraints_map.find(dim_name) != constraints_map.end() && constraints_map[dim_name] == true)
-    {
-        int offset = 0;
-        // Loop through the dynamic dimensions only and skip iterators that don't have constraints
-        for (int o = 0; o < dim; o++)
-        {
-            dimension = o;
-            // If the input has static dimensions, use the loop_level_into_dynamic_dimension to extract the position of the dynamic dimensions
-            if (contains_static_dims)
-                dimension = loop_level_into_dynamic_dimension(o);
 
-            if(!isl_set_has_dim_name(set, isl_dim_set, dimension))
-                continue;
-            
-            std::string current_dim_name = isl_set_get_dim_name(set, isl_dim_set, dimension);
-            if (constraints_map.find(current_dim_name) != constraints_map.end() && constraints_map[current_dim_name] == false)
+    if(constraints_map.empty()){
+        // If we couldn't extract the constraints, we call the legacy extract bound expression function
+        e = utility::extract_bound_expression(node, dim, upper);
+    }else{
+        // Check if the element exists in the constraints of the set
+        if (constraints_map.find(dim_name) != constraints_map.end() && constraints_map[dim_name] == true)
+        {
+            int offset = 0;
+            // Loop through the dynamic dimensions only and skip iterators that don't have constraints
+            for (int o = 0; o < dim; o++)
             {
-                offset = offset + 1;
+                dimension = o;
+                // If the input has static dimensions, use the loop_level_into_dynamic_dimension to extract the position of the dynamic dimensions
+                if (contains_static_dims)
+                    dimension = loop_level_into_dynamic_dimension(o);
+
+                if(!isl_set_has_dim_name(set, isl_dim_set, dimension))
+                    continue;
+                
+                std::string current_dim_name = isl_set_get_dim_name(set, isl_dim_set, dimension);
+                if (constraints_map.find(current_dim_name) != constraints_map.end() && constraints_map[current_dim_name] == false)
+                {
+                    offset = offset + 1;
+                }
             }
+            e = utility::extract_bound_expression(node, dim - offset, upper);
         }
-        e = utility::extract_bound_expression(node, dim - offset, upper);
-    }
-    else{
-        // Single value set case
-        e = tiramisu::expr(get_single_iterator_bound(set, dim));
+        else{
+            // Single value set case
+            e = tiramisu::expr(get_single_iterator_bound(set, dim));
+        }
     }
     isl_ast_build_free(ast_build);
 
@@ -6800,6 +6801,7 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper, bool contain
     DEBUG_INDENT(-4);
     return e;
 }
+
 int utility::get_single_iterator_bound(isl_set *set, int dim)
 {
     isl_basic_set_list *bset_list = isl_set_get_basic_set_list(set);
@@ -6853,31 +6855,39 @@ std::unordered_map<std::string, bool> utility::get_constraints_map(isl_set *set)
     {
         isl_basic_set *bset = isl_basic_set_list_get_basic_set(bset_list, i);
         isl_constraint_list *cst_list = isl_basic_set_get_constraint_list(bset);
-
+        
+        if (cst_list == NULL){
+            // If we can't extract the constraint list we return the empty map
+            return constraints_map;
+        }
+        // For each constraint in the set
         for (int j = 0; j < isl_constraint_list_n_constraint(cst_list); j++)
         {
             isl_constraint *cst = isl_constraint_list_get_constraint(cst_list, j);
+            // For each dim in the constraint
             for (int k = 0; k < isl_set_dim(set, isl_dim_out); k++)
             {
-            // get coefficient of the the dim in this constraint
-            // if coefficient is 0
-            std::string dim_name = "";
-            if (isl_set_get_dim_name(set, isl_dim_out, k) != NULL)
-            {
-                dim_name = isl_set_get_dim_name(set, isl_dim_out, k);
-            }
-            else
-            {
-                continue;
-            }
-            if (strcmp(isl_val_to_str(isl_constraint_get_coefficient_val(cst, isl_dim_out, k)), "0") != 0)
-            {
-                temp_constraints_map.at(dim_name) = temp_constraints_map[dim_name] + 1;
-            }
+                // Exatrct the dimension name to get its coefficient
+                std::string dim_name = "";
+                if (isl_set_get_dim_name(set, isl_dim_out, k) != NULL)
+                {
+                    dim_name = isl_set_get_dim_name(set, isl_dim_out, k);
+                }
+                else
+                {
+                    continue;
+                }
+                // Get coefficient of the the dim in this constraint
+                // If coefficient is 0 it means it is not involved in this specific constraint
+                if (strcmp(isl_val_to_str(isl_constraint_get_coefficient_val(cst, isl_dim_out, k)), "0") != 0)
+                {
+                    temp_constraints_map.at(dim_name) = temp_constraints_map[dim_name] + 1;
+                }
             }
         }
     }
-
+    // Only add the dimensions with both a lower and upper bound
+    // Which translates to at least two occurances in the constraints
     for (auto constraint_element : temp_constraints_map)
     {
         if (constraint_element.second > 1)
@@ -6892,6 +6902,7 @@ std::unordered_map<std::string, bool> utility::get_constraints_map(isl_set *set)
 
     return constraints_map;
 }
+
 bool computation::separateAndSplit(tiramisu::var L0, int sizeX)
 {
     DEBUG_FCT_NAME(3);
