@@ -2117,7 +2117,8 @@ void tiramisu::function::reset_computations()
         comp->definitions_number -= comp->updates.size()-1;
         comp->updates = std::vector<tiramisu::computation *>(comp->updates.begin(),comp->updates.begin()+1);
         // we extract the correct name for the computation
-        int pos = comp->name.find("_update_");
+        // We use rfind to look for the last occurance of _update_ incase the original computation has update in its name
+        int pos = comp->name.rfind("_update_");
         std::string correct_name; 
         if( pos != std::string::npos){
             correct_name = comp->name.substr(1,pos-1);
