@@ -179,8 +179,6 @@ void clear_implicit_function_sched_graph();
   /**
   * Checks if the given fused computations could legally have their loop level \p i unrolled.
   */
-  bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
-
   bool loop_unrolling_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
   //@}
   /**
@@ -1433,7 +1431,6 @@ public:
      * Checks if the given fused computations could legally have their loop level \p i unrolled.
     */
     // @{
-    bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
     bool loop_unrolling_is_legal(int i, std::vector<tiramisu::computation *> fused_computations);
     // @}
 

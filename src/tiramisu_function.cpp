@@ -3339,43 +3339,39 @@ void tiramisu::function::prepare_schedules_for_legality_checks(bool reset_static
 
 bool tiramisu::function::loop_unrolling_is_legal(int i, std::vector<tiramisu::computation *> fused_computations)
 {
-    return loop_unrolling_is_legal(var(fused_computations[0]->get_loop_level_names()[i]), fused_computations);
-}
-
-bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<tiramisu::computation *> fused_computations)
-{
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    assert(i.get_name().length() > 0);
+    assert(i >= 0);
     assert(!this->get_name().empty());
     assert(this->dep_read_after_write != NULL );
     assert(this->dep_write_after_write != NULL );
     assert(this->dep_write_after_read != NULL );
     assert(fused_computations.size()>0);
-
-    computation * first_computation = fused_computations[0];
     
-    DEBUG(3, tiramisu::str_dump(" unrolling check for var : "+i.get_name()));
-
-    std::vector<std::string> original_loop_level_names = first_computation->get_loop_level_names();
-    std::vector<int> dimensions =
-        first_computation->get_loop_level_numbers_from_dimension_names({i.get_name()});
-
-    first_computation->check_dimensions_validity(dimensions);
+    DEBUG(3, tiramisu::str_dump(" unrolling check for level : "+i));
  
     bool result = true;
 
     for(auto& computation:fused_computations)
     {
-        if( computation->unrolling_is_legal(i)== false)
+        auto loop_var = var(computation->get_loop_level_names()[i]);
+
+        assert(loop_var.get_name().length() > 0);
+
+        std::vector<int> dimensions =
+            computation->get_loop_level_numbers_from_dimension_names({loop_var.get_name()});
+
+        computation->check_dimensions_validity(dimensions);
+
+        if (computation->unrolling_is_legal(loop_var) == false)
         {
             result = false;
             break;
         }
     }
 
-    DEBUG(3, tiramisu::str_dump(" unrolling check for var result is : "+std::to_string(result)));
+    DEBUG(3, tiramisu::str_dump(" unrolling check for level result is : "+std::to_string(result)));
 
     DEBUG_INDENT(-4);
 
@@ -3564,8 +3560,29 @@ bool tiramisu::function::loop_vectorization_is_legal(tiramisu::var i , std::vect
 
     DEBUG(3, tiramisu::str_dump(" vectorization check for var : "+i.get_name()));
 
-    bool result = this->loop_unrolling_is_legal(i,fused_computations)
-                && this->loop_parallelization_is_legal(i,fused_computations);
+    int loop_level = -1;
+    // iterate over fused computations to find the loop level
+    for(auto& computation:fused_computations)
+    {
+        std::vector<std::string> loop_level_names = computation->get_loop_level_names();
+        if (loop_level == -1){
+            for(int j=0;j<loop_level_names.size();j++)
+            {
+                if(loop_level_names[j] == i.get_name())
+                {
+                    loop_level = j;
+                    break;
+                }
+            }
+        }else{
+            assert(loop_level_names[loop_level].compare(i.get_name()) == 0);
+        }
+    }
+
+    assert(loop_level != -1);
+
+    bool result = this->loop_unrolling_is_legal(loop_level, fused_computations)
+                && this->loop_parallelization_is_legal(i, fused_computations);
 
     DEBUG(3, tiramisu::str_dump(" vectorization legality is : " + std::to_string(result)));
 

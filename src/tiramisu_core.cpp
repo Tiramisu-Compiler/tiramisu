@@ -138,12 +138,6 @@ bool loop_unrolling_is_legal(int i, std::vector<tiramisu::computation *> fused_c
     return fct->loop_unrolling_is_legal(i, fused_computations);
 }
 
-bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations)
-{
-    function *fct = global::get_implicit_function();
-    return fct->loop_unrolling_is_legal(i,fused_computations);
-}
-
 bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations)
 {
     function *fct = global::get_implicit_function();
