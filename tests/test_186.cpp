@@ -31,12 +31,12 @@ void generate_function(std::string name, int size, int val0)
     // legality check of function
     prepare_schedules_for_legality_checks();
 
-    assert(loop_unrolling_is_legal(i,{&result}) == true);
-    assert(loop_unrolling_is_legal(j,{&result}) == true);
+    assert(loop_unrolling_is_legal(0,{&result}) == true);
+    assert(loop_unrolling_is_legal(1,{&result}) == true);
 
     result.skew(i,j,1,1,i1,j1);
 
-    assert(loop_unrolling_is_legal(j1,{&result}) == false);
+    assert(loop_unrolling_is_legal(1,{&result}) == false);
 
     assert(check_legality_of_function() == true);
 

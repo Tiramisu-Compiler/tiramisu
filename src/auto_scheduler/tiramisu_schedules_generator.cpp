@@ -575,12 +575,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                 result = false;
             }else{
                 // The legality of unrolling can be checked by checking if unrolling each of the computations in this node is legal
-                for (auto computation : involved_computations){
-                    std::vector<std::string> loop_names = computation->get_loop_level_names();
-                    std::string loop_name = loop_names[unrolling_depth];
-                    result = result && (!inner_most_node->is_optimized_by_tag()) &&
-                                ast.fct->loop_unrolling_is_legal(var(loop_name), {computation});
-                }
+                result = (!inner_most_node->is_optimized_by_tag()) && ast.fct->loop_unrolling_is_legal(unrolling_depth, involved_computations);
             }
             if (result) // unrollable: test all possible values
             {
