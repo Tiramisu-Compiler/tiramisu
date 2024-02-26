@@ -1710,6 +1710,83 @@ void function::gen_halide_obj(const std::string &obj_file_name, const tiramisu::
   gen_halide_obj(obj_file_name, target.os, target.arch, target.bits, hw_architecture, gen_python = gen_python);
 }
 
+std::string function::get_halide_ir(const std::vector<tiramisu::buffer *> &arguments)
+{
+    this->set_arguments(arguments);
+    this->lift_dist_comps();
+    this->gen_time_space_domain();
+    this->gen_isl_ast();
+    this->gen_halide_stmt();
+
+    Halide::Target t = Halide::get_host_target();
+    std::vector<Halide::Target::Feature> features =
+            {
+                    Halide::Target::AVX,
+                    Halide::Target::SSE41,
+                    //Halide::Target::AVX2,
+                    //Halide::Target::FMA,
+                    Halide::Target::LargeBuffers
+            };
+
+    std::vector<Halide::Argument> fct_arguments;
+
+    for (const auto &buf : this->function_arguments)
+    {
+        Halide::Argument buffer_arg(
+                buf->get_name(),
+                halide_argtype_from_tiramisu_argtype(buf->get_argument_type()),
+                halide_type_from_tiramisu_type(buf->get_elements_type()),
+                buf->get_n_dims(), Halide::ArgumentEstimates{});
+
+        fct_arguments.push_back(buffer_arg);
+    }
+
+
+    auto s = this->get_halide_stmt();
+
+
+    Halide::Module result_module(this->get_name(), t); 
+    size_t initial_lowered_function_count = result_module.functions().size();
+    std::map<std::string, Halide::Internal::Function> env;
+    Halide::Internal::Function dummy;
+    std::vector<Halide::Internal::Function> outputs = {dummy,};
+    s = sliding_window(s, env);
+    s = uniquify_variable_names(s);
+    s = simplify(s, false);
+    s = simplify_correlated_differences(s);
+    bool will_inject_host_copies =
+        (t.has_gpu_feature() ||
+         t.has_feature(Halide::Target::OpenGLCompute) ||
+         t.has_feature(Halide::Target::HexagonDma) ||
+         (t.arch != Halide::Target::Hexagon && (t.has_feature(Halide::Target::HVX))));
+    s = remove_undef(s);
+
+    s = storage_folding(s, env);
+    s = lower_safe_promises(s);
+    s = split_tuples(s, env);
+    if (t.has_gpu_feature() ||
+        t.has_feature(Halide::Target::OpenGLCompute)) {
+        s = canonicalize_gpu_vars(s);
+    }
+    s = simplify_correlated_differences(s);
+    s = bound_small_allocations(s);
+    s = add_atomic_mutex(s, env);
+    s = unpack_buffers(s);
+
+    if (will_inject_host_copies) {
+        s = select_gpu_api(s, t);
+        s = inject_host_dev_buffer_copies(s, t);
+        s = select_gpu_api(s, t);
+    }
+
+    s = simplify(s);
+    s = unify_duplicate_lets(s);
+
+    std::stringstream buffer;
+    buffer << s;
+    return buffer.str(); 
+}
+
 
 // @}
 
