@@ -1244,6 +1244,7 @@ public:
       */
     void gen_halide_obj(const std::string &obj_file_name, const tiramisu::hardware_architecture_t hw_architecture, bool gen_python = false) const;
 
+    std::string get_halide_ir(const std::vector<tiramisu::buffer *> &arguments);
     /**
       * Generate a Halide stmt that represents the function.
       */
