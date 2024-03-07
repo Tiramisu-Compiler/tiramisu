@@ -6,7 +6,7 @@ on:
   push:
     branches: [ "master", "merge_attempt" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "master", "merge_attempt" ]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
