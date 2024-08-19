@@ -246,7 +246,10 @@ std::string evaluate_by_learning_model::get_program_json(syntax_tree const& ast)
 
     // Get JSON for iterators from ast.iterators_json
     std::string iterators_json = "\"iterators\" : {" + ast.iterators_json + "}";
-    
+
+    // Get JSON for buffers
+    std::string buffers_json = get_buffers_json(ast);
+
     // Use represent_computations_from_nodes to get JSON for computations
     std::string computations_json = "\"computations\" : {";
     int comp_absolute_order = 1;
@@ -258,7 +261,37 @@ std::string evaluate_by_learning_model::get_program_json(syntax_tree const& ast)
     computations_json += "}";
     
     // Return JSON of the program
-    return "{" + mem_size_json + "," + iterators_json + "," + computations_json + "}\n";
+    return "{" + mem_size_json + "," + iterators_json + "," + buffers_json + "," + computations_json + "}\n";
+}
+
+std::string evaluate_by_learning_model::get_buffers_json(syntax_tree const& ast)
+{
+    std::map<std::string, tiramisu::buffer *> fct_buffers =  ast.get_fct_buffers();
+    std::string buffers_json = R"("buffers" : { "buffers_info": {)";// + ast.iterators_json + "}";
+    for (const auto& name:ast.buffers_list)
+    {
+        buffers_json += "\"" + name + "\": {"; // buffer name
+        buffers_json += "\"buffer_id\" :" + std::to_string(ast.get_buffer_id(name)) + ",";
+        buffers_json += "\"buffer_dimensions\" : [";
+        for (const auto& e:fct_buffers[name]->get_dim_sizes())
+            buffers_json += e.simplify().to_str()+ ",";
+        buffers_json.pop_back(); // removes the last comma
+        buffers_json += "],"; // closes the dim sizes list
+        buffers_json += R"("dtype" : ")" + str_from_tiramisu_type_primitive(fct_buffers[name]->get_elements_type()) + "\", ";
+        buffers_json += R"("argtype" : ")" + str_from_tiramisu_type_argument(fct_buffers[name]->get_argument_type()) + "\"";
+        buffers_json += "},";
+    }
+    buffers_json.pop_back(); // removes the last comma
+    buffers_json += "}, ";
+    buffers_json += "\"comp_buf_mapping\": {";
+    for (const auto& p:ast.buffers_mapping)
+    {
+        buffers_json += "\"" + p.first + "\": "; // computation or input name
+        buffers_json += "\"" + p.second + "\","; // buffer_name name
+    }
+    buffers_json.pop_back(); // removes the last comma
+    buffers_json += "}}";
+    return buffers_json;
 }
 
 std::string evaluate_by_learning_model::get_expression_json(const tiramisu::auto_scheduler::computation_info& comp_info, const tiramisu::expr& e)

@@ -2951,6 +2951,12 @@ bool syntax_tree::optim_already_applied_on_comps(const std::vector<tiramisu::com
     return false;
 }
 
+const std::map<std::string, tiramisu::buffer *> & syntax_tree::get_fct_buffers() const
+{
+    return this->fct->get_buffers();
+}
+
+
 bool generator_state::is_current_optimization_fully_explored()
 {
     if(this->current_index < this->target_ast_heads.size()-1)

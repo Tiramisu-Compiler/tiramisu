@@ -141,6 +141,11 @@ public:
     * A recursive subroutine that represents in JSON the expression of a computation given its comp_info object.
     */
     static std::string get_expression_json(const tiramisu::auto_scheduler::computation_info& comp_info, const tiramisu::expr& e);
+
+    /**
+    * Represents information about buffers used in an ast in JSON format.
+    */
+    static std::string get_buffers_json(syntax_tree const& ast);
     
     /**
      * Return a JSON representation of the schedule of the given AST.
