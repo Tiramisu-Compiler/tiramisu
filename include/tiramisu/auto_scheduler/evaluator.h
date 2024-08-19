@@ -136,6 +136,11 @@ public:
      * A recursive subroutine that represents in JSON the computations of a given tree.
      */
     static void represent_computations_from_nodes(ast_node *node, std::string& computations_json, int& comp_absolute_order);
+
+    /**
+    * A recursive subroutine that represents in JSON the expression of a computation given its comp_info object.
+    */
+    static std::string get_expression_json(const tiramisu::auto_scheduler::computation_info& comp_info, const tiramisu::expr& e);
     
     /**
      * Return a JSON representation of the schedule of the given AST.
