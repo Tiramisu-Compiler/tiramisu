@@ -261,6 +261,55 @@ std::string evaluate_by_learning_model::get_program_json(syntax_tree const& ast)
     return "{" + mem_size_json + "," + iterators_json + "," + computations_json + "}\n";
 }
 
+std::string evaluate_by_learning_model::get_expression_json(const tiramisu::auto_scheduler::computation_info& comp_info, const tiramisu::expr& e)
+{
+    std::string expr_json;
+
+    // If we have a value or a var
+    if (e.get_expr_type() != tiramisu::e_op)
+        expr_json += R"({"expr_type" : ")" + str_from_tiramisu_type_expr(e.get_expr_type()) +
+            R"(", "str" : ")" + e.to_str() +
+            R"(", "dtype" : ")" + str_from_tiramisu_type_primitive(e.get_data_type()) +
+            R"(", "children":[]})";
+
+    // If type is e_op
+    else
+    {
+        // If we have an access we add its access matrix
+        if (e.get_op_type() == tiramisu::o_access ||
+            e.get_op_type() == tiramisu::o_lin_index ||
+            e.get_op_type() == tiramisu::o_address_of ||
+            e.get_op_type() == tiramisu::o_dummy ||
+            e.get_op_type() == tiramisu::o_buffer)
+        {
+            const dnn_access_matrix* mat = comp_info.accesses.retrieve_access_matrix_by_expr(e);
+            expr_json += R"({"expr_type" : ")" + str_tiramisu_type_op(e.get_op_type()) +
+                R"(", "dtype" : ")" + str_from_tiramisu_type_primitive(e.get_data_type()) +
+                R"(", "access_matrix" : )" +  mat->matrix_string +
+                R"(, "buffer_id" : ")" +  std::to_string(mat->buffer_id) +
+                R"(", "str" : ")" + e.to_str() +
+                R"(", "children":[]})";
+
+        }
+
+        // If we have an operation
+        else
+        {
+            expr_json += R"({"expr_type" : ")" + str_tiramisu_type_op(e.get_op_type()) +
+                R"(", "dtype" : ")" + str_from_tiramisu_type_primitive(e.get_data_type()) +
+                R"(", "children":[)";
+            for (int i = 0; i < e.get_n_arg(); ++i)
+                expr_json += get_expression_json(comp_info, e.get_operand(i)) + ",";
+            expr_json.pop_back(); // removes the last comma
+            expr_json += R"(]})";
+        }
+
+    }
+
+    return expr_json;
+
+}
+
 void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *node, std::string& computations_json, int& comp_absolute_order)
 {
     // Build the JSON for the computations stored in "node".
@@ -308,35 +357,19 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
                 comp_json += "false,";
                 
             comp_json += "\"buffer_id\" : " + std::to_string(matrix.buffer_id) + ",";
-            comp_json += "\"access_matrix\" : [";
-            
-            for (int x = 0; x < matrix.matrix.size(); ++x)
-            {
-                comp_json += "[";
-                for (int y = 0; y < matrix.matrix[x].size(); ++y)
-                {
-                    comp_json += std::to_string(matrix.matrix[x][y]);
-                    if (y != matrix.matrix[x].size() - 1)
-                        comp_json += ", ";
-                }
-                
-                comp_json += "]";
-                if (x != matrix.matrix.size() - 1)
-                    comp_json += ",";
-            }
-            
-            comp_json += "]";
-            
+            comp_json += "\"access_str\" : \"" + matrix.access_expr.to_str() + "\",";
+            comp_json += "\"access_matrix\" : " + matrix.matrix_string;
+
             comp_json += "}";
-            
+
             if (i != comp_info.accesses.accesses_list.size() - 1)
                 comp_json += ",";
         }
-        
+
         comp_json += "],";
-    
-        tiramisu::expr comp_info_expr = comp_info.comp_ptr->get_expr();
-        comp_json += "\"expression_representation\" : " +  comp_info_expr.to_json();
+
+        // comp_json += "\"expression_representation\" : " +  comp_info.comp_ptr->get_expr().to_json();
+        comp_json += "\"expression_representation\" : " +  get_expression_json(comp_info, comp_info.comp_ptr->get_expr());
 
         computations_json += "\"" + comp_info.comp_ptr->get_name() + "\" : {" + comp_json + "},";
     }
