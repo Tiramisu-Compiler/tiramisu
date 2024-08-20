@@ -15,7 +15,7 @@ evaluate_by_execution::evaluate_by_execution(std::vector<tiramisu::buffer*> cons
                                              std::string const& obj_filename, 
                                              std::string const& wrapper_cmd,
                                              tiramisu::function *fct)
-    : evaluation_function(), fct(fct), obj_filename(obj_filename), wrapper_cmd(wrapper_cmd)
+    : evaluation_function(), obj_filename(obj_filename), wrapper_cmd(wrapper_cmd), fct(fct)
 {
     // Set Halide compilation features
     halide_target = Halide::get_host_target();
@@ -413,7 +413,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
 
         
         // Get information about the schedule
-        for (optimization_info const& optim_info : ast.new_optims)
+        for (optimization_info const& optim_info : ast.get_schedule())
         {
             if(std::find(optim_info.comps.begin(), optim_info.comps.end(), comp) == optim_info.comps.end()) {
                 // if the current computation isn't affected by the current optim_info
@@ -487,7 +487,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
                 }
         }
         // Check if fusion was applied on this coomputation
-        for (optimization_info const& optim_info : ast.new_optims)
+        for (optimization_info const& optim_info : ast.get_schedule())
             if (optim_info.type==optimization_type::FUSION && optim_info.comps[1] == comp){
                 // Retrieve the iterators list of the computation that it was fused with
                 for (auto comp_info : all_comps_info){
@@ -612,7 +612,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
     }
     bool has_fusions = false;
     sched_json += "\"fusions\" : [";
-    for (optimization_info const& optim_info : ast.new_optims)
+    for (optimization_info const& optim_info : ast.get_schedule())
         if (optim_info.type==optimization_type::FUSION) {
             sched_json += " [\"" + optim_info.comps[0]->get_name() + "\",\"" + optim_info.comps[1]->get_name() + "\"," +
                           std::to_string(optim_info.l0) + "],"; //Fusion ordered with the .then semantic
