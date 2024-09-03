@@ -2956,6 +2956,11 @@ const std::map<std::string, tiramisu::buffer *> & syntax_tree::get_fct_buffers()
     return this->fct->get_buffers();
 }
 
+const std::string syntax_tree::get_fct_name() const
+{
+    return this->fct->get_name();
+}
+
 
 bool generator_state::is_current_optimization_fully_explored()
 {

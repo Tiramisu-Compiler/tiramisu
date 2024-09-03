@@ -970,6 +970,12 @@ public:
      * The names of the buffers are used as a key for the map.
      */
      const std::map<std::string, tiramisu::buffer *> &get_fct_buffers() const;
+
+    /**
+     * Return the name of the corresponding tiramisu::function
+     *
+     */
+    const std::string get_fct_name() const;
 };
 
 /**
