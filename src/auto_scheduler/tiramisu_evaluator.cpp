@@ -231,7 +231,7 @@ float evaluate_by_learning_model::evaluate(syntax_tree& ast, std::string no_sche
 std::string evaluate_by_learning_model::get_program_json(syntax_tree const& ast)
 {
     // Get the name of the function
-    std::string function_name = R"("function_name" : ")" + ast.fct->get_name() + "\" ";
+    std::string function_name = R"("function_name" : ")" + ast.get_fct_name() + "\" ";
 
     // Get the memory size allocated by the program, if declared
     std::string mem_size_json = R"("memory_size" : ")" + std::string(read_env_var("MEM_SIZE")) + "\" ";
