@@ -402,7 +402,10 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
         comp_json += "],";
 
         // comp_json += "\"expression_representation\" : " +  comp_info.comp_ptr->get_expr().to_json();
-        comp_json += "\"expression_representation\" : " +  get_expression_json(comp_info, comp_info.comp_ptr->get_expr());
+        comp_json += "\"expression_representation\" : " +  get_expression_json(comp_info, comp_info.comp_ptr->get_expr()) +",";
+
+        std::string simplified_expression_json = simplified_expr_json_exctractor(comp_info).expression_json;
+        comp_json += "\"simplified_expression_representation\" : " +  simplified_expression_json;
 
         computations_json += "\"" + comp_info.comp_ptr->get_name() + "\" : {" + comp_json + "},";
     }
@@ -854,5 +857,222 @@ std::string evaluate_by_learning_model::get_tree_structure_json(ast_node *node)
     
     return json;
 }
+
+simplified_expr_json_exctractor::simplified_expr_json_exctractor(const tiramisu::auto_scheduler::computation_info& comp_info)
+    : comp_info(comp_info)
+{
+    // get the simplified Halide expression corresponding to the computation's expression
+    Halide::Expr halide_expr = simplify(generator::halide_expr_from_tiramisu_expr(comp_info.comp_ptr->get_function(),
+        comp_info.comp_ptr->get_index_expr(),
+        comp_info.comp_ptr->get_expr(),
+        comp_info.comp_ptr));
+    // extract the access mappings
+    get_access_str_mapping(comp_info.comp_ptr->get_expr());
+    // get the simplified expression json
+    expression_json = get_Expr_json(halide_expr);
+}
+
+std::string simplified_expr_json_exctractor::halide_Expr_to_string(const Halide::Expr& e)
+{
+    // Convert to string using ostringstream
+    std::ostringstream expr_stream;
+    expr_stream << e;
+    return  expr_stream.str();
+}
+
+
+void simplified_expr_json_exctractor::get_access_str_mapping(const tiramisu::expr& e)
+{
+
+    // If type is e_op, i.e. not a val or var
+    if (e.get_expr_type() == tiramisu::e_op)
+    {
+        // If we have an access we add its access matrix
+        if (e.get_op_type() == tiramisu::o_access ||
+            e.get_op_type() == tiramisu::o_lin_index ||
+            e.get_op_type() == tiramisu::o_address_of ||
+            e.get_op_type() == tiramisu::o_dummy ||
+            e.get_op_type() == tiramisu::o_buffer)
+        {
+            std::string key = halide_Expr_to_string(Halide::Internal::simplify(
+                generator::halide_expr_from_tiramisu_expr(comp_info.comp_ptr->get_function(),
+                                                          comp_info.comp_ptr->get_index_expr(),
+                                                          e,
+                                                          comp_info.comp_ptr)));
+            accesses_map.emplace(key,e);
+
+        }
+
+        // If we have an operation, explore its operands recursively
+        else
+            for (int i = 0; i < e.get_n_arg(); ++i)
+                get_access_str_mapping(e.get_operand(i));
+
+    }
+
+}
+
+
+std::string simplified_expr_json_exctractor::get_Expr_json(Halide::Expr e)
+{
+    assert(e.defined() && "Undefined expr\n");
+    // dispatch the right visit function
+    e.accept(this);
+    return expression_json;
+}
+
+
+void simplified_expr_json_exctractor::visit(const Halide::Internal::IntImm *op)
+{
+    expression_json = R"({"expr_type" : "val", "str" : ")" + std::to_string(op->value) +
+        R"(", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + +
+        R"(", "children":[]})";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::UIntImm *op)
+{
+    expression_json = R"({"expr_type" : "val", "str" : ")" + std::to_string(op->value) +
+        R"(", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + +
+        R"(", "children":[]})";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::FloatImm *op)
+{
+    expression_json = R"({"expr_type" : "val", "str" : ")" + std::to_string(op->value) +
+        R"(", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + +
+        R"(", "children":[]})";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Cast *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "cast", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->value) + "]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Variable *op)
+{
+    expression_json = R"({"expr_type" : "var", "str" : ")" + halide_Expr_to_string(op) +
+        R"(", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + +
+        R"(", "children":[]})";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Add *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "add", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Sub *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "sub", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Mul *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "mul", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Div *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "div", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Mod *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "mod", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Min *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "min", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Max *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "max", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::EQ *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "eq", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::NE *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "ne", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::LT *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "lt", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::LE *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "le", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::GT *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "gt", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::GE *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "ge", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::And *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "and", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Or *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "or", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Not *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "not", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Select *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "select", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->condition) + "," + get_Expr_json(op->true_value) + "," + get_Expr_json(op->false_value) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::StringImm *) { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::AssertStmt *)  { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Ramp *)        { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Broadcast *)   { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::IfThenElse *)  { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Free *)        { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Store *)       { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Allocate *)    { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Evaluate *) { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Load * op)
+{
+    tiramisu::expr corresponding_expr = accesses_map[halide_Expr_to_string(Halide::Expr(op))];
+    const dnn_access_matrix* mat = comp_info.accesses.retrieve_access_matrix_by_expr(corresponding_expr);
+    expression_json = R"({"expr_type" : ")" + str_tiramisu_type_op(corresponding_expr.get_op_type()) +
+        R"(", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) +
+        R"(", "access_matrix" : )" +  mat->matrix_string +
+        R"(, "buffer_id" : ")" +  std::to_string(mat->buffer_id) +
+        R"(", "str" : ")" + corresponding_expr.to_str() +
+        R"(", "halide_str" : ")" + halide_Expr_to_string(Halide::Expr(op)) +
+        R"(", "children":[]})";
+
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Let *) { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::LetStmt *) { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::For *) { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Call *op)
+{
+    std::string expression_json_header = R"({"expr_type" : ")"+op->name+R"(", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    std::string expression_json_children;
+    for (const auto & arg : op->args)
+        expression_json_children+= get_Expr_json(arg) + ",";
+    expression_json_children.pop_back(); //remove the last comma
+    expression_json= expression_json_header + expression_json_children + "]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::ProducerConsumer *) { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Block *) { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Provide *) { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Realize *) { error(); }
 
 }
