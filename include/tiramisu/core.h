@@ -43,6 +43,7 @@ class xfer_prop;
 
 namespace auto_scheduler
 {
+class simplified_expr_json_exctractor;
 class syntax_tree;
 class ast_node;
 class computation_info;
@@ -76,6 +77,7 @@ HalideCodegenOutput halide_pipeline_to_tiramisu_function(
     const std::map<std::string, std::vector<int32_t>> &output_buffers_size,
     tiramisu::function *func);
 
+tiramisu::expr convert_Halide_expr_to_tiramisu_expr(Halide::Expr &e, tiramisu::function* func);
 computation *get_computation_annotated_in_a_node(isl_ast_node *node);
 
 std::string generate_new_computation_name();
@@ -1989,6 +1991,7 @@ class computation
     friend auto_scheduler::ast_node;
     friend auto_scheduler::computation_info;
     friend auto_scheduler::evaluate_by_execution;
+    friend auto_scheduler::simplified_expr_json_exctractor;
     friend auto_scheduler::state_computation;
     friend auto_scheduler::ml_model_schedules_generator;
     friend void auto_scheduler::unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_list, int unroll_fact);
@@ -5507,6 +5510,7 @@ class generator
     friend computation;
     friend buffer;
     friend cuda_ast::generator;
+    friend auto_scheduler::simplified_expr_json_exctractor;
 
 protected:
 
