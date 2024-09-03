@@ -230,8 +230,11 @@ float evaluate_by_learning_model::evaluate(syntax_tree& ast, std::string no_sche
 
 std::string evaluate_by_learning_model::get_program_json(syntax_tree const& ast)
 {
+    // Get the name of the function
+    std::string function_name = R"("function_name" : ")" + ast.fct->get_name() + "\" ";
+
     // Get the memory size allocated by the program, if declared
-    std::string mem_size_json = "\"memory_size\" : \"" + std::string(read_env_var("MEM_SIZE")) + "\" ";
+    std::string mem_size_json = R"("memory_size" : ")" + std::string(read_env_var("MEM_SIZE")) + "\" ";
 
     // Get JSON for iterators from ast.iterators_json
     std::string iterators_json = "\"iterators\" : {" + ast.iterators_json + "}";
@@ -250,7 +253,7 @@ std::string evaluate_by_learning_model::get_program_json(syntax_tree const& ast)
     computations_json += "}";
     
     // Return JSON of the program
-    return "{" + mem_size_json + "," + iterators_json + "," + buffers_json + "," + computations_json + "}\n";
+    return "{" + function_name + "," + mem_size_json + "," + iterators_json + "," + buffers_json + "," + computations_json + "}\n";
 }
 
 std::string evaluate_by_learning_model::get_buffers_json(syntax_tree const& ast)
