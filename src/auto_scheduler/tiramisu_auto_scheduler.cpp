@@ -48,7 +48,7 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
         std::cout << "Initial exec time : " << initial_exec_time << std::endl;
 
 
-    std::string program_json = evaluate_by_learning_model::get_program_json(ast);
+    ast.program_json = evaluate_by_learning_model::get_program_json(ast);
     std::vector<std::string> schedules_annotations;
 
     // Add the no_schedule version to the schedule list
@@ -90,7 +90,7 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
                   "\n\t\t\"eval_mode\" : " + (std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1 ? "\"Execution\"" : "\"Model\"") +
 //                  "\n\t\t\"nb_exec\" : " + nb_exec +
                   "\n\t}, " +
-                  "\n\t\"program_annotation\" : " + program_json + ", " +
+                  "\n\t\"program_annotation\" : " + ast.program_json + ", " +
                   "\n\t\"initial_execution_time\" : " + std::to_string(initial_exec_time) + ", " +
                   "\n\t\"schedules_list\" : [\n" ;
 
