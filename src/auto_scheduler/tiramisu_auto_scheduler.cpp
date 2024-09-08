@@ -106,11 +106,7 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
 
     output_json += "\"exploration_trace\": " + exploration_trace_root.get_exploration_trace_json() + ",\n";
     output_json += "\"search_time\": " + std::to_string(search_time);
-    output_json += " \n}\n";
 
-    std::ofstream file(filename);
-    file << output_json;
-    file.close();
 
     float best_execution_time = searcher->get_best_evaluation() != FLT_MAX ? searcher->get_best_evaluation() : initial_exec_time;
     std::cout << "Search time : " << search_time << " ms" << std::endl;
@@ -128,10 +124,20 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
             best_execution_time = min_eval(exec_evaluator->get_measurements(*best_ast, false, schedule_timeout));
 
         myfile << "\""<<best_execution_time<<"\",";
-        
         myfile << "\"" << best_ast->get_schedule_str() <<"\""<< std::endl;
         myfile.close();
+
+        output_json += ",\n";
+        output_json += "\"best_schedule\":{";
+        output_json += "\"actual_exec_time\": " + std::to_string(best_execution_time)+ ", ";
+        output_json += "\"sched_str\": \"" + best_ast->get_schedule_str() + "\"}";
     }
+
+    output_json += " \n}\n";
+
+    std::ofstream file(filename);
+    file << output_json;
+    file.close();
 
 
 }
