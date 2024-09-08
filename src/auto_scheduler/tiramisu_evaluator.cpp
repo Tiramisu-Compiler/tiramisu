@@ -212,7 +212,7 @@ float evaluate_by_learning_model::evaluate(syntax_tree& ast)
 float evaluate_by_learning_model::evaluate(syntax_tree& ast, std::string no_sched_json)
 {
     // Get JSON representations for the program, and for the schedule
-    std::string prog_json = get_program_json(ast);
+    std::string prog_json = ast.program_json;
     std::string sched_json = get_schedule_json(ast);
 
     // Write the program JSON and the schedule JSON to model_write

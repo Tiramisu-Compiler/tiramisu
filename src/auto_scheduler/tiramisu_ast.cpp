@@ -1478,6 +1478,7 @@ ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node
     
     new_ast.iterators_json = iterators_json;
     new_ast.tree_structure_json = tree_structure_json;
+    new_ast.program_json = program_json;
     
     new_ast.evaluation = evaluation;
     new_ast.search_depth = search_depth;

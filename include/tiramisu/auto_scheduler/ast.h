@@ -665,6 +665,12 @@ public:
      * Used by the shedule_generator to explore same optimization in different deapth of the search.
     */
     generator_state search_state;
+
+    /**
+     * JSON representation of the program represented by the AST.
+     * The program JSON is used as input for leanrning based evaluation models.
+     */
+    std::string program_json;
         
     /**
      * Create an empty AST.
