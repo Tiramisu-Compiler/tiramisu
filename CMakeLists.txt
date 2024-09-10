@@ -132,7 +132,7 @@ if (USE_AUTO_SCHEDULER)
    EXPORT tiramisu_Targets
    LIBRARY DESTINATION lib
    INCLUDES DESTINATION include
-   PUBLIC_HEADER DESTINATION include/tiramisu/autoscheduler)
+   PUBLIC_HEADER DESTINATION include/tiramisu/auto_scheduler)
 endif()
 
 
