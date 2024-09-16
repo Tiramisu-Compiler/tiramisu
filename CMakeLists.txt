@@ -8,9 +8,9 @@ set(CMAKE_VERBOSE_MAKEFILE "ON")
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 include(configure.cmake)
 if (DEBUG_LEVEL GREATER_EQUAL 1)
-   set(ENABLE_DEBUG TRUE)
+    set(ENABLE_DEBUG TRUE)
 else()
-   set(ENABLE_DEBUG FALSE)
+    set(ENABLE_DEBUG FALSE)
 endif()
 
 
@@ -20,7 +20,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(PROJECT_BUILD ${CMAKE_BINARY_DIR})
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
 
-### FIND EXTERNAL DEPS ###
+# # # FIND EXTERNAL DEPS # # #
 if (${USE_GPU})
     find_package(CUDA REQUIRED)
     add_definitions(-DNVCC_PATH="${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc")
@@ -81,8 +81,29 @@ set(CMAKE_CXX_STANDARD 17)  # or newer
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)
 
-find_package(Halide REQUIRED)
-find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
+
+# Option to set BIN_HALIDE_INSTALL_METHOD (default is 0)
+set(BIN_HALIDE_INSTALL_METHOD 0 CACHE STRING "Halide install method (0: Default, 1: Static)")
+
+# Condition based on BIN_HALIDE_INSTALL_METHOD value
+if(${BIN_HALIDE_INSTALL_METHOD} EQUAL 1)
+    message(STATUS "Using prebuilt Halide and ISL install method")
+
+    find_package(ZLIB REQUIRED)
+    find_package(Halide REQUIRED static)
+    find_library(ISLLib isl)
+
+elseif(${BIN_HALIDE_INSTALL_METHOD} EQUAL 0)
+    # If BIN_HALIDE_INSTALL_METHOD is 0
+    message(STATUS "Using default Halide and ISL install method (manually compiled)")
+
+    find_package(Halide REQUIRED)
+    find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
+else()
+    # Handle unsupported values of BIN_HALIDE_INSTALL_METHOD
+    message(FATAL_ERROR "Invalid value for BIN_HALIDE_INSTALL_METHOD: ${BIN_HALIDE_INSTALL_METHOD}. Must be 0 or 1.")
+endif()
+
 
 if (${USE_MPI})
     set(CMAKE_CXX_COMPILER "${MPI_BUILD_DIR}/bin/mpicxx")
@@ -108,17 +129,21 @@ set(THREADS_PREFER_PTHREAD_FLAG YES)
 find_package(Threads REQUIRED)
 
 
-### Create targets ###
+# # # Create targets # # #
 
 add_subdirectory(src)
 
 if (WITH_PYTHON_BINDINGS)
-  message(STATUS "Building Python bindings enabled")
-  add_subdirectory(python_bindings)
-  target_include_directories(Tiramisu_Python PRIVATE "include")
+    message(STATUS "Building Python bindings enabled")
+    add_subdirectory(python_bindings)
+    # #
+    set_target_properties(Tiramisu_Python PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
+  )
+    # target_include_directories(Tiramisu_Python PRIVATE "include")
 endif()
 
-## SETUP INSTALLS:
+# # SETUP INSTALLS:
 
 install(TARGETS tiramisu
 EXPORT tiramisu_Targets
@@ -128,7 +153,7 @@ PUBLIC_HEADER DESTINATION include/tiramisu
 )
 
 if (USE_AUTO_SCHEDULER)
-   install(TARGETS tiramisu_auto_scheduler
+    install(TARGETS tiramisu_auto_scheduler
    EXPORT tiramisu_Targets
    LIBRARY DESTINATION lib
    INCLUDES DESTINATION include
@@ -137,16 +162,16 @@ endif()
 
 
 if (WITH_PYTHON_BINDINGS)
-  install(FILES ${CMAKE_SOURCE_DIR}/python_bindings/tiramisu.pyi ${CMAKE_SOURCE_DIR}/python_bindings/__init__.py
+    install(FILES ${CMAKE_SOURCE_DIR}/python_bindings/tiramisu.pyi ${CMAKE_SOURCE_DIR}/python_bindings/__init__.py
   DESTINATION "${Tiramisu_INSTALL_PYTHONDIR}/tiramisu")
-  install(TARGETS Tiramisu_Python
+    install(TARGETS Tiramisu_Python
   EXPORT tiramisu_Targets
   LIBRARY DESTINATION "${Tiramisu_INSTALL_PYTHONDIR}/tiramisu")
 endif()
 
 
 
-### BROKEN: SETUP TESTS/BENCHMARKS/ETC ###
+# # # BROKEN: SETUP TESTS/BENCHMARKS/ETC # # #
 
 FILE(STRINGS tests/test_list.txt TIRAMISU_TESTS_RAW)
 FILE(STRINGS benchmarks/benchmark_list.txt TIRAMISU_BENCHMARKS_RAW)
@@ -189,12 +214,12 @@ function (parse_list raw_list list_name)
         else()
             list(APPEND tmp_result "false")
         endif()
-	# Check if we need to use CUDNN
+        # Check if we need to use CUDNN
         if(${is_cudnn})
-	    if(${USE_CUDNN})
+            if(${USE_CUDNN})
                 list(APPEND tmp_result "true")
             else()
-		    message(STATUS "skipping cudnn tagged ${name} because USE_CUDNN is not set to true")
+                message(STATUS "skipping cudnn tagged ${name} because USE_CUDNN is not set to true")
                 continue()
             endif()
         else()
@@ -291,142 +316,141 @@ else ()
     set(LIB_SUF so)
 endif ()
 if (WITH_TESTS)
-function(new_test descriptor)
-    parse_descriptor(${descriptor})
-    set(generator_target test_${id}_fct_generator)
-    set_obj(${PROJECT_BUILD}/generated_fct_test_${id}.o)
-    set(test_name test_${id})
-    build_g(${generator_target} tests/test_${id}.cpp "${obj}")
-    build_w(${test_name} "${obj}" tests/wrapper_test_${id}.cpp tests/wrapper_test_${id}.h)
-    add_test(NAME ${id}_build COMMAND "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target ${test_name})
-    if (NOT ${is_mpi})
-        add_test(NAME ${id} COMMAND ${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
-    elseif (${USE_MPI}) # This is an MPI test (sanity check that we want to use MPI though)
-        # configure the options so files are copied on the fly as necessary.
-        add_test(NAME ${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --wdir /tmp/ --preload-files ${PROJECT_BUILD}/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_BUILD}/${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
-    endif()
-    set_tests_properties(${id} PROPERTIES DEPENDS ${id}_build)
-endfunction()
+    function(new_test descriptor)
+        parse_descriptor(${descriptor})
+        set(generator_target test_${id}_fct_generator)
+        set_obj(${PROJECT_BUILD}/generated_fct_test_${id}.o)
+        set(test_name test_${id})
+        build_g(${generator_target} tests/test_${id}.cpp "${obj}")
+        build_w(${test_name} "${obj}" tests/wrapper_test_${id}.cpp tests/wrapper_test_${id}.h)
+        add_test(NAME ${id}_build COMMAND "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target ${test_name})
+        if (NOT ${is_mpi})
+            add_test(NAME ${id} COMMAND ${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        elseif (${USE_MPI}) # This is an MPI test (sanity check that we want to use MPI though)
+            # configure the options so files are copied on the fly as necessary.
+            add_test(NAME ${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --wdir /tmp/ --preload-files ${PROJECT_BUILD}/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_BUILD}/${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        endif()
+        set_tests_properties(${id} PROPERTIES DEPENDS ${id}_build)
+    endfunction()
 
-build_g(test_global tests/test_global.cpp "")
-add_test(NAME global_build COMMAND "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target test_global)
-add_test(NAME global COMMAND test_global WORKING_DIRECTORY ${PROJECT_DIR})
-set_tests_properties(global PROPERTIES DEPENDS global_build)
-foreach(t ${TIRAMISU_TESTS})
-    new_test(${t})
-endforeach()
+    build_g(test_global tests/test_global.cpp "")
+    add_test(NAME global_build COMMAND "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target test_global)
+    add_test(NAME global COMMAND test_global WORKING_DIRECTORY ${PROJECT_DIR})
+    set_tests_properties(global PROPERTIES DEPENDS global_build)
+    foreach(t ${TIRAMISU_TESTS})
+        new_test(${t})
+    endforeach()
 endif() #WITH_TESTS
 
 if (WITH_BENCHMARKS)
-add_custom_target(benchmarks)
+    add_custom_target(benchmarks)
 
-function(new_benchmark descriptor)
-    parse_descriptor(${descriptor})
-    set(tiramisu_generator_target bench_tiramisu_${id}_generator)
-    set(halide_generator_target   bench_halide_${id}_generator)
-    set_obj("${PROJECT_BUILD}/generated_fct_${id}.o")
-    set(generated_obj_halide   ${PROJECT_BUILD}/generated_fct_${id}_ref.o)
-    set(bench_name bench_${id})
-    build_g(${tiramisu_generator_target} benchmarks/halide/${id}_tiramisu.cpp "${obj}")
-    build_halide_g(${halide_generator_target} benchmarks/halide/${id}_ref.cpp ${generated_obj_halide})
-    build_w(${bench_name} "${obj};${generated_obj_halide}" benchmarks/halide/wrapper_${id}.cpp benchmarks/halide/wrapper_${id}.h)
-    if (NOT ${is_mpi})
-        add_custom_target(run_benchmark_${id} COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
-        add_custom_command(TARGET benchmarks COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
-    elseif (${USE_MPI})
-        # configure the options so files are copied on the fly as necessary.
-        add_custom_target(run_benchmark_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe -wdir ${PROJECT_DIR} --preload-files ${PROJECT_BUILD}/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_BUILD}/${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
-    endif()
-    add_dependencies(run_benchmark_${id} ${bench_name})
-endfunction()
+    function(new_benchmark descriptor)
+        parse_descriptor(${descriptor})
+        set(tiramisu_generator_target bench_tiramisu_${id}_generator)
+        set(halide_generator_target   bench_halide_${id}_generator)
+        set_obj("${PROJECT_BUILD}/generated_fct_${id}.o")
+        set(generated_obj_halide   ${PROJECT_BUILD}/generated_fct_${id}_ref.o)
+        set(bench_name bench_${id})
+        build_g(${tiramisu_generator_target} benchmarks/halide/${id}_tiramisu.cpp "${obj}")
+        build_halide_g(${halide_generator_target} benchmarks/halide/${id}_ref.cpp ${generated_obj_halide})
+        build_w(${bench_name} "${obj};${generated_obj_halide}" benchmarks/halide/wrapper_${id}.cpp benchmarks/halide/wrapper_${id}.h)
+        if (NOT ${is_mpi})
+            add_custom_target(run_benchmark_${id} COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
+            add_custom_command(TARGET benchmarks COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        elseif (${USE_MPI})
+            # configure the options so files are copied on the fly as necessary.
+            add_custom_target(run_benchmark_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe -wdir ${PROJECT_DIR} --preload-files ${PROJECT_BUILD}/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_BUILD}/${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        endif()
+        add_dependencies(run_benchmark_${id} ${bench_name})
+    endfunction()
 
-foreach(b ${TIRAMISU_BENCHMARKS})
-    new_benchmark(${b})
-endforeach()
+    foreach(b ${TIRAMISU_BENCHMARKS})
+        new_benchmark(${b})
+    endforeach()
 
 
-add_custom_target(dist_benchmarks)
+    add_custom_target(dist_benchmarks)
 
-function(new_dist_benchmark descriptor)
-    parse_descriptor(${descriptor})
-    set(tiramisu_generator_target dist_bench_tiramisu_${id}_generator)
-    set(ref_generator_target   dist_bench_ref_${id}_generator)
-    set_obj("${PROJECT_BUILD}/generated_fct_${id}.o")
-    set(generated_obj_ref   ${PROJECT_BUILD}/generated_fct_${id}_ref.o)
-    set(bench_name bench_${id})
-    build_g(${tiramisu_generator_target} benchmarks/automatic_comm/${id}_tiramisu.cpp "${obj}")
-    build_g(${ref_generator_target} benchmarks/automatic_comm/${id}_ref.cpp ${generated_obj_ref})
-    build_w(${bench_name} "${obj};${generated_obj_ref}" benchmarks/automatic_comm/wrapper_${id}.cpp benchmarks/automatic_comm/wrapper_${id}.h)
-    if (NOT ${is_mpi})
-        add_custom_target(run_dist_benchmark_${id} COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
-        add_custom_command(TARGET dist_benchmarks COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
-    elseif (${USE_MPI})
-        # configure the options so files are copied on the fly as necessary.
-        add_custom_target(run_dist_benchmark_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe -wdir ${PROJECT_DIR} --preload-files ${PROJECT_BUILD}/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_BUILD}/${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
-    endif()
-    add_dependencies(run_dist_benchmark_${id} ${bench_name})
-endfunction()
+    function(new_dist_benchmark descriptor)
+        parse_descriptor(${descriptor})
+        set(tiramisu_generator_target dist_bench_tiramisu_${id}_generator)
+        set(ref_generator_target   dist_bench_ref_${id}_generator)
+        set_obj("${PROJECT_BUILD}/generated_fct_${id}.o")
+        set(generated_obj_ref   ${PROJECT_BUILD}/generated_fct_${id}_ref.o)
+        set(bench_name bench_${id})
+        build_g(${tiramisu_generator_target} benchmarks/automatic_comm/${id}_tiramisu.cpp "${obj}")
+        build_g(${ref_generator_target} benchmarks/automatic_comm/${id}_ref.cpp ${generated_obj_ref})
+        build_w(${bench_name} "${obj};${generated_obj_ref}" benchmarks/automatic_comm/wrapper_${id}.cpp benchmarks/automatic_comm/wrapper_${id}.h)
+        if (NOT ${is_mpi})
+            add_custom_target(run_dist_benchmark_${id} COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
+            add_custom_command(TARGET dist_benchmarks COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        elseif (${USE_MPI})
+            # configure the options so files are copied on the fly as necessary.
+            add_custom_target(run_dist_benchmark_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe -wdir ${PROJECT_DIR} --preload-files ${PROJECT_BUILD}/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_BUILD}/${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        endif()
+        add_dependencies(run_dist_benchmark_${id} ${bench_name})
+    endfunction()
 
-foreach(b ${TIRAMISU_DIST_BENCHMARKS})
-    new_dist_benchmark(${b})
-endforeach()
+    foreach(b ${TIRAMISU_DIST_BENCHMARKS})
+        new_dist_benchmark(${b})
+    endforeach()
 
-# Individual benchmarks are moved to benchmarks/CMakeLists.txt to reduce clutter
-add_subdirectory(benchmarks)
+    # Individual benchmarks are moved to benchmarks/CMakeLists.txt to reduce clutter
+    add_subdirectory(benchmarks)
 
 endif() #WITH_BENCHMAKRS
 
 if (WITH_DOCS)
-add_custom_target(doc DEPENDS ${PROJECT_DIR}/utils/doc_generation/Doxyfile)
-add_custom_command(TARGET doc COMMAND doxygen utils/doc_generation/Doxyfile WORKING_DIRECTORY ${PROJECT_DIR})
+    add_custom_target(doc DEPENDS ${PROJECT_DIR}/utils/doc_generation/Doxyfile)
+    add_custom_command(TARGET doc COMMAND doxygen utils/doc_generation/Doxyfile WORKING_DIRECTORY ${PROJECT_DIR})
 endif() #WITH_DOCS
 
 if (WITH_TUTORIALS)
-add_custom_target(tutorials)
+    add_custom_target(tutorials)
 
 
-function(new_developers_tutorial descriptor)
-    parse_descriptor(${descriptor})
-    set(generator_target developers_tutorial_${id}_fct_generator)
-    set_obj("${PROJECT_BUILD}/generated_fct_developers_tutorial_${id}.o")
-    set(tutorial_name tutorial_developers_${id})
-    build_g(${generator_target} tutorials/developers/tutorial_${id}/tutorial_${id}.cpp "${obj}")
-    build_w(${tutorial_name} "${obj}" tutorials/developers/tutorial_${id}/wrapper_tutorial_${id}.cpp tutorials/developers/tutorial_${id}/wrapper_tutorial_${id}.h)
-    if (NOT ${is_mpi})
-        add_custom_target(run_developers_tutorial_${id} COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
-        add_custom_command(TARGET tutorials COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
-    elseif (${USE_MPI}) # This is an MPI test (sanity check that we want to use MPI though)
-        # configure the options so files are copied on the fly as necessary.
-        add_custom_target(run_developers_tutorial_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --wdir /tmp/ --preload-files ${PROJECT_BUILD}/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_BUILD}/${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
-    endif()
-    add_dependencies(run_developers_tutorial_${id} ${tutorial_name})
-endfunction()
+    function(new_developers_tutorial descriptor)
+        parse_descriptor(${descriptor})
+        set(generator_target developers_tutorial_${id}_fct_generator)
+        set_obj("${PROJECT_BUILD}/generated_fct_developers_tutorial_${id}.o")
+        set(tutorial_name tutorial_developers_${id})
+        build_g(${generator_target} tutorials/developers/tutorial_${id}/tutorial_${id}.cpp "${obj}")
+        build_w(${tutorial_name} "${obj}" tutorials/developers/tutorial_${id}/wrapper_tutorial_${id}.cpp tutorials/developers/tutorial_${id}/wrapper_tutorial_${id}.h)
+        if (NOT ${is_mpi})
+            add_custom_target(run_developers_tutorial_${id} COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
+            add_custom_command(TARGET tutorials COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        elseif (${USE_MPI}) # This is an MPI test (sanity check that we want to use MPI though)
+            # configure the options so files are copied on the fly as necessary.
+            add_custom_target(run_developers_tutorial_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --wdir /tmp/ --preload-files ${PROJECT_BUILD}/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_BUILD}/${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        endif()
+        add_dependencies(run_developers_tutorial_${id} ${tutorial_name})
+    endfunction()
 
-function(new_users_tutorial descriptor)
-    parse_descriptor(${descriptor})
-    set(generator_target users_tutorial_${id}_fct_generator)
-    set_obj("${PROJECT_BUILD}/generated_fct_users_tutorial_${id}.o")
-    set(tutorial_name tutorial_users_${id})
-    build_g(${generator_target} tutorials/users/tutorial_${id}/tutorial_${id}.cpp "${obj}")
-    build_w(${tutorial_name} "${obj}" tutorials/users/tutorial_${id}/wrapper_tutorial_${id}.cpp tutorials/users/tutorial_${id}/wrapper_tutorial_${id}.h)
-    if (NOT ${is_mpi})
-        add_custom_target(run_users_tutorial_${id} COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
-        add_custom_command(TARGET tutorials COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
-    elseif (${USE_MPI}) # This is an MPI test (sanity check that we want to use MPI though)
-        # configure the options so files are copied on the fly as necessary.
-        add_custom_target(run_users_tutorial_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --wdir /tmp/ --preload-files ${PROJECT_BUILD}/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_BUILD}/${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
-    endif()
-    add_dependencies(run_users_tutorial_${id} ${tutorial_name})
-endfunction()
+    function(new_users_tutorial descriptor)
+        parse_descriptor(${descriptor})
+        set(generator_target users_tutorial_${id}_fct_generator)
+        set_obj("${PROJECT_BUILD}/generated_fct_users_tutorial_${id}.o")
+        set(tutorial_name tutorial_users_${id})
+        build_g(${generator_target} tutorials/users/tutorial_${id}/tutorial_${id}.cpp "${obj}")
+        build_w(${tutorial_name} "${obj}" tutorials/users/tutorial_${id}/wrapper_tutorial_${id}.cpp tutorials/users/tutorial_${id}/wrapper_tutorial_${id}.h)
+        if (NOT ${is_mpi})
+            add_custom_target(run_users_tutorial_${id} COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
+            add_custom_command(TARGET tutorials COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        elseif (${USE_MPI}) # This is an MPI test (sanity check that we want to use MPI though)
+            # configure the options so files are copied on the fly as necessary.
+            add_custom_target(run_users_tutorial_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --wdir /tmp/ --preload-files ${PROJECT_BUILD}/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_BUILD}/${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        endif()
+        add_dependencies(run_users_tutorial_${id} ${tutorial_name})
+    endfunction()
 
 
 
-   foreach(t ${TIRAMISU_DEVELOPERS_TUTORIALS})
-   	     new_developers_tutorial(${t})
-   endforeach()
-   foreach(t ${TIRAMISU_USERS_TUTORIALS})
-   	      new_users_tutorial(${t})
-   endforeach()
+    foreach(t ${TIRAMISU_DEVELOPERS_TUTORIALS})
+        new_developers_tutorial(${t})
+    endforeach()
+    foreach(t ${TIRAMISU_USERS_TUTORIALS})
+        new_users_tutorial(${t})
+    endforeach()
 endif() #WITH_TUTORIALS
-
 
