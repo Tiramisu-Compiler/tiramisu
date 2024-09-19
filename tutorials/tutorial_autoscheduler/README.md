@@ -83,7 +83,8 @@ Some parameters that are set in this script include:
 * `NB_EXEC`: Number of times to measure the execution time of a program. Added to avoid noisy measurements.
 * `SAVE_BEST_SCHED_IN_FILE`: Set to yes if you want to save the best schedule from the exploration in CSV format. Requires defining `LOG_FILE_PATH`.
 * `LOG_FILE_PATH`: Path where to save exploration results.
-* `EXECUTE_BEST_AND_INITIAL_SCHED`: Measure the execution time of the initial and best schedule in the exploration regardless of the exploration mode (model or execution). Useful when running the exploration by model to verify the performance of the best-predicted schedule.
+* `EXECUTE_INITIAL_SCHED`: Measure the execution time of the initial schedule in the exploration regardless of the exploration mode (model or execution). Useful when running the exploration by model to verify the performance of the best-predicted schedule.
+* `EXECUTE_BEST_SCHED`: Measure the execution time of the best schedule in the exploration regardless of the exploration mode (model or execution). Useful when running the exploration by model to verify the performance of the best-predicted schedule. 
 
 To run the autoscheduler:
 1. Open a terminal in this directory (`tutorials_Atuoscheduler`).  

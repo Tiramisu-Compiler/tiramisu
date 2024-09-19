@@ -5,7 +5,9 @@ export AS_VERBOSE=1
 export EXPLORE_BY_EXECUTION=0
 export PYTHON_PATH=/path/to/bin/python
 export SAVE_BEST_SCHED_IN_FILE=0
-export EXECUTE_BEST_AND_INITIAL_SCHED=0
+export LOG_FILE_PATH="/path/to/results/file"
+export EXECUTE_INITIAL_SCHED=0
+export EXECUTE_BEST_SCHED=1
 export TIRAMISU_ROOT=/absolute/path/to/Tiramisu
 
 
