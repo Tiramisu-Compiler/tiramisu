@@ -193,6 +193,12 @@ void dnn_access_matrix::fill_matrix_row(int i, tiramisu::expr const& e, bool min
             fill_matrix_row(i, e.get_operand(0), false);
             fill_matrix_row(i, e.get_operand(1), minus);
         }
+
+        // we got -expr
+        else if (e.get_op_type() == o_minus)
+        {
+            fill_matrix_row(i, e.get_operand(0), true);
+        }
         
         // We got : coefficient * iterator
         else if (e.get_op_type() == o_mul)
@@ -205,6 +211,9 @@ void dnn_access_matrix::fill_matrix_row(int i, tiramisu::expr const& e, bool min
             else
                 matrix[i][it_pos] = coeff;
         }
+
+        else
+            ERROR("Unsupported access op_type encountered in access matrix representation: "+str_tiramisu_type_op(e.get_op_type()), true);
     }
     
     // Access coefficient == 1
@@ -225,6 +234,9 @@ void dnn_access_matrix::fill_matrix_row(int i, tiramisu::expr const& e, bool min
         else
             matrix[i][nb_iterators] = e.get_int32_value();
     }
+
+    else
+        ERROR("Unsupported access expr_type encountered in access matrix representation: "+ str_from_tiramisu_type_expr(e.get_expr_type()), true);
 }
 
 dnn_accesses::dnn_accesses(tiramisu::computation *comp, int nb_iterators, tiramisu::function *fct)
