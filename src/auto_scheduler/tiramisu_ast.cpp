@@ -2682,7 +2682,7 @@ std::string syntax_tree::get_schedule_str()
 bool syntax_tree::ast_is_prunable()
 {
     std::vector<int> optims(this->get_computations().size());
-    for (optimization_info optim: new_optims){
+    for (optimization_info optim: this->get_schedule()){
             if(optim.type == optimization_type::MATRIX){
                 for(int i=0;i<optim.comps.size();i++){
                     optims.at(this->get_computation_index(optim.comps.at(i))) += 1;
