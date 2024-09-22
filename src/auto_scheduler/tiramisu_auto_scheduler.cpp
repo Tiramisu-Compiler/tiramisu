@@ -136,7 +136,7 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
         
         if (std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==0 && std::atoi(read_env_var("EXECUTE_BEST_SCHED"))==1)
         {
-            best_execution_time = min_eval(exec_evaluator->get_measurements(*best_ast, false, schedule_timeout));
+            best_execution_time = min_eval(exec_evaluator->get_measurements(*best_ast, false, 0));
             std::cout << "Best execution time : " << best_execution_time << std::endl;
         }
 
