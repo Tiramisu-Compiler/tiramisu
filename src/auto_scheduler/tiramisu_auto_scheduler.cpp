@@ -23,7 +23,7 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     float initial_timeout = std::atof(read_env_var("INITIAL_TIMEOUT"));
     std::vector<float> initial_measurements;
 
-    if (std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1) // If the exploratin is done by excecution
+    if (std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1 || std::atoi(read_env_var("EXECUTE_INITIAL_SCHED"))==1) // If the exploratin is done by excecution or we need to execute the initial schedule
     {
         initial_measurements =  exec_evaluator->get_measurements(ast, true, initial_timeout);
         initial_exec_time = min_eval(initial_measurements);
@@ -34,45 +34,53 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
         if (std::atoi(read_env_var("AS_VERBOSE"))==1)
             std::cout << "Initial exec time : " << initial_exec_time << std::endl;
 
-        // setting up the evaluation of the initial ast
-        ast.evaluation = initial_exec_time;
-    }
-    else // If the exploration is done using the model
-    {
-        if (std::atoi(read_env_var("EXECUTE_INITIAL_SCHED"))==1)
-        {
-            initial_measurements =  exec_evaluator->get_measurements(ast, true, initial_timeout);
-            initial_exec_time = min_eval(initial_measurements);
-            if (std::isinf(initial_exec_time)){
-                std::cerr << "error: Evaluation of the non scheduled version of the program failed "<< std::endl;
-                exit(1);
-            }
-
-            if (std::atoi(read_env_var("AS_VERBOSE"))==1)
-                std::cout << "Initial exec time : " << initial_exec_time << std::endl;
-
-            // since we're exploring using the model, measuring the initial exec time shouldn't be counted in the searh time. So the we reset the timer.
+        // If we're exploring using the model, measuring the initial exec time shouldn't be counted in the searh time. So the we reset the timer.
+        if (std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==0)
             sampling_start = std::chrono::steady_clock::now();
-        }
-
-        // If we're exploring using the model, the speed up for the original schedule is 1.
-        ast.evaluation = -1;
     }
+    // else // If the exploration is done using the model
+    // {
+    //     if (std::atoi(read_env_var("EXECUTE_INITIAL_SCHED"))==1)
+    //     {
+    //         initial_measurements =  exec_evaluator->get_measurements(ast, true, initial_timeout);
+    //         initial_exec_time = min_eval(initial_measurements);
+    //         if (std::isinf(initial_exec_time)){
+    //             std::cerr << "error: Evaluation of the non scheduled version of the program failed "<< std::endl;
+    //             exit(1);
+    //         }
+    //
+    //         if (std::atoi(read_env_var("AS_VERBOSE"))==1)
+    //             std::cout << "Initial exec time : " << initial_exec_time << std::endl;
+    //
+    //         // since we're exploring using the model, measuring the initial exec time shouldn't be counted in the searh time. So the we reset the timer.
+    //         sampling_start = std::chrono::steady_clock::now();
+    //     }
+    //
+    //     // If we're exploring using the model, the speed up for the original schedule is 1.
+    //     ast.evaluation = -1;
+    // }
 
     // The exploraton assumes that the schedules are reset and especially that the scheduling graph has been cleared before the candidate generation
     fct->reset_schedules();
 
-    // Set the initial ast as the best we have so far
-    searcher->set_best_evaluation(ast.evaluation);
-    searcher->set_best_ast(&ast);
-
     ast.program_json = evaluate_by_learning_model::get_program_json(ast);
     std::vector<std::string> schedules_annotations;
 
-    // Add the no_schedule version to the schedule list
+    // prepare the schedule_json of the initial program
     std::string empty_schedule_json = evaluate_by_learning_model::get_schedule_json(ast);
-    empty_schedule_json.pop_back(); // remove the last two characters }\n
-    empty_schedule_json.pop_back();
+
+    if (std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1) // If we are evaluating by execution, set up the evaluation of the initial ast as the initial execution time
+        ast.evaluation = initial_exec_time;
+    else // If we are evaluating using the model, let the model evaluate the initial AST
+        ast.evaluation = eval_func->evaluate(ast, empty_schedule_json);
+
+    // Set the initial ast as the best we have so far
+    searcher->set_best_evaluation(ast.evaluation);
+    searcher->set_best_ast(&ast);
+    searcher->set_exec_eval(exec_evaluator);
+
+    // Add the no_schedule version to the schedule list
+    empty_schedule_json.erase(empty_schedule_json.length()-2); // remove the last two characters "}\n"
     if (!initial_measurements.empty()) // if initial measurements have been collected
         empty_schedule_json += ", \"execution_times\" : " + measurements_to_str(initial_measurements) + "}\n";
     else // else just report the evaluation
@@ -91,7 +99,7 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
         schedule_timeout = std::max(initial_exec_time * schedule_timeout_factor / 1000, (float) 3.0);
         std::cout << "Schedule measurements timeout set to " << schedule_timeout << "*" << read_env_var("MAX_RUNS") << "(MAX_RUNS) s" << std::endl;
     }
-    searcher->set_exec_eval(exec_evaluator);
+
     // start exploration with fusion and explore other transformations recursivly
     searcher->explore_schedules(ast, &schedules_annotations, &exploration_trace_root, schedule_timeout);
 
