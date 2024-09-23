@@ -405,6 +405,15 @@ void syntax_tree::order_computations()
             roots.erase(it);
         }
     }
+    // Sort the roots according to the position of their computations in now sortedd computations_list
+    sort( roots.begin( ), roots.end( ), [this](  ast_node * root1,  ast_node * root2 )
+        {
+        auto first_comp_r1 = root1->get_leftmost_node()->computations[0].comp_ptr;
+        auto first_comp_r2 = root2->get_leftmost_node()->computations[0].comp_ptr;
+        ptrdiff_t pos_first_comp_r1 = distance(this->computations_list.begin(), find(this->computations_list.begin(), this->computations_list.end(), first_comp_r1));
+        ptrdiff_t pos_first_comp_r2 = distance(this->computations_list.begin(), find(this->computations_list.begin(), this->computations_list.end(), first_comp_r2));
+        return pos_first_comp_r1 < pos_first_comp_r2;
+        });
 }
 ast_node* syntax_tree::get_last_shared_parent(ast_node* node1, ast_node* node2) const
 {
