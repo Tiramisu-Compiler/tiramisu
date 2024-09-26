@@ -22,6 +22,7 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     fct->set_original_number_of_computations();
     float initial_timeout = std::atof(read_env_var("INITIAL_TIMEOUT"));
     std::vector<float> initial_measurements;
+    initial_exec_time = 0;
 
     if (std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==1 || std::atoi(read_env_var("EXECUTE_INITIAL_SCHED"))==1) // If the exploratin is done by excecution or we need to execute the initial schedule
     {
@@ -38,27 +39,6 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
         if (std::atoi(read_env_var("EXPLORE_BY_EXECUTION"))==0)
             sampling_start = std::chrono::steady_clock::now();
     }
-    // else // If the exploration is done using the model
-    // {
-    //     if (std::atoi(read_env_var("EXECUTE_INITIAL_SCHED"))==1)
-    //     {
-    //         initial_measurements =  exec_evaluator->get_measurements(ast, true, initial_timeout);
-    //         initial_exec_time = min_eval(initial_measurements);
-    //         if (std::isinf(initial_exec_time)){
-    //             std::cerr << "error: Evaluation of the non scheduled version of the program failed "<< std::endl;
-    //             exit(1);
-    //         }
-    //
-    //         if (std::atoi(read_env_var("AS_VERBOSE"))==1)
-    //             std::cout << "Initial exec time : " << initial_exec_time << std::endl;
-    //
-    //         // since we're exploring using the model, measuring the initial exec time shouldn't be counted in the searh time. So the we reset the timer.
-    //         sampling_start = std::chrono::steady_clock::now();
-    //     }
-    //
-    //     // If we're exploring using the model, the speed up for the original schedule is 1.
-    //     ast.evaluation = -1;
-    // }
 
     // The exploraton assumes that the schedules are reset and especially that the scheduling graph has been cleared before the candidate generation
     fct->reset_schedules();
