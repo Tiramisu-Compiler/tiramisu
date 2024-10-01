@@ -6,7 +6,7 @@
 
 const std::string TIRAMISU_ROOT = get_tiramisu_root_path();
 const std::string py_cmd_path = get_python_bin_path();
-const std::string py_interface_path = TIRAMISU_ROOT + "/tutorials/tutorial_autoscheduler/model/main.py";;
+const std::string py_interface_path = get_py_interface_path();
 
 
 
@@ -32,16 +32,16 @@ int main(int argc, char **argv)
     input v2("v2", {i}, p_float64);
     input y("y", {i}, p_float64);
     input z("z", {i}, p_float64);
+    input x_inp("x_inp", {i}, p_float64);
+    input w_inp("w_inp", {i}, p_float64);
 
 
     //Computations
     
     computation A_hat("A_hat", {i,j}, A(i, j) + u1(i)*v1(j) + u2(i)*v2(j));
-    computation x_temp("x_temp", {i,j}, p_float64);
-    x_temp.set_expression(x_temp(i,j) + A_hat(j, i)*y(j)*1.2);
-    computation x("x", {i}, x_temp(i, 0) + z(i));
-    computation w("w", {i,j}, p_float64);
-    w.set_expression(w(i,j) + A_hat(i, j) * x(j)*1.5);
+    computation x_temp("x_temp", {i,j}, x_inp(i) + A_hat(j, i)*y(j)*1.2);
+    computation x("x", {i}, x_inp(i) + z(i));
+    computation w("w", {i,j}, w_inp(i) + A_hat(i, j) * x(j)*1.5);
 
 
     // -------------------------------------------------------
@@ -75,6 +75,9 @@ int main(int argc, char **argv)
     v2.store_in(&b_v2);
     y.store_in(&b_y);
     z.store_in(&b_z);
+    x_inp.store_in(&b_x);
+    w_inp.store_in(&b_z);
+
     
     //Store computations
     A_hat.store_in(&b_A_hat);
