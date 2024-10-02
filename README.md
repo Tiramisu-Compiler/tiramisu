@@ -42,6 +42,63 @@ void generate_code()
 }
 ```
 
+## Installing Tiramisu (Linux only)
+This section describes how to install Tiramisu on Linux distributions based on Debian, Ubuntu, Arch and Fedora.
+
+#### 1. Clone the repo and checkout to `merge_attempt` branch
+```bash
+git clone https://github.com/Tiramisu-Compiler/tiramisu
+cd tiramisu
+git checkout merge_attempt
+```
+
+#### 2. Run the installation script
+```bash
+bash build-install.sh -o <installation_directory>
+```
+
+This script will automatically download the dependencies and build Tiramisu.
+
+
+##### 2.1. Script arguments:
+`-o <install_directory>`:
+- **Description**: Specifies the directory where Tiramisu will be installed.
+- **Default**: If not provided, the script will use the default install directory `$PWD/install`.
+- **Usage**: `./build-install.sh -o /path/to/install/dir`
+    - Example: `./build-install.sh -o /home/user/tiramisu_install`
+
+
+##### 2.2. Script side effects:
+The script saves the following environment variables to the user's `.bashrc` and `.zshrc` files:
+
+###### 1. `TIRAMISU_ROOT`
+- **Description**: Specifies the root directory of the Tiramisu project (the current working directory when the script is executed).
+- **Value**: The current directory where the script is executed (`$PWD`).
+- **Purpose**: Used to reference the Tiramisu project directory for build and configuration purposes.
+
+###### 2. `LD_LIBRARY_PATH`
+- **Description**: Specifies the directory paths where dynamic libraries are searched during execution.
+- **Value**: `${TIRAMISU_ROOT}/3rdParty/Halide-bin/lib:$LD_LIBRARY_PATH`
+- **Purpose**: Adds the path to Halide binaries to ensure that any executables linked against Halide can find the necessary libraries.
+
+###### 3. `CMAKE_PREFIX_PATH`
+- **Description**: Provides the search paths for CMake to locate installed packages.
+- **Value**: `${TIRAMISU_ROOT}/3rdParty/Halide-bin/:$CMAKE_PREFIX_PATH`
+- **Purpose**: Tells CMake where to find the Halide binaries during the build process.
+
+###### Example of what will be added to `.bashrc` and `.zshrc`:
+
+```bash
+# Set up environment variables for Tiramisu
+export TIRAMISU_ROOT=/path/to/tiramisu
+export LD_LIBRARY_PATH=/path/to/tiramisu/3rdParty/Halide-bin/lib:$LD_LIBRARY_PATH
+export CMAKE_PREFIX_PATH=/path/to/tiramisu/3rdParty/Halide-bin/:$CMAKE_PREFIX_PATH
+```
+
+These environment variables ensure that the Tiramisu project has access to the necessary Halide libraries and paths for successful builds and runtime execution.
+
+
+
 ## Building Tiramisu from Sources
 
 This section provides a description of how to build Tiramisu.  The installation instructions below have been tested on Linux Ubuntu (18.04) and MacOS (13.0.1) but should work on other Linux and MacOS versions.
