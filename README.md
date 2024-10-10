@@ -266,6 +266,9 @@ If asked for a username/password
     Username:b
     Password:b
 
+## Docker image
+Users can use the [Tiramisu docker image](https://hub.docker.com/r/skourta/tiramisu). The docker image is built using the `mewrge_attempt` branch. Tiramisu, ISL, and Halide are installed at `$INSTALL_PATH` (currently `/tiramisu/install`).
+
 ## Getting Started
 - Build [Tiramisu](https://github.com/Tiramisu-Compiler/tiramisu/).
 - Read the [Tutorials](https://github.com/Tiramisu-Compiler/tiramisu/blob/master/tutorials/README.md).
