@@ -76,7 +76,7 @@ int main(int argc, char **argv)
      .then(u_comp, 0)
      .then(p_comp2, 1)
      .then(q_comp2, 1)
-     .then(p_row, 0)
+     .then(p_row, 1)
      .then(q_row, 2)
      .then(u_row_last, 1)
      .then(u_row, 1);

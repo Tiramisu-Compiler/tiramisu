@@ -25,7 +25,7 @@ int main(int argc, char **argv)
     
     //Computations
     computation nrm_init("{nrm_init[k]: 0<=k<80}", expr(), true, p_float64, global::get_implicit_function());
-    nrm_init.set_expression(0.000001);
+    nrm_init.set_expression(0);
 
     computation nrm_comp("{nrm_comp[k,i]: 0<=k<80 and 0<=i<60}", expr(), true, p_float64, global::get_implicit_function());
     nrm_comp.set_expression(nrm(0) + A(i, k) * A(i, k));

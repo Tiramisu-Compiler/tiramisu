@@ -665,6 +665,12 @@ public:
      * Used by the shedule_generator to explore same optimization in different depth of the search.
     */
     generator_state search_state;
+
+    /**
+     * JSON representation of the program represented by the AST.
+     * The program JSON is used as input for leanrning based evaluation models.
+     */
+    std::string program_json;
         
     /**
      * Create an empty AST.
@@ -964,6 +970,18 @@ public:
      * Checks whether the optimization type opt_type is already applied to at least one computation from comp_list
      */
      bool optim_already_applied_on_comps(const std::vector<tiramisu::computation *>comp_list, tiramisu::auto_scheduler::optimization_type opt_type);
+
+     /**
+     * Returns a map that represents the buffers of the function associated with this syntax tree.
+     * The names of the buffers are used as a key for the map.
+     */
+     const std::map<std::string, tiramisu::buffer *> &get_fct_buffers() const;
+
+    /**
+     * Return the name of the corresponding tiramisu::function
+     *
+     */
+    const std::string get_fct_name() const;
 };
 
 /**

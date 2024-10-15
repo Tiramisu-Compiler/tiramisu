@@ -46,12 +46,22 @@ public:
     int nb_iterators;
     int nb_dims;
     std::vector<std::vector<int>> matrix;
+
+    /**
+     * A string representation of the access matrix.
+     */
+    std::string matrix_string;
     
     /**
      * The buffer that this matrix accesses.
      */
     std::string buffer_name;
     int buffer_id;
+
+    /**
+    * The expr object from which the matrix has been extracted.
+    */
+    tiramisu::expr access_expr;
     
     /**
      * The computation from which the access has been extracted.
@@ -79,6 +89,12 @@ public:
      * line1,line2,line3
     */
     void print_access_matrix() const;
+
+    /**
+     * Returns a string representation of the acces matrix to be used in json representation
+     *
+    */
+    std::string acces_matrix_to_string();
 
     /**
      * transforms the matrix by skewing
@@ -122,6 +138,11 @@ public:
     void print_all_access() const;
 
     void modify_accesses_by_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma);
+
+    /**
+     * Retrieves the corresponding dnn_access_matrix object given and access expression object.
+     */
+    const dnn_access_matrix* retrieve_access_matrix_by_expr(const tiramisu::expr& e) const;
 };
 
 }

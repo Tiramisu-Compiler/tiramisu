@@ -6,7 +6,7 @@
 
 const std::string TIRAMISU_ROOT = get_tiramisu_root_path();
 const std::string py_cmd_path = get_python_bin_path();
-const std::string py_interface_path = TIRAMISU_ROOT + "/tutorials/tutorial_autoscheduler/model/main.py";;
+const std::string py_interface_path = get_py_interface_path();
 
 
 

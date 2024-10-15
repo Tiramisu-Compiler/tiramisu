@@ -6,7 +6,7 @@
 
 const std::string TIRAMISU_ROOT = get_tiramisu_root_path();
 const std::string py_cmd_path = get_python_bin_path();
-const std::string py_interface_path = TIRAMISU_ROOT + "/tutorials/tutorial_autoscheduler/model/main.py";;
+const std::string py_interface_path = get_py_interface_path();
 
 
 
@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 
     computation comp_A_out("comp_A_out", {t,i,j}, (A(i-1, j-1) + A(i-1, j) + A(i-1, j+1)
 		                               + A(i, j-1) + A(i, j) + A(i, j+1)
-		                               + A(i+1, j-1) + A(i+1, j) + A(i+1, j+1))*0.11111111);
+		                               + A(i+1, j-1) + A(i+1, j) + A(i+1, j+1))/9.0);
 
     buffer b_A("b_A", {2000,2000}, p_float64, a_output);    
 
