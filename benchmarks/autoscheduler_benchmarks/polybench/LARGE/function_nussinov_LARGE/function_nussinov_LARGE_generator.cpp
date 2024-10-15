@@ -18,20 +18,20 @@ int main(int argc, char **argv)
     var i_reversed("i_reversed");
 
     //inputs
-    input table("table", {i, j}, p_float64);
-    input seq("seq", {i}, p_float64);
+    input table("table", {i, j}, p_int32);
+    input seq("seq", {i}, p_int32);
 
 
     //Computations
-    computation table_1("{table_1[i,j]: -2500+1<=i<1 and 1-i<=j<2500 and 0<=j-1}", expr(), true, p_float64, global::get_implicit_function());
+    computation table_1("{table_1[i,j]: -2500+1<=i<1 and 1-i<=j<2500 and 0<=j-1}", expr(), true, p_int32, global::get_implicit_function());
     table_1.set_expression(expr(o_max, table(-i, j), table(-i, j-1)));
-    computation table_2("{table_2[i,j]: -2500+1<=i<1 and 1-i<=j<2500 and 1-i<2500}", expr(), true, p_float64, global::get_implicit_function());
+    computation table_2("{table_2[i,j]: -2500+1<=i<1 and 1-i<=j<2500 and 1-i<2500}", expr(), true, p_int32, global::get_implicit_function());
     table_2.set_expression(expr(o_max, table(-i, j), table(1-i, j)));
-    computation table_3("{table_3[i,j]: -2500+1<=i<1 and 1-i<=j<2500 and 0<=j-1 and 1-i<2500 and -i<j-1}", expr(), true, p_float64, global::get_implicit_function());
-    table_3.set_expression(expr(o_max, table(-i, j), table(1-i, j-1)+((seq(-i)+seq(j))==3.0)));
-    computation table_4("{table_4[i,j]: -2500+1<=i<1 and 1-i<=j<2500 and 0<=j-1 and 1-i<2500 and -i>=j-1}", expr(), true, p_float64, global::get_implicit_function());
+    computation table_3("{table_3[i,j]: -2500+1<=i<1 and 1-i<=j<2500 and 0<=j-1 and 1-i<2500 and -i<j-1}", expr(), true, p_int32, global::get_implicit_function());
+    table_3.set_expression(expr(o_max, table(-i, j), table(1-i, j-1)+cast(p_int32, ((seq(-i)+seq(j))==3))));
+    computation table_4("{table_4[i,j]: -2500+1<=i<1 and 1-i<=j<2500 and 0<=j-1 and 1-i<2500 and -i>=j-1}", expr(), true, p_int32, global::get_implicit_function());
     table_4.set_expression(expr(o_max, table(-i, j), table(1-i, j-1)));
-    computation table_5("{table_5[i,j,k]: -2500+1<=i<1 and 1-i<=j<2500 and 1-i<=k<j}", expr(), true, p_float64, global::get_implicit_function());
+    computation table_5("{table_5[i,j,k]: -2500+1<=i<1 and 1-i<=j<2500 and 1-i<=k<j}", expr(), true, p_int32, global::get_implicit_function());
     table_5.set_expression(expr(o_max, table(-i, j), table(-i, k) + table(k+1, j)));
     
     // -------------------------------------------------------
@@ -47,8 +47,8 @@ int main(int argc, char **argv)
     // Layer III
     // -------------------------------------------------------
     //Input Buffers
-    buffer b_table("b_table", {2500,2500}, p_float64, a_output);    
-    buffer b_seq("b_seq", {2500}, p_float64, a_input);    
+    buffer b_table("b_table", {2500,2500}, p_int32, a_output);    
+    buffer b_seq("b_seq", {2500}, p_int32, a_input);    
 
     //Store inputs
     table.store_in(&b_table);  

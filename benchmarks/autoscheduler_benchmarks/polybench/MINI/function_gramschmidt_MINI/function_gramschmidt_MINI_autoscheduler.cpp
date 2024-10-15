@@ -6,7 +6,7 @@
 
 const std::string TIRAMISU_ROOT = get_tiramisu_root_path();
 const std::string py_cmd_path = get_python_bin_path();
-const std::string py_interface_path = TIRAMISU_ROOT + "/tutorials/tutorial_autoscheduler/model/main.py";;
+const std::string py_interface_path = get_py_interface_path();
 
 
 
@@ -31,7 +31,7 @@ int main(int argc, char **argv)
     
     //Computations
     computation nrm_init("{nrm_init[k]: 0<=k<30}", expr(), true, p_float64, global::get_implicit_function());
-    nrm_init.set_expression(0.000001);
+    nrm_init.set_expression(0);
 
     computation nrm_comp("{nrm_comp[k,i]: 0<=k<30 and 0<=i<20}", expr(), true, p_float64, global::get_implicit_function());
     nrm_comp.set_expression(nrm(0) + A(i, k) * A(i, k));

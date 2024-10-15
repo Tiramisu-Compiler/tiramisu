@@ -136,6 +136,16 @@ public:
      * A recursive subroutine that represents in JSON the computations of a given tree.
      */
     static void represent_computations_from_nodes(ast_node *node, std::string& computations_json, int& comp_absolute_order);
+
+    /**
+    * A recursive subroutine that represents in JSON the expression of a computation given its comp_info object.
+    */
+    static std::string get_expression_json(const tiramisu::auto_scheduler::computation_info& comp_info, const tiramisu::expr& e);
+
+    /**
+    * Represents information about buffers used in an ast in JSON format.
+    */
+    static std::string get_buffers_json(syntax_tree const& ast);
     
     /**
      * Return a JSON representation of the schedule of the given AST.
@@ -173,6 +183,100 @@ public:
      */
     static std::string get_tree_structure_json(ast_node *node);
 };
+
+class simplified_expr_json_exctractor : public Halide::Internal::IRVisitor
+{
+private:
+    /**
+     * A map of Halide_Expr_str:tiramisu_expr where Halide_Expr_str represents a string of a halide Load op and
+     * tiramisu_expr rpresents a tiramisu access expr.
+     */
+    std::map<std::string,tiramisu::expr> accesses_map;
+
+    tiramisu::auto_scheduler::computation_info comp_info;
+
+    /**
+     * Return an error message when encountering unsupported expressions
+     */
+    void error() const
+    {
+     ERROR("Unsupported operation type encountered while exctracting JSON representaion of expression.", true);
+    }
+
+
+public:
+    /**
+     * A string corresponing to the resulting json representation of the simplified expression
+     */
+    std::string expression_json;
+
+    /**
+     * A constructor converts the tiramisu computation's expression into a Halide Expr, simplifies it,
+     * and constructs the expression JSON reprentation out of the simplified Halide Expr
+     */
+    explicit simplified_expr_json_exctractor(const tiramisu::auto_scheduler::computation_info& comp_info);
+
+    /**
+     * Converts a Halide Expr into a string
+     */
+    static std::string halide_Expr_to_string(const Halide::Expr& e);
+
+    /**
+     * Gets a mapping of Halide_Expr_str:tiramisu_expr where Halide_Expr_str represents a string of a halide Load op and
+     * tiramisu_expr rpresents a tiramisu access expr.
+     * This is used to avoid the non-trivial task of delinearizing the Halide Load op into an access matrix. The access
+     * matrix is extracted using the corresponding tiramisu expr instead.
+     */
+    void get_access_str_mapping(const tiramisu::expr& e);
+
+    /**
+     * Recursively build the JSON representation of the of the Halide Expr e
+     */
+    std::string get_Expr_json(Halide::Expr e);
+
+protected:
+     void visit(const Halide::Internal::IntImm *) override;
+     void visit(const Halide::Internal::UIntImm *) override;
+     void visit(const Halide::Internal::FloatImm *) override;
+     void visit(const Halide::Internal::Cast *) override;
+     void visit(const Halide::Internal::Variable *) override;
+     void visit(const Halide::Internal::Add *) override;
+     void visit(const Halide::Internal::Sub *) override;
+     void visit(const Halide::Internal::Mul *) override;
+     void visit(const Halide::Internal::Div *) override;
+     void visit(const Halide::Internal::Mod *) override;
+     void visit(const Halide::Internal::Min *) override;
+     void visit(const Halide::Internal::Max *) override;
+     void visit(const Halide::Internal::EQ *) override;
+     void visit(const Halide::Internal::NE *) override;
+     void visit(const Halide::Internal::LT *) override;
+     void visit(const Halide::Internal::LE *) override;
+     void visit(const Halide::Internal::GT *) override;
+     void visit(const Halide::Internal::GE *) override;
+     void visit(const Halide::Internal::And *) override;
+     void visit(const Halide::Internal::Or *) override;
+     void visit(const Halide::Internal::Not *) override;
+     void visit(const Halide::Internal::Select *) override;
+     void visit(const Halide::Internal::StringImm *) override;
+     void visit(const Halide::Internal::AssertStmt *) override;
+     void visit(const Halide::Internal::Ramp *) override;
+     void visit(const Halide::Internal::Broadcast *) override;
+     void visit(const Halide::Internal::IfThenElse *) override;
+     void visit(const Halide::Internal::Free *) override;
+     void visit(const Halide::Internal::Store *) override;
+     void visit(const Halide::Internal::Allocate *) override;
+     void visit(const Halide::Internal::Evaluate *) override;
+     void visit(const Halide::Internal::Load *) override;
+     void visit(const Halide::Internal::Let *) override;
+     void visit(const Halide::Internal::LetStmt *) override;
+     void visit(const Halide::Internal::For *) override;
+     void visit(const Halide::Internal::Call *) override;
+     void visit(const Halide::Internal::ProducerConsumer *) override;
+     void visit(const Halide::Internal::Block *) override;
+     void visit(const Halide::Internal::Provide *) override;
+     void visit(const Halide::Internal::Realize *) override;
+};
+
 
 }
 

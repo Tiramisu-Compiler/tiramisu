@@ -6,25 +6,25 @@
 
 #define NB_THREAD_INIT 48
 struct args {
-    double *buf;
+    float *buf;
     unsigned long long int part_start;
     unsigned long long int part_end;
-    double value;
+    float value;
 };
 
 void *init_part(void *params)
 {
-   double *buffer = ((struct args*) params)->buf;
+   float *buffer = ((struct args*) params)->buf;
    unsigned long long int start = ((struct args*) params)->part_start;
    unsigned long long int end = ((struct args*) params)->part_end;
-   double val = ((struct args*) params)->value;
+   float val = ((struct args*) params)->value;
    for (unsigned long long int k = start; k < end; k++){
        buffer[k]=val;
    }
    pthread_exit(NULL);
 }
 
-void parallel_init_buffer(double* buf, unsigned long long int size, double value){
+void parallel_init_buffer(float* buf, unsigned long long int size, float value){
     pthread_t threads[NB_THREAD_INIT]; 
     struct args params[NB_THREAD_INIT];
     for (int i = 0; i < NB_THREAD_INIT; i++) {
@@ -64,7 +64,7 @@ int get_max_depth(){
 }
 
 void declare_memory_usage(){
-    setenv("MEM_SIZE", std::to_string((double)18*18*18*2*8/1024/1024).c_str(), true); // This value was set by the Code Generator
+    setenv("MEM_SIZE", std::to_string((float)18*18*18*2*8/1024/1024).c_str(), true); // This value was set by the Code Generator
 }
 
 int get_nb_exec(){
@@ -98,4 +98,13 @@ std::string get_python_bin_path(){
         return "/PYTHON/PATH/IS/NOT/DEFINED";
     }
 }
+
+std::string get_py_interface_path(){
+    if (std::getenv("PY_INTERFACE_PATH")!=NULL)
+        return std::getenv("PY_INTERFACE_PATH");
+    else{
+        return "/PY_INTERFACE/PATH/IS/NOT/DEFINED";
+    }
+}
+
 #endif

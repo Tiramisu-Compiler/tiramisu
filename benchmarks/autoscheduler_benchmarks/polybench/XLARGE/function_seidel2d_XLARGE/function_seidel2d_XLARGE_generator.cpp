@@ -16,7 +16,7 @@ int main(int argc, char **argv)
 
     computation comp_A_out("comp_A_out", {t,i,j}, (A(i-1, j-1) + A(i-1, j) + A(i-1, j+1)
 		                               + A(i, j-1) + A(i, j) + A(i, j+1)
-		                               + A(i+1, j-1) + A(i+1, j) + A(i+1, j+1))*0.11111111);
+		                               + A(i+1, j-1) + A(i+1, j) + A(i+1, j+1))/9.0);
 
     buffer b_A("b_A", {4000,4000}, p_float64, a_output);    
 

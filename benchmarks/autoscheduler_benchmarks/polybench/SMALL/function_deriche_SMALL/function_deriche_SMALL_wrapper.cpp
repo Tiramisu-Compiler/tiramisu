@@ -12,13 +12,13 @@ using namespace std;
 int main(int, char **argv)
 {
 
-	double *b_A = (double*)malloc(192*128*sizeof(double));
-	parallel_init_buffer(b_A, 192*128, (double)19);
-	Halide::Buffer<double> buf01(b_A, 192, 128);
+	float *b_A = (float*)malloc(192*128*sizeof(float));
+	parallel_init_buffer(b_A, 192*128, (float)19);
+	Halide::Buffer<float> buf01(b_A, 192, 128);
 
-	double *b_x = (double*)malloc(192*128* sizeof(double));
-	parallel_init_buffer(b_x, 192*128, (double)36);
-	Halide::Buffer<double> buf02(b_x, 192, 128);
+	float *b_x = (float*)malloc(192*128* sizeof(float));
+	parallel_init_buffer(b_x, 192*128, (float)36);
+	Halide::Buffer<float> buf02(b_x, 192, 128);
 
 
 

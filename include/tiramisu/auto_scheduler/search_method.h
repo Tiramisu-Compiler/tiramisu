@@ -70,7 +70,9 @@ public:
 
     int get_nb_explored_schedules() const { return nb_explored_schedules; }
     float get_best_evaluation() const { return best_evaluation; }
+    void set_best_evaluation(float best_eval) { best_evaluation = best_eval; }
     syntax_tree* get_best_ast() const { return best_ast; }
+    void set_best_ast(syntax_tree* best_explored_ast)  { best_ast = best_explored_ast; }
     
     void set_eval_func(evaluation_function *eval_func) { this->eval_func = eval_func; }
     void set_exec_eval(evaluate_by_execution *exec_eval) { this->exec_eval = exec_eval; }

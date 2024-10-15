@@ -12,9 +12,9 @@ using namespace std;
 int main(int, char **argv)
 {
 
-	double *b_D = (double*)malloc(500*500*sizeof(double));
-	parallel_init_buffer(b_D, 500*500, (double)19);
-	Halide::Buffer<double> buf00(b_D, 500, 500);
+	int *b_D = (int*)malloc(500*500*sizeof(int));
+	parallel_init_buffer(b_D, 500*500, (int)19);
+	Halide::Buffer<int> buf00(b_D, 500, 500);
 
 
 

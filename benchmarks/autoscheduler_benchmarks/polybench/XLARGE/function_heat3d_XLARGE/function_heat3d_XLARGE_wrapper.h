@@ -98,4 +98,13 @@ std::string get_python_bin_path(){
         return "/PYTHON/PATH/IS/NOT/DEFINED";
     }
 }
+
+std::string get_py_interface_path(){
+    if (std::getenv("PY_INTERFACE_PATH")!=NULL)
+        return std::getenv("PY_INTERFACE_PATH");
+    else{
+        return "/PY_INTERFACE/PATH/IS/NOT/DEFINED";
+    }
+}
+
 #endif

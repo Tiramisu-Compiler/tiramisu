@@ -3018,7 +3018,7 @@ void computation::gpu_tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2,
 void computation::assert_names_not_assigned(
         std::vector<std::string> dimensions)
 {
-    for (auto const dim: dimensions)
+    for (auto const& dim: dimensions)
     {
         int d = isl_map_find_dim_by_name(this->get_schedule(), isl_dim_out,
                                          dim.c_str());
@@ -3209,7 +3209,7 @@ std::vector<int> computation::get_loop_level_numbers_from_dimension_names(
 
     std::vector<int> dim_numbers;
 
-    for (auto const dim: dim_names)
+    for (auto const& dim: dim_names)
     {
         assert(dim.size()>0);
 
@@ -6217,7 +6217,7 @@ void computation::compute_at(computation &consumer, int L)
                     DEBUG(10, tiramisu::str_dump("Checking the constraint number " + std::to_string(j)));
                     isl_constraint *cst = isl_constraint_list_get_constraint(cst_list, j);
                     DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Constraint: "); isl_constraint_dump(cst));
-                    for (auto const p : param_names)
+                    for (auto const& p : param_names)
                     {
                         int pos = isl_space_find_dim_by_name(sp, isl_dim_param, p.c_str());
                         if (isl_constraint_involves_dims(cst, isl_dim_param, pos, 1))

@@ -6,7 +6,7 @@
 
 const std::string TIRAMISU_ROOT = get_tiramisu_root_path();
 const std::string py_cmd_path = get_python_bin_path();
-const std::string py_interface_path = TIRAMISU_ROOT + "/tutorials/tutorial_autoscheduler/model/main.py";;
+const std::string py_interface_path = get_py_interface_path();
 
 
 
@@ -30,11 +30,11 @@ int main(int argc, char **argv)
 
     //Computations
     computation A_sub("{A_sub[i,j,k]: 0<=i<2000 and 0<=j<i and 0<=k<j}", expr(), true, p_float64, global::get_implicit_function());
-    A_sub.set_expression(A_sub(i,j,k) - A(i,k)*A(k,j));
+    A_sub.set_expression(A(i,j) - A(i,k)*A(k,j));
     computation A_div("{A_div[i,j]: 0<=i<2000 and 0<=j<i}", expr(), true, p_float64, global::get_implicit_function());
-    A_div.set_expression(A_sub(i,j,0)/A_sub(j,j,0));
+    A_div.set_expression(A(i,j)/A(j,j));
     computation A_out("{A_out[i,l,m]: 0<=i<2000 and i<=l<2000 and 0<=m<i}", expr(), true, p_float64, global::get_implicit_function());
-    A_out.set_expression(A_out(i,l,m) - A_div(i,m)*A_div(m,l));
+    A_out.set_expression(A(i,l) - A(i,m)*A(m,l));
 
     
     // -------------------------------------------------------

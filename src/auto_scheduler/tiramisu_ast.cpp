@@ -405,6 +405,15 @@ void syntax_tree::order_computations()
             roots.erase(it);
         }
     }
+    // Sort the roots according to the position of their computations in now sortedd computations_list
+    sort( roots.begin( ), roots.end( ), [this](  ast_node * root1,  ast_node * root2 )
+        {
+        auto first_comp_r1 = root1->get_leftmost_node()->computations[0].comp_ptr;
+        auto first_comp_r2 = root2->get_leftmost_node()->computations[0].comp_ptr;
+        ptrdiff_t pos_first_comp_r1 = distance(this->computations_list.begin(), find(this->computations_list.begin(), this->computations_list.end(), first_comp_r1));
+        ptrdiff_t pos_first_comp_r2 = distance(this->computations_list.begin(), find(this->computations_list.begin(), this->computations_list.end(), first_comp_r2));
+        return pos_first_comp_r1 < pos_first_comp_r2;
+        });
 }
 ast_node* syntax_tree::get_last_shared_parent(ast_node* node1, ast_node* node2) const
 {
@@ -1478,6 +1487,7 @@ ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node
     
     new_ast.iterators_json = iterators_json;
     new_ast.tree_structure_json = tree_structure_json;
+    new_ast.program_json = program_json;
     
     new_ast.evaluation = evaluation;
     new_ast.search_depth = search_depth;
@@ -2671,7 +2681,7 @@ std::string syntax_tree::get_schedule_str()
 bool syntax_tree::ast_is_prunable()
 {
     std::vector<int> optims(this->get_computations().size());
-    for (optimization_info optim: new_optims){
+    for (optimization_info optim: this->get_schedule()){
             if(optim.type == optimization_type::MATRIX){
                 for(int i=0;i<optim.comps.size();i++){
                     optims.at(this->get_computation_index(optim.comps.at(i))) += 1;
@@ -2940,6 +2950,17 @@ bool syntax_tree::optim_already_applied_on_comps(const std::vector<tiramisu::com
             return true;
     return false;
 }
+
+const std::map<std::string, tiramisu::buffer *> & syntax_tree::get_fct_buffers() const
+{
+    return this->fct->get_buffers();
+}
+
+const std::string syntax_tree::get_fct_name() const
+{
+    return this->fct->get_name();
+}
+
 
 bool generator_state::is_current_optimization_fully_explored()
 {
