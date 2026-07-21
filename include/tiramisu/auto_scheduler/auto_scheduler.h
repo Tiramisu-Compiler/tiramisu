@@ -58,9 +58,9 @@ protected:
 public:
     /**
      * Create an autoscheduler with the given search method and the given evaluation function
-     * for the given program.
+     * for the given program. If transformations is not null, we apply the list of initial transformations to the program before we start the exploration.
      */
-    auto_scheduler(search_method *searcher, evaluation_function *eval_func,
+    auto_scheduler(search_method *searcher, evaluation_function *eval_func, std::vector<optimization_info> transformations = std::vector<optimization_info>(),
                    tiramisu::function *fct = tiramisu::global::get_implicit_function());
               
     /**

@@ -30,6 +30,7 @@ std::string generate_new_variable_name();
 std::string str_from_tiramisu_type_expr(tiramisu::expr_t type);
 std::string str_tiramisu_type_op(tiramisu::op_t type);
 std::string str_from_tiramisu_type_primitive(tiramisu::primitive_t type);
+std::string str_from_tiramisu_type_argument(tiramisu::argument_t type);
 
 class buffer;
 class expr;

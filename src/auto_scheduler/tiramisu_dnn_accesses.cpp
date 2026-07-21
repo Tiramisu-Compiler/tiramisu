@@ -2,9 +2,7 @@
 
 namespace tiramisu::auto_scheduler
 {
-
-std::vector<dnn_iterator> 
-dnn_iterator::get_iterators_from_computation(tiramisu::computation const& comp)
+std::vector<dnn_iterator>  dnn_iterator::get_iterators_from_computation(tiramisu::computation const& comp)
 {
     std::vector<dnn_iterator> iters_list;
     
@@ -15,8 +13,8 @@ dnn_iterator::get_iterators_from_computation(tiramisu::computation const& comp)
     for (int i = 0; i < nb_iterators; ++i)
     {
         std::string name = isl_set_get_dim_name(iter_domain, isl_dim_set, i);
-        int low_bound = utility::get_bound(iter_domain, i, false).get_int_val();
-        int up_bound = utility::get_bound(iter_domain, i, true).get_int_val();
+        std::string low_bound = utility::get_bound(iter_domain, i, false).to_str();
+        std::string up_bound = utility::get_bound(iter_domain, i, true).to_str();
         
         iters_list.push_back(dnn_iterator(name, low_bound, up_bound));
     }
@@ -35,6 +33,7 @@ dnn_access_matrix::dnn_access_matrix(int nb_iterators, tiramisu::expr const& e, 
     : dnn_access_matrix(nb_iterators, e.get_access().size())
 {
     this->comp = comp;
+    this->access_expr = e;
     std::vector<tiramisu::expr> const& acc_vector = e.get_access();
 
     for (int i = 0; i < acc_vector.size(); ++i)
@@ -45,6 +44,8 @@ dnn_access_matrix::dnn_access_matrix(int nb_iterators, tiramisu::expr const& e, 
     // We get it in the constructor (see ast.h) :
     // computation_info::computation_info(tiramisu::computation *comp, syntax_tree *ast)
     buffer_name = e.get_name();
+
+    matrix_string = acces_matrix_to_string();
 }
 
 void dnn_access_matrix::print_access_matrix() const
@@ -63,7 +64,32 @@ void dnn_access_matrix::print_access_matrix() const
     std::cout<<"\n";
 }
 
-void dnn_access_matrix::transform_matrix_by_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma)
+std::string dnn_access_matrix::acces_matrix_to_string()
+{
+    std::string str = "[";
+
+    for (int x = 0; x <matrix.size(); ++x)
+    {
+        str += "[";
+        for (int y = 0; y <matrix[x].size(); ++y)
+        {
+            str += std::to_string(matrix[x][y]);
+            if (y != matrix[x].size() - 1)
+                str += ", ";
+        }
+
+        str += "]";
+        if (x != matrix.size() - 1)
+            str += ",";
+    }
+
+    str += "]";
+
+    return str;
+}
+
+
+void dnn_access_matrix::transforme_matrix_by_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma)
 {
     
 
@@ -167,6 +193,12 @@ void dnn_access_matrix::fill_matrix_row(int i, tiramisu::expr const& e, bool min
             fill_matrix_row(i, e.get_operand(0), false);
             fill_matrix_row(i, e.get_operand(1), minus);
         }
+
+        // we got -expr
+        else if (e.get_op_type() == o_minus)
+        {
+            fill_matrix_row(i, e.get_operand(0), true);
+        }
         
         // We got : coefficient * iterator
         else if (e.get_op_type() == o_mul)
@@ -179,6 +211,9 @@ void dnn_access_matrix::fill_matrix_row(int i, tiramisu::expr const& e, bool min
             else
                 matrix[i][it_pos] = coeff;
         }
+
+        else
+            ERROR("Unsupported access op_type encountered in access matrix representation: "+str_tiramisu_type_op(e.get_op_type()), true);
     }
     
     // Access coefficient == 1
@@ -199,6 +234,9 @@ void dnn_access_matrix::fill_matrix_row(int i, tiramisu::expr const& e, bool min
         else
             matrix[i][nb_iterators] = e.get_int32_value();
     }
+
+    else
+        ERROR("Unsupported access expr_type encountered in access matrix representation: "+ str_from_tiramisu_type_expr(e.get_expr_type()), true);
 }
 
 dnn_accesses::dnn_accesses(tiramisu::computation *comp, int nb_iterators, tiramisu::function *fct)
@@ -242,6 +280,15 @@ void dnn_accesses::create_accesses(tiramisu::expr const& e)
     for (int i = 0; i < e.get_n_arg(); ++i)
         create_accesses(e.get_operand(i));
 }
+
+const dnn_access_matrix* dnn_accesses::retrieve_access_matrix_by_expr(const tiramisu::expr& e) const
+{
+    for (dnn_access_matrix const &access: accesses_list)
+        if (access.access_expr.to_str() == e.to_str())
+            return &access;
+    return nullptr;
+}
+
 void dnn_accesses::print_all_access() const
 {
     for(auto& matrix:this->accesses_list)
@@ -255,7 +302,7 @@ void dnn_accesses::modify_accesses_by_skewing(int first_node_depth,int alpha,int
 
     for(auto& access:this->accesses_list)
     {
-        access.transform_matrix_by_skewing(first_node_depth,alpha,beta,gamma,sigma);
+        access.transforme_matrix_by_skewing(first_node_depth,alpha,beta,gamma,sigma);
     }
 }
 

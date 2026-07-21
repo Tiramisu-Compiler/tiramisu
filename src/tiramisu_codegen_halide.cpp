@@ -487,9 +487,7 @@ isl_constraint *generator::get_constraint_for_access(int access_dimension,
             tiramisu::expr op0 = access_expression.get_operand(0);
             tiramisu::expr op1 = access_expression.get_operand(1);
             cst = generator::get_constraint_for_access(access_dimension, op0, access_relation, cst, coeff, fct);
-            isl_constraint_dump(cst);
             cst = generator::get_constraint_for_access(access_dimension, op1, access_relation, cst, coeff, fct);
-            isl_constraint_dump(cst);
         }
         else if (access_expression.get_op_type() == tiramisu::o_sub)
         {
@@ -1720,6 +1718,64 @@ void tiramisu::generator::extract_tags_from_isl_node(const tiramisu::function &f
     DEBUG_INDENT(-4);
 }
 
+// Returns true if the statement \p stmt appears as a leaf (user node) anywhere in the
+// subtree rooted at \p node. Used to guard loop-level tags (parallelize/vectorize/unroll):
+// a loop must only receive a tag if it actually contains the tagged statement. Without this
+// check, a loop in one root nest is wrongly tagged whenever some statement in another nest
+// is tagged at the same level (this guard was lost in the port from the LOOPer branch, which
+// caused spurious parallelization of unrelated nests in multi-root programs).
+bool isl_node_contains_stmt(isl_ast_node *node, const std::string &stmt)
+{
+    enum isl_ast_node_type type = isl_ast_node_get_type(node);
+    if (type == isl_ast_node_block)
+    {
+        isl_ast_node_list *list = isl_ast_node_block_get_children(node);
+        bool found = false;
+        for (int i = 0; i < isl_ast_node_list_n_ast_node(list); i++)
+        {
+            isl_ast_node *child = isl_ast_node_list_get_ast_node(list, i);
+            if (isl_node_contains_stmt(child, stmt))
+                found = true;
+            isl_ast_node_free(child);
+        }
+        isl_ast_node_list_free(list);
+        return found;
+    }
+    else if (type == isl_ast_node_for)
+    {
+        isl_ast_node *body = isl_ast_node_for_get_body(node);
+        bool found = isl_node_contains_stmt(body, stmt);
+        isl_ast_node_free(body);
+        return found;
+    }
+    else if (type == isl_ast_node_user)
+    {
+        isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
+        isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
+        isl_id *id = isl_ast_expr_get_id(arg);
+        isl_ast_expr_free(expr);
+        isl_ast_expr_free(arg);
+        std::string computation_name(isl_id_get_name(id));
+        isl_id_free(id);
+        return computation_name == stmt;
+    }
+    else if (type == isl_ast_node_if)
+    {
+        isl_ast_node *then_node = isl_ast_node_if_get_then(node);
+        bool found = isl_node_contains_stmt(then_node, stmt);
+        isl_ast_node_free(then_node);
+        isl_ast_node *else_node = isl_ast_node_if_get_else(node);
+        if (else_node != NULL)
+        {
+            if (isl_node_contains_stmt(else_node, stmt))
+                found = true;
+            isl_ast_node_free(else_node);
+        }
+        return found;
+    }
+    return false;
+}
+
 Halide::Internal::Stmt
 tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, isl_ast_node *node, int level,
                                                std::vector<std::pair<std::string, std::string>> &tagged_stmts,
@@ -2111,7 +2167,8 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             while (tt < tagged_stmts.size()) {
                 if (tagged_stmts[tt].first != "") {
                     if (tagged_stmts[tt].second == "parallelize" &&
-                        fct.should_parallelize(tagged_stmts[tt].first, level)) {
+                        fct.should_parallelize(tagged_stmts[tt].first, level) &&
+                        isl_node_contains_stmt(node, tagged_stmts[tt].first)) {
                         fortype = Halide::Internal::ForType::Parallel;
                         // Since this statement is treated, remove it from the list of
                         // tagged statements so that it does not get treated again later.
@@ -2119,7 +2176,8 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                         // As soon as we find one tagged statement that actually useful we exit
                         break;
                     } else if (tagged_stmts[tt].second == "vectorize" &&
-                               fct.should_vectorize(tagged_stmts[tt].first, level)) {
+                               fct.should_vectorize(tagged_stmts[tt].first, level) &&
+                               isl_node_contains_stmt(node, tagged_stmts[tt].first)) {
                         DEBUG(3, tiramisu::str_dump("Trying to vectorize at level "
                                                     + std::to_string(level) + ", tagged stmt is " +
                                                     tagged_stmts[tt].first));
@@ -2146,7 +2204,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
 
                         // Currently we assume that when vectorization is used,
                         // then the original loop extent is > vector_length.
-                        cond_upper_bound_halide_format = Halide::Expr(vector_length);
+                        cond_upper_bound_halide_format = simplify(init_expr + Halide::Expr(vector_length)); // fix: same as unroll, correct extent for non-zero-min loops
                         fortype = Halide::Internal::ForType::Vectorized;
                         DEBUG(3, tiramisu::str_dump("Loop vectorized"));
 
@@ -2216,7 +2274,8 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                         tagged_stmts[tt].first = "";
                         break;
                     } else if (tagged_stmts[tt].second == "unroll" &&
-                               fct.should_unroll(tagged_stmts[tt].first, level)) {
+                               fct.should_unroll(tagged_stmts[tt].first, level) &&
+                               isl_node_contains_stmt(node, tagged_stmts[tt].first)) {
                         DEBUG(3, tiramisu::str_dump("Trying to unroll at level ");
                                 tiramisu::str_dump(std::to_string(level)));
 
@@ -2227,9 +2286,18 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
 			// a facor, thus we have to use the loop extent as
 			// factor (which should work in most cases but not
 			// always). If the user provided a factor, we use it.
-			if (unrolling_factor != 0)
+			if (unrolling_factor == 1)
 			{
-			    cond_upper_bound_halide_format = Halide::Expr(unrolling_factor);
+			    // Unrolling by a factor of 1 is a no-op: separateAndSplit does
+			    // not create a real inner loop for it, so the level here is the
+			    // full loop. Clamping its extent to init+1 (as below) would
+			    // truncate that full loop to a single iteration and silently
+			    // corrupt the results. Leave the loop unchanged and untagged.
+			    DEBUG(3, tiramisu::str_dump("Unrolling factor 1 is a no-op; loop left unchanged."));
+			}
+			else if (unrolling_factor != 0)
+			{
+			    cond_upper_bound_halide_format = simplify(init_expr + Halide::Expr(unrolling_factor)); // fix: extent=upper-init, so upper must be init+factor for non-zero-min (reversed/shifted) loops
 			    fortype = Halide::Internal::ForType::Unrolled;
 			    DEBUG(3, tiramisu::str_dump("Loop unrolled"));
 			}

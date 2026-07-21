@@ -15,7 +15,7 @@ evaluate_by_execution::evaluate_by_execution(std::vector<tiramisu::buffer*> cons
                                              std::string const& obj_filename, 
                                              std::string const& wrapper_cmd,
                                              tiramisu::function *fct)
-    : evaluation_function(), fct(fct), obj_filename(obj_filename), wrapper_cmd(wrapper_cmd)
+    : evaluation_function(), obj_filename(obj_filename), wrapper_cmd(wrapper_cmd), fct(fct)
 {
     // Set Halide compilation features
     halide_target = Halide::get_host_target();
@@ -25,21 +25,29 @@ evaluate_by_execution::evaluate_by_execution(std::vector<tiramisu::buffer*> cons
     fct->set_arguments(arguments);
     for (auto const& buf : arguments)
     {
+        // Newer Halide (14) requires an explicit ArgumentEstimates; the LOOPer
+        // branch built against an older Halide whose constructor lacked it.
         Halide::Argument buffer_arg(
                 buf->get_name(),
                 halide_argtype_from_tiramisu_argtype(buf->get_argument_type()),
                 halide_type_from_tiramisu_type(buf->get_elements_type()),
-                buf->get_n_dims());
-                
+                buf->get_n_dims(),
+                Halide::ArgumentEstimates{});
+
        halide_arguments.push_back(buffer_arg);
     }
 }
-
+//TODO remove this function and change the whole structure of the evaluator classes
+float evaluate_by_execution::evaluate(syntax_tree& ast, std::string no_sched_json)
+{
+    return -1;
+}
 float evaluate_by_execution::evaluate(syntax_tree& ast)
 {
+    fct->reset_schedules();
     // Apply all the optimizations
     apply_optimizations(ast);
-
+    
     // Compile the program to an object file
     fct->lift_dist_comps();
     fct->gen_time_space_domain();
@@ -47,15 +55,25 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
     fct->gen_halide_stmt();
     
     Halide::Module m = lower_halide_pipeline(fct->get_name(), halide_target, halide_arguments,
-                                             Halide::Internal::LoweredFunc::External,
+                                             Halide::LinkageType::External,
                                              fct->get_halide_stmt());
                                              
-    m.compile(Halide::Outputs().object(obj_filename));
-    
+    // Newer Halide (14) replaced Halide::Outputs() with an OutputFileType map.
+    m.compile(std::map<Halide::OutputFileType, std::string>{
+        {Halide::OutputFileType::object, obj_filename}});
+
+    std::string gpp_command = read_env_var("GXX");
+
+    if (gpp_command.empty())
+    {
+       gpp_command = "g++";
+    }
+
     // Turn the object file to a shared library
-    std::string gcc_cmd = "g++ -shared -o " + obj_filename + ".so " + obj_filename;
+    std::string gcc_cmd = gpp_command + " -shared -o " + obj_filename + ".so " + obj_filename;
+    // run the command and retrieve the execution status
     int status = system(gcc_cmd.c_str());
-    
+    assert(status != 139 && "Segmentation Fault when trying to execute schedule");
     // Execute the wrapper and get execution time
     double exec_time = std::numeric_limits<double>::infinity();
     FILE *pipe = popen(wrapper_cmd.c_str(), "r");
@@ -73,23 +91,32 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
 {
     // Apply all the optimizations
     apply_optimizations(ast);
-
     // Compile the program to an object file
     fct->lift_dist_comps();
     fct->gen_time_space_domain();
     fct->gen_isl_ast();
+    
     fct->gen_halide_stmt();
 
     Halide::Module m = lower_halide_pipeline(fct->get_name(), halide_target, halide_arguments,
-                                             Halide::Internal::LoweredFunc::External,
+                                             Halide::LinkageType::External,
                                              fct->get_halide_stmt());
 
-    m.compile(Halide::Outputs().object(obj_filename));
+    // Newer Halide (14) replaced Halide::Outputs() with an OutputFileType map.
+    m.compile(std::map<Halide::OutputFileType, std::string>{
+        {Halide::OutputFileType::object, obj_filename}});
+
+    std::string gpp_command = read_env_var("GXX");
+
+    if (gpp_command.empty())
+    {
+       gpp_command = "g++";
+    }
 
     // Turn the object file to a shared library
-    std::string gcc_cmd = "g++ -shared -o " + obj_filename + ".so " + obj_filename;
+    std::string gcc_cmd = gpp_command + " -shared -o " + obj_filename + ".so " + obj_filename;
     int status = system(gcc_cmd.c_str());
-
+    assert(status != 139 && "Segmentation Fault when trying to execute schedule");
     // define the execution command of the wrapper
     std::string cmd = wrapper_cmd;
 
@@ -105,6 +132,8 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
 
     // execute the command
     FILE *pipe = popen(cmd.c_str(), "r");
+
+    
 
     // read the output into a string
     char buf[100];
@@ -131,11 +160,9 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
         measurements.push_back(cumulative_timeout*1000); // converted to ms
         std::cout<< "Execution timed out"<< std::endl;
     }
-
-
+    
     // Remove all the optimizations
     fct->reset_schedules();
-
     return measurements;
 }
 
@@ -184,14 +211,20 @@ evaluate_by_learning_model::evaluate_by_learning_model(std::string const& cmd_pa
     model_read = fdopen(inpipe_fd[0], "r");
 }
 
+//TODO remove this function and change the whole structure of the evaluator classes
 float evaluate_by_learning_model::evaluate(syntax_tree& ast)
 {
+    return -1;
+}
+float evaluate_by_learning_model::evaluate(syntax_tree& ast, std::string no_sched_json)
+{
     // Get JSON representations for the program, and for the schedule
-    std::string prog_json = get_program_json(ast);
+    std::string prog_json = ast.program_json;
     std::string sched_json = get_schedule_json(ast);
-    
+
     // Write the program JSON and the schedule JSON to model_write
     fputs(prog_json.c_str(), model_write);
+    fputs(no_sched_json.c_str(), model_write);
     fputs(sched_json.c_str(), model_write);
     fflush(model_write);
     
@@ -204,12 +237,18 @@ float evaluate_by_learning_model::evaluate(syntax_tree& ast)
 
 std::string evaluate_by_learning_model::get_program_json(syntax_tree const& ast)
 {
+    // Get the name of the function
+    std::string function_name = R"("function_name" : ")" + ast.get_fct_name() + "\" ";
+
     // Get the memory size allocated by the program, if declared
-    std::string mem_size_json = "\"memory_size\" : \"" + std::string(read_env_var("MEM_SIZE")) + "\" ";
+    std::string mem_size_json = R"("memory_size" : ")" + std::string(read_env_var("MEM_SIZE")) + "\" ";
 
     // Get JSON for iterators from ast.iterators_json
     std::string iterators_json = "\"iterators\" : {" + ast.iterators_json + "}";
-    
+
+    // Get JSON for buffers
+    std::string buffers_json = get_buffers_json(ast);
+
     // Use represent_computations_from_nodes to get JSON for computations
     std::string computations_json = "\"computations\" : {";
     int comp_absolute_order = 1;
@@ -221,7 +260,86 @@ std::string evaluate_by_learning_model::get_program_json(syntax_tree const& ast)
     computations_json += "}";
     
     // Return JSON of the program
-    return "{" + mem_size_json + "," + iterators_json + "," + computations_json + "}\n";
+    return "{" + function_name + "," + mem_size_json + "," + iterators_json + "," + buffers_json + "," + computations_json + "}\n";
+}
+
+std::string evaluate_by_learning_model::get_buffers_json(syntax_tree const& ast)
+{
+    std::map<std::string, tiramisu::buffer *> fct_buffers =  ast.get_fct_buffers();
+    std::string buffers_json = R"("buffers" : { "buffers_info": {)";// + ast.iterators_json + "}";
+    for (const auto& name:ast.buffers_list)
+    {
+        buffers_json += "\"" + name + "\": {"; // buffer name
+        buffers_json += "\"buffer_id\" :" + std::to_string(ast.get_buffer_id(name)) + ",";
+        buffers_json += "\"buffer_dimensions\" : [";
+        for (const auto& e:fct_buffers[name]->get_dim_sizes())
+            buffers_json += e.simplify().to_str()+ ",";
+        buffers_json.pop_back(); // removes the last comma
+        buffers_json += "],"; // closes the dim sizes list
+        buffers_json += R"("dtype" : ")" + str_from_tiramisu_type_primitive(fct_buffers[name]->get_elements_type()) + "\", ";
+        buffers_json += R"("argtype" : ")" + str_from_tiramisu_type_argument(fct_buffers[name]->get_argument_type()) + "\"";
+        buffers_json += "},";
+    }
+    buffers_json.pop_back(); // removes the last comma
+    buffers_json += "}, ";
+    buffers_json += "\"comp_buf_mapping\": {";
+    for (const auto& p:ast.buffers_mapping)
+    {
+        buffers_json += "\"" + p.first + "\": "; // computation or input name
+        buffers_json += "\"" + p.second + "\","; // buffer_name name
+    }
+    buffers_json.pop_back(); // removes the last comma
+    buffers_json += "}}";
+    return buffers_json;
+}
+
+std::string evaluate_by_learning_model::get_expression_json(const tiramisu::auto_scheduler::computation_info& comp_info, const tiramisu::expr& e)
+{
+    std::string expr_json;
+
+    // If we have a value or a var
+    if (e.get_expr_type() != tiramisu::e_op)
+        expr_json += R"({"expr_type" : ")" + str_from_tiramisu_type_expr(e.get_expr_type()) +
+            R"(", "str" : ")" + e.to_str() +
+            R"(", "dtype" : ")" + str_from_tiramisu_type_primitive(e.get_data_type()) +
+            R"(", "children":[]})";
+
+    // If type is e_op
+    else
+    {
+        // If we have an access we add its access matrix
+        if (e.get_op_type() == tiramisu::o_access ||
+            e.get_op_type() == tiramisu::o_lin_index ||
+            e.get_op_type() == tiramisu::o_address_of ||
+            e.get_op_type() == tiramisu::o_dummy ||
+            e.get_op_type() == tiramisu::o_buffer)
+        {
+            const dnn_access_matrix* mat = comp_info.accesses.retrieve_access_matrix_by_expr(e);
+            expr_json += R"({"expr_type" : ")" + str_tiramisu_type_op(e.get_op_type()) +
+                R"(", "dtype" : ")" + str_from_tiramisu_type_primitive(e.get_data_type()) +
+                R"(", "access_matrix" : )" +  mat->matrix_string +
+                R"(, "buffer_id" : ")" +  std::to_string(mat->buffer_id) +
+                R"(", "str" : ")" + e.to_str() +
+                R"(", "children":[]})";
+
+        }
+
+        // If we have an operation
+        else
+        {
+            expr_json += R"({"expr_type" : ")" + str_tiramisu_type_op(e.get_op_type()) +
+                R"(", "dtype" : ")" + str_from_tiramisu_type_primitive(e.get_data_type()) +
+                R"(", "children":[)";
+            for (int i = 0; i < e.get_n_arg(); ++i)
+                expr_json += get_expression_json(comp_info, e.get_operand(i)) + ",";
+            expr_json.pop_back(); // removes the last comma
+            expr_json += R"(]})";
+        }
+
+    }
+
+    return expr_json;
+
 }
 
 void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *node, std::string& computations_json, int& comp_absolute_order)
@@ -243,27 +361,12 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
         
         comp_json += "],";
         
-//        comp_json += "\"real_dimensions\" : [";
-//
-//        for (int i = 0; i < comp_info.buffer_nb_dims; ++i)
-//        {
-//            comp_json += "\"" + comp_info.iters[i].name + "\"";
-//            if (i != comp_info.buffer_nb_dims - 1)
-//                comp_json += ",";
-//        }
-//
-//        comp_json += "],";
         
         comp_json += "\"comp_is_reduction\" : ";
         if (comp_info.is_reduction)
             comp_json += "true,";
         else
             comp_json += "false,";
-            
-        comp_json += "\"number_of_additions\" : " + std::to_string(comp_info.nb_additions) + ",";
-        comp_json += "\"number_of_subtraction\" : " + std::to_string(comp_info.nb_substractions) + ",";
-        comp_json += "\"number_of_multiplication\" : " + std::to_string(comp_info.nb_multiplications) + ",";
-        comp_json += "\"number_of_division\" : " + std::to_string(comp_info.nb_divisions) + ",";
 
         comp_json += "\"write_access_relation\" : \"" +  comp_info.write_access_relation + "\",";
         comp_json += "\"write_buffer_id\" : " +  std::to_string(comp_info.storage_buffer_id) + ",";
@@ -286,33 +389,23 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
                 comp_json += "false,";
                 
             comp_json += "\"buffer_id\" : " + std::to_string(matrix.buffer_id) + ",";
-            comp_json += "\"access_matrix\" : [";
-            
-            for (int x = 0; x < matrix.matrix.size(); ++x)
-            {
-                comp_json += "[";
-                for (int y = 0; y < matrix.matrix[x].size(); ++y)
-                {
-                    comp_json += std::to_string(matrix.matrix[x][y]);
-                    if (y != matrix.matrix[x].size() - 1)
-                        comp_json += ", ";
-                }
-                
-                comp_json += "]";
-                if (x != matrix.matrix.size() - 1)
-                    comp_json += ",";
-            }
-            
-            comp_json += "]";
-            
+            comp_json += "\"access_str\" : \"" + matrix.access_expr.to_str() + "\",";
+            comp_json += "\"access_matrix\" : " + matrix.matrix_string;
+
             comp_json += "}";
-            
+
             if (i != comp_info.accesses.accesses_list.size() - 1)
                 comp_json += ",";
         }
-        
-        comp_json += "]";
-    
+
+        comp_json += "],";
+
+        // comp_json += "\"expression_representation\" : " +  comp_info.comp_ptr->get_expr().to_json();
+        comp_json += "\"expression_representation\" : " +  get_expression_json(comp_info, comp_info.comp_ptr->get_expr()) +",";
+
+        std::string simplified_expression_json = simplified_expr_json_exctractor(comp_info).expression_json;
+        comp_json += "\"simplified_expression_representation\" : " +  simplified_expression_json;
+
         computations_json += "\"" + comp_info.comp_ptr->get_name() + "\" : {" + comp_json + "},";
     }
     
@@ -320,127 +413,203 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
     for (ast_node *child : node->children)
         represent_computations_from_nodes(child, computations_json, comp_absolute_order);
 }
-
-std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast)
+/*
+multiply two matrices AxB
+*/
+std::vector<std::vector<int>>  mat_mul(const std::vector<std::vector<int>> & m1, const std::vector<std::vector<int>> & m2)
 {
-    bool interchanged = false;
-    bool tiled = false;
-    bool unrolled = false;
-    bool skewed = false;
-    bool parallelized = false;
-    
-    int unfuse_l0 = -1;
-    int int_l0, int_l1;
-    int tile_nb_l, tile_l0, tile_l0_fact, tile_l1_fact, tile_l2_fact;
-    int unrolling_fact;
-    int skewing_fact_l0, skewing_fact_l1;
-    int skewing_l0, skewing_l1;
-    int skew_extent_l0, skew_extent_l1;
-    int parallelized_level;
-    
-    // Get information about the schedule
-    for (optimization_info const& optim_info : ast.new_optims)
-    {
-        switch (optim_info.type)
-        {
-            case optimization_type::UNFUSE:
-                unfuse_l0 = optim_info.l0;
-                break;
-                
-            case optimization_type::TILING:
-                tiled = true;
-                if (optim_info.nb_l == 2)
-                {
-                    tile_nb_l = 2;
-                    tile_l0 = optim_info.l0;
-                    tile_l0_fact = optim_info.l0_fact;
-                    tile_l1_fact = optim_info.l1_fact;
-                }
-                
-                else if (optim_info.nb_l == 3)
-                {
-                    tile_nb_l = 3;
-                    tile_l0 = optim_info.l0;
-                    tile_l0_fact = optim_info.l0_fact;
-                    tile_l1_fact = optim_info.l1_fact;
-                    tile_l2_fact = optim_info.l2_fact;
-                }
-                break;
-                
-            case optimization_type::INTERCHANGE:
-                interchanged = true;
-                int_l0 = optim_info.l0;
-                int_l1 = optim_info.l1;
-                break;
-                
-            case optimization_type::UNROLLING:
-                unrolled = true;
-                unrolling_fact = optim_info.l0_fact;
-                break;
+std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()));
 
-            case optimization_type::PARALLELIZE:
-                parallelized = true;
-                parallelized_level = optim_info.l0;
-                break;
-
-            case optimization_type::SKEWING:
-                skewed = true;
-                skewing_fact_l0 = optim_info.l0_fact;
-                skewing_fact_l1 = optim_info.l1_fact;
-                skewing_l0 = optim_info.l0;
-                skewing_l1 = optim_info.l1;
-                skew_extent_l0 = optim_info.node->up_bound -optim_info.node->low_bound;
-                assert(optim_info.node->children.size()==1); // only shared nodes are currently skewable
-                skew_extent_l1 = optim_info.node->children[0]->up_bound -optim_info.node->children[0]->low_bound;
-                break;
-            
-            case optimization_type::SKEWING_POSITIVE:
-                skewed = true;
-                skewing_fact_l0 = optim_info.l0_fact;
-                skewing_fact_l1 = optim_info.l1_fact;
-                skewing_l0 = optim_info.l0;
-                skewing_l1 = optim_info.l1;
-                skew_extent_l0 = optim_info.node->up_bound -optim_info.node->low_bound;
-                assert(optim_info.node->children.size()==1); // only shared nodes are currently skewable
-                skew_extent_l1 = optim_info.node->children[0]->up_bound -optim_info.node->children[0]->low_bound;
-                break;
-                
-            default:
-                break;
+    for(std::size_t row = 0; row < result.size(); ++row) {
+        for(std::size_t col = 0; col < result.at(0).size(); ++col) {
+            for(std::size_t inner = 0; inner < m2.size(); ++inner) {
+                result.at(row).at(col) += m1.at(row).at(inner) * m2.at(inner).at(col);
+            }
         }
     }
-    
-    // Transform the schedule to JSON
-    std::vector<dnn_iterator> iterators_list;
+    return result;
+}
+std::vector<int> get_transformation_vector_from_optimization(optimization_info opt){
+        //TODOF generalize to MAX_TAGS
+        std::vector<int> result(16);
+        assert(opt.unimodular_transformation_type != 0);
+
+        result.at(0) = opt.unimodular_transformation_type;
+        switch(opt.unimodular_transformation_type){
+            // Interchange
+            case 1:
+                result.at(1) = opt.l0;
+                result.at(2) = opt.l1;
+                break;
+
+            // Rversal
+            case 2:
+                result.at(3) = opt.l0;
+                break;
+
+            // Skewing
+            case 3:
+                result.at(4) = opt.l0;
+                result.at(5) = opt.l1;
+                result.at(6) = opt.l2;
+                result.at(7) = opt.l0_fact;
+                result.at(8) = opt.l1_fact;
+                result.at(9) = opt.l2_fact;
+                result.at(10) = opt.l3_fact;
+                result.at(11) = opt.l4_fact;
+                result.at(12) = opt.l5_fact;
+                result.at(13) = opt.l6_fact;
+                result.at(14) = opt.l7_fact;
+                result.at(15) = opt.l8_fact;
+                break;
+
+        }
+    return result;
+}
+std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
+{
     std::string sched_json = "{";
-    
-    // Set the schedule for every computation
-    // For the moment, all computations share the same schedule
+    std::vector<computation_info*> all_comps_info;
+
+    // retrieve all computation infos to get the iterators for each computation later
+    for (auto root : ast.roots){
+        root->collect_all_computation(all_comps_info);
+    }
     for (tiramisu::computation *comp : ast.computations_list)
     {
-        std::string comp_sched_json;
-        iterators_list = dnn_iterator::get_iterators_from_computation(*comp);
+        bool tiled = false;
+        bool unrolled = false;
+        bool parallelized = false;
+        bool shifted = false;
+        bool transformed_by_matrix = false;
+
+        int tile_nb_l, tile_l0, tile_l0_fact, tile_l1_fact, tile_l2_fact;
+        int unrolling_fact;
+        int parallelized_level;
+        std::vector < std::vector<int> > matrix;
+        std::vector <optimization_info > transformations;
+        std::vector<std::pair<int,int>> shiftings; //pairs of loop_level,shift_factor
+
         
-        // JSON for interchange
-        comp_sched_json += "\"interchange_dims\" : [";
-        
-        if (interchanged)
+        // Get information about the schedule
+        for (optimization_info const& optim_info : ast.get_schedule())
         {
-            comp_sched_json += "\"" + iterators_list[int_l0].name + "\", \"" + iterators_list[int_l1].name + "\"";
-            
-            dnn_iterator dnn_it = iterators_list[int_l0];
-            iterators_list[int_l0] = iterators_list[int_l1];
-            iterators_list[int_l1] = dnn_it;
+            if(std::find(optim_info.comps.begin(), optim_info.comps.end(), comp) == optim_info.comps.end()) {
+                // if the current computation isn't affected by the current optim_info
+                continue;
+            }
+            switch (optim_info.type)
+            {
+                case optimization_type::SHIFTING:
+                    shifted = true;
+                    shiftings.emplace_back(optim_info.l0,optim_info.l0_fact);
+                    break;
+                case optimization_type::TILING:
+                    tiled = true;
+                    if (optim_info.nb_l == 1)
+                    {
+                        tile_nb_l = 1;
+                        tile_l0 = optim_info.l0;
+                        tile_l0_fact = optim_info.l0_fact;
+                    }
+                    if (optim_info.nb_l == 2)
+                    {
+                        tile_nb_l = 2;
+                        tile_l0 = optim_info.l0;
+                        tile_l0_fact = optim_info.l0_fact;
+                        tile_l1_fact = optim_info.l1_fact;
+                    }
+                    
+                    else if (optim_info.nb_l == 3)
+                    {
+                        tile_nb_l = 3;
+                        tile_l0 = optim_info.l0;
+                        tile_l0_fact = optim_info.l0_fact;
+                        tile_l1_fact = optim_info.l1_fact;
+                        tile_l2_fact = optim_info.l2_fact;
+                    }
+                    break;
+
+                case optimization_type::MATRIX:
+                    transformed_by_matrix = true;
+                    if (optim_info.unimodular_transformation_type != 0){
+                        transformations.push_back(optim_info);
+                    }
+                    
+                    break;
+                    
+                case optimization_type::UNROLLING:
+                    unrolled = true;
+                    unrolling_fact = optim_info.l0_fact;
+                    break;
+
+                case optimization_type::PARALLELIZE:
+                    parallelized = true;
+                    parallelized_level = optim_info.l0;
+                    break;
+                    
+                default:
+                    break;
+            }
         }
         
-        comp_sched_json += "],";
+        // Transform the schedule to JSON
+        std::vector<dnn_iterator> iterators_list;
         
+        // Set the schedule for every computation
+        std::string comp_sched_json;
+
+        // look for the computation and assign the correct iterators list
+        for (auto comp_info : all_comps_info){
+                if(comp_info->comp_ptr == comp){
+                    iterators_list = comp_info->iters;
+                }
+        }
+        // Check if fusion was applied on this coomputation
+        for (optimization_info const& optim_info : ast.get_schedule())
+            if (optim_info.type==optimization_type::FUSION && optim_info.comps[1] == comp){
+                // Retrieve the iterators list of the computation that it was fused with
+                for (auto comp_info : all_comps_info){
+                    if(comp_info->comp_ptr == optim_info.comps[0]){
+                        // Assign the same iterators list to both computations
+                        iterators_list = comp_info->iters;
+                    }
+                }
+            }
+        assert(!iterators_list.empty() && "couldn't find the list of iterators for this computation");
+
+        comp_sched_json += "\"shiftings\" : ";
+        if (shifted){
+            comp_sched_json+= "[";
+            for (auto shifting:shiftings)
+                comp_sched_json+= "[\"" + iterators_list[std::get<0>(shifting)].name + "\","+std::to_string(std::get<1>(shifting))+"],";
+            comp_sched_json.pop_back(); //remove last comma
+            comp_sched_json += "], ";
+        }
+        else
+            comp_sched_json += "null,";
+    
         // JSON for tiling
         comp_sched_json += "\"tiling\" : {";
         
         if (tiled)
         {
-            if (tile_nb_l == 2)
+            if (tile_nb_l == 1)
+            {
+                comp_sched_json += "\"tiling_depth\" : 1,";
+                comp_sched_json += "\"tiling_dims\" : [";
+                
+                comp_sched_json += "\"" + iterators_list[tile_l0].name + "\"";
+                
+                comp_sched_json += "],";
+                
+                comp_sched_json += "\"tiling_factors\" : [";
+                
+                comp_sched_json += "\"" + std::to_string(tile_l0_fact) + "\"";
+                
+                comp_sched_json += "]";
+            }
+            else if (tile_nb_l == 2)
             {
                 comp_sched_json += "\"tiling_depth\" : 2,";
                 comp_sched_json += "\"tiling_dims\" : [";
@@ -472,7 +641,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
                 comp_sched_json += "]";
             }
         }
-        
+
         comp_sched_json += "},";
         
         // JSON for unrolling
@@ -497,87 +666,53 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
         {
             comp_sched_json += "null, ";
 
-        }
+        }    
 
-        // Skewing info
-        comp_sched_json += "\"skewing\" : ";
-        if (skewed)
+        comp_sched_json += "\"transformations_list\" : [";
+        std::vector<int> transformation_vector;
+        if (transformed_by_matrix)
         {
-            comp_sched_json += "{\"skewed_dims\" : [\""+ iterators_list[skewing_l0].name + "\", " + "\"" + iterators_list[skewing_l1].name + "\"],";
-            comp_sched_json += "\"skewing_factors\" : ["+std::to_string(skewing_fact_l0)+","+std::to_string(skewing_fact_l1)+"],";
-            comp_sched_json += "\"average_skewed_extents\" : ["+std::to_string(skew_extent_l0)+","+std::to_string(skew_extent_l1)+"], ";
+            for(int i = 0; i < transformations.size(); i++){
+                comp_sched_json += "[";
+                transformation_vector = get_transformation_vector_from_optimization(transformations.at(i));
 
-            // Adding the access matrices transformed by skewing
-
-            // get the comp_info corresponding to the current computation
-            ast_node* comp_node = ast.computations_mapping.at(comp);
-            std::vector<dnn_access_matrix> comp_accesses_list;
-            for (auto comp_i: comp_node->computations)
-            {
-                if (comp_i.comp_ptr == comp)
-                {
-                    comp_accesses_list = comp_i.accesses.accesses_list;
-                    break;
-                }
-            }
-
-            // Build JSON of the transformed accesses
-            comp_sched_json += "\"transformed_accesses\" : [";
-
-            for (int i = 0; i < comp_accesses_list.size(); ++i)
-            {
-                dnn_access_matrix const& matrix  = comp_accesses_list[i];
-                comp_sched_json += "{";
-
-                comp_sched_json += "\"buffer_id\" : " + std::to_string(matrix.buffer_id) + ",";
-                comp_sched_json += "\"access_matrix\" : [";
-
-                for (int x = 0; x < matrix.matrix.size(); ++x)
-                {
-                    comp_sched_json += "[";
-                    for (int y = 0; y < matrix.matrix[x].size(); ++y)
-                    {
-                        comp_sched_json += std::to_string(matrix.matrix[x][y]);
-                        if (y != matrix.matrix[x].size() - 1)
-                            comp_sched_json += ", ";
-                    }
-
-                    comp_sched_json += "]";
-                    if (x != matrix.matrix.size() - 1)
-                        comp_sched_json += ",";
+                for(int j = 0; j < transformation_vector.size(); j++){
+                    comp_sched_json += std::to_string(transformation_vector.at(j));
+                    if(!(j==transformation_vector.size()-1)) comp_sched_json += ", ";
                 }
 
-                comp_sched_json += "]";
-
-                comp_sched_json += "}";
-
-                if (i != comp_accesses_list.size() - 1)
-                    comp_sched_json += ",";
+                comp_sched_json += "] ";
+                if(i!=transformations.size()-1) comp_sched_json += ", ";
             }
-
-            comp_sched_json += "]}";
-
         }
-        else
-        {
-            comp_sched_json += "null";
-        }
-        
-        sched_json += "\"" + comp->get_name() + "\" : {" + comp_sched_json + "},";
+        comp_sched_json += "]";
+
+        sched_json += "\"" + comp->get_name() + "\" : {" + comp_sched_json + "}, ";
     }
-    
-    // Write JSON information about unfused iterators (not specific to a computation)
-    sched_json += "\"unfuse_iterators\" : ["; 
-    if (unfuse_l0 != -1)
-        sched_json += "\"" + iterators_list[unfuse_l0].name + "\"";
-        
-    sched_json += "],";
-    
+    bool has_fusions = false;
+    sched_json += "\"fusions\" : [";
+    for (optimization_info const& optim_info : ast.get_schedule())
+        if (optim_info.type==optimization_type::FUSION) {
+            sched_json += " [\"" + optim_info.comps[0]->get_name() + "\",\"" + optim_info.comps[1]->get_name() + "\"," +
+                          std::to_string(optim_info.l0) + "],"; //Fusion ordered with the .then semantic
+            has_fusions=true;
+        }
+    sched_json.pop_back(); //drop the last comma or '['
+    if (has_fusions)
+        sched_json +="], ";
+    else
+        sched_json += "null, ";
+
+    sched_json += "\"legacy_schedule_str\": \"" + ast.get_schedule_str() + "\", ";
+    sched_json += "\"tiralib_schedule_str\": \"" + ast.get_tiralib_schedule_str() + "\", ";
+
     // Write the structure of the tree
     sched_json += "\"tree_structure\": {";
     sched_json += ast.tree_structure_json;
-    sched_json += "}";
+    sched_json += "}, ";
     
+    sched_json += "\"legality_check\": true, ";
+    sched_json += "\"exploration_method\": 1";
     // End of JSON
     sched_json += "}\n";
     return sched_json;
@@ -587,27 +722,32 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
 
 void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, std::string& iterators_json)
 {
-    if (node->get_extent() <= 1)
+    // We skip dummy nodes
+    if (node->name.compare("dummy_iter")==0)
         return;
         
     std::string iter_json;
     
     // Represent basic information about this iterator
-    iter_json += "\"lower_bound\" : " + std::to_string(node->low_bound) + ",";
-    iter_json += "\"upper_bound\" : " + std::to_string(node->up_bound + 1) + ",";
+    iter_json += "\"lower_bound\" : \"" + node->low_bound + "\",";
+    if(check_if_number(node->up_bound)){
+        iter_json += "\"upper_bound\" : \"" + std::to_string(stoi(node->up_bound) + 1) + "\",";
+    }else{
+        iter_json += "\"upper_bound\" : \"" + node->up_bound + "+1" + "\",";
+    }
         
     iter_json += "\"parent_iterator\" : ";
     if (node->parent == nullptr)
         iter_json += "null,";
     else
-        iter_json += "\"" + node->parent->name + "\",";
+        iter_json += "\"" + node->parent->name + "\",";            
             
     iter_json += "\"child_iterators\" : [";
     bool printed_child = false;
     
     for (int i = 0; i < node->children.size(); ++i)
     {
-        if (node->children[i]->get_extent() <= 1)
+        if (node->children[i]->name.compare("dummy_iter")==0)
             continue;
             
         iter_json += "\"" + node->children[i]->name + "\",";
@@ -630,7 +770,7 @@ void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, 
     
     for (int i = 0; i < node->children.size(); ++i)
     {
-        if (node->children[i]->get_extent() > 1)
+        if (node->children[i]->name.compare("dummy_iter")!=0)
             continue;
             
         ast_node *dummy_child = node->children[i];
@@ -655,9 +795,16 @@ void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, 
 
 std::string evaluate_by_learning_model::get_tree_structure_json(syntax_tree const& ast)
 {
-    // For the moment, this only supports ASTs with one root node.
-    ast_node *node = ast.roots[0];
-    return get_tree_structure_json(node);
+    std::string roots_jsons = "\"roots\" : [";
+
+    for (ast_node *node : ast.roots)
+    {
+        roots_jsons += "{" + get_tree_structure_json(node) + "},";
+    }
+    roots_jsons.pop_back();
+    roots_jsons += "]";
+
+    return roots_jsons;
 }
 
 std::string evaluate_by_learning_model::get_tree_structure_json(ast_node *node)
@@ -675,7 +822,7 @@ std::string evaluate_by_learning_model::get_tree_structure_json(ast_node *node)
         
     for (ast_node *child : node->children)
     {
-        if (child->get_extent() > 1)
+        if (child->name.compare("dummy_iter")!=0)
             continue;
             
         for (int j = 0; j < child->computations.size(); ++j)
@@ -696,7 +843,7 @@ std::string evaluate_by_learning_model::get_tree_structure_json(ast_node *node)
     bool has_children = false;
     for (ast_node *child : node->children)
     {
-        if (child->get_extent() == 1)
+        if (child->name.compare("dummy_iter")==0)
             continue;
             
         json += "{" + get_tree_structure_json(child) + "},";
@@ -710,5 +857,222 @@ std::string evaluate_by_learning_model::get_tree_structure_json(ast_node *node)
     
     return json;
 }
+
+simplified_expr_json_exctractor::simplified_expr_json_exctractor(const tiramisu::auto_scheduler::computation_info& comp_info)
+    : comp_info(comp_info)
+{
+    // get the simplified Halide expression corresponding to the computation's expression
+    Halide::Expr halide_expr = simplify(generator::halide_expr_from_tiramisu_expr(comp_info.comp_ptr->get_function(),
+        comp_info.comp_ptr->get_index_expr(),
+        comp_info.comp_ptr->get_expr(),
+        comp_info.comp_ptr));
+    // extract the access mappings
+    get_access_str_mapping(comp_info.comp_ptr->get_expr());
+    // get the simplified expression json
+    expression_json = get_Expr_json(halide_expr);
+}
+
+std::string simplified_expr_json_exctractor::halide_Expr_to_string(const Halide::Expr& e)
+{
+    // Convert to string using ostringstream
+    std::ostringstream expr_stream;
+    expr_stream << e;
+    return  expr_stream.str();
+}
+
+
+void simplified_expr_json_exctractor::get_access_str_mapping(const tiramisu::expr& e)
+{
+
+    // If type is e_op, i.e. not a val or var
+    if (e.get_expr_type() == tiramisu::e_op)
+    {
+        // If we have an access we add its access matrix
+        if (e.get_op_type() == tiramisu::o_access ||
+            e.get_op_type() == tiramisu::o_lin_index ||
+            e.get_op_type() == tiramisu::o_address_of ||
+            e.get_op_type() == tiramisu::o_dummy ||
+            e.get_op_type() == tiramisu::o_buffer)
+        {
+            std::string key = halide_Expr_to_string(Halide::Internal::simplify(
+                generator::halide_expr_from_tiramisu_expr(comp_info.comp_ptr->get_function(),
+                                                          comp_info.comp_ptr->get_index_expr(),
+                                                          e,
+                                                          comp_info.comp_ptr)));
+            accesses_map.emplace(key,e);
+
+        }
+
+        // If we have an operation, explore its operands recursively
+        else
+            for (int i = 0; i < e.get_n_arg(); ++i)
+                get_access_str_mapping(e.get_operand(i));
+
+    }
+
+}
+
+
+std::string simplified_expr_json_exctractor::get_Expr_json(Halide::Expr e)
+{
+    assert(e.defined() && "Undefined expr\n");
+    // dispatch the right visit function
+    e.accept(this);
+    return expression_json;
+}
+
+
+void simplified_expr_json_exctractor::visit(const Halide::Internal::IntImm *op)
+{
+    expression_json = R"({"expr_type" : "val", "str" : ")" + std::to_string(op->value) +
+        R"(", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + +
+        R"(", "children":[]})";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::UIntImm *op)
+{
+    expression_json = R"({"expr_type" : "val", "str" : ")" + std::to_string(op->value) +
+        R"(", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + +
+        R"(", "children":[]})";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::FloatImm *op)
+{
+    expression_json = R"({"expr_type" : "val", "str" : ")" + std::to_string(op->value) +
+        R"(", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + +
+        R"(", "children":[]})";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Cast *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "cast", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->value) + "]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Variable *op)
+{
+    expression_json = R"({"expr_type" : "var", "str" : ")" + halide_Expr_to_string(op) +
+        R"(", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + +
+        R"(", "children":[]})";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Add *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "add", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Sub *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "sub", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Mul *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "mul", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Div *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "div", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Mod *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "mod", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Min *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "min", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Max *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "max", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::EQ *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "eq", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::NE *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "ne", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::LT *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "lt", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::LE *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "le", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::GT *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "gt", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::GE *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "ge", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::And *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "and", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Or *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "or", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "," + get_Expr_json(op->b) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Not *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "not", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->a) + "]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Select *op)
+{
+    std::string expression_json_header = R"({"expr_type" : "select", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    expression_json= expression_json_header + get_Expr_json(op->condition) + "," + get_Expr_json(op->true_value) + "," + get_Expr_json(op->false_value) +"]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::StringImm *) { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::AssertStmt *)  { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Ramp *)        { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Broadcast *)   { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::IfThenElse *)  { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Free *)        { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Store *)       { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Allocate *)    { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Evaluate *) { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Load * op)
+{
+    tiramisu::expr corresponding_expr = accesses_map[halide_Expr_to_string(Halide::Expr(op))];
+    const dnn_access_matrix* mat = comp_info.accesses.retrieve_access_matrix_by_expr(corresponding_expr);
+    expression_json = R"({"expr_type" : ")" + str_tiramisu_type_op(corresponding_expr.get_op_type()) +
+        R"(", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) +
+        R"(", "access_matrix" : )" +  mat->matrix_string +
+        R"(, "buffer_id" : ")" +  std::to_string(mat->buffer_id) +
+        R"(", "str" : ")" + corresponding_expr.to_str() +
+        R"(", "halide_str" : ")" + halide_Expr_to_string(Halide::Expr(op)) +
+        R"(", "children":[]})";
+
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Let *) { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::LetStmt *) { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::For *) { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Call *op)
+{
+    std::string expression_json_header = R"({"expr_type" : ")"+op->name+R"(", "dtype" : ")" + Halide::Internal::halide_type_to_enum_string(op->type) + R"(", "children":[)";
+    std::string expression_json_children;
+    for (const auto & arg : op->args)
+        expression_json_children+= get_Expr_json(arg) + ",";
+    expression_json_children.pop_back(); //remove the last comma
+    expression_json= expression_json_header + expression_json_children + "]}";
+}
+void simplified_expr_json_exctractor::visit(const Halide::Internal::ProducerConsumer *) { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Block *) { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Provide *) { error(); }
+void simplified_expr_json_exctractor::visit(const Halide::Internal::Realize *) { error(); }
 
 }
