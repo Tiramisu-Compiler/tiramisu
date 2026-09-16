@@ -24,8 +24,12 @@ option(ENABLE_DEBUG "Enable debug printing" FALSE)
 set(DEBUG_LEVEL 0 CACHE STRING "Debug level value")
 
 # ISL paths
-set(ISL_INCLUDE_DIRECTORY "3rdParty/isl/build/include/" CACHE PATH "Path to ISL include directory")
-set(ISL_LIB_DIRECTORY "3rdParty/isl/build/lib/" CACHE PATH "Path to ISL library directory")
+# NOTE: these must be absolute paths. CMake resolves relative CACHE PATH values
+# against the build directory (not the source root), so a bare relative path
+# here silently fails to find the vendored ISL headers/lib and falls back to
+# any ISL installed on the system, which may be an incompatible version.
+set(ISL_INCLUDE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/3rdParty/isl/build/include/" CACHE PATH "Path to ISL include directory")
+set(ISL_LIB_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/3rdParty/isl/build/lib/" CACHE PATH "Path to ISL library directory")
 
 # If USE_MPI is true, you need to the MPI_BUILD_DIR and MPI_NODES path
 # Note: This assumes you are using your own installed version of MPI. If your system already

@@ -66,10 +66,10 @@ int main(int argc, char **argv)
     C.gpu_tile(i, j, 16, 16, i0, j0, i1, j1);
 
     // Scheduling commands
-    copy_A_to_device.then(copy_B_to_device)
-                    .then(C_init)
+    copy_A_to_device.then(copy_B_to_device, computation::root)
+                    .then(C_init, computation::root)
                     .then(C, j1)  // Fuse
-                    .then(copy_C_to_host);
+                    .then(copy_C_to_host, computation::root);
 
     // -------------------------------------------------------
     // Layer III

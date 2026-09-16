@@ -39,7 +39,12 @@ echo ${PROJECT_SRC_DIR}
 # echo "#### Cloning submodules ####"
 
 echo_and_run_cmd "cd ${PROJECT_SRC_DIR}"
-echo_and_run_cmd "git submodule update --init --remote --recursive"
+# NOTE: intentionally no --remote here. --remote checks out the tip of each
+# submodule's tracked branch (e.g. Halide's master) instead of the commit
+# actually pinned by this repo, which can silently fetch a Halide version far
+# newer than the pinned LLVM release supports (e.g. requiring LLVM 21+ while
+# this script builds LLVM 13), breaking the build.
+echo_and_run_cmd "git submodule update --init --recursive"
 
 # Get LLVM installed
 if [ "$2" = "" ]; then
